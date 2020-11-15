@@ -1,0 +1,318 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+from datascience import *
+import numpy as np
+
+import matplotlib.pyplot as plt
+plt.style.use('fivethirtyeight')
+# %matplotlib inline
+
+from ipywidgets import interact, interactive, fixed, interact_manual
+import ipywidgets as widgets
+```
+
+## Properties of correlation
+
+```{python}
+hybrid = Table.read_table('http://inferentialthinking.com/notebooks/hybrid.csv')
+suv = hybrid.where('class', 'SUV')
+suv.show(3)
+```
+
+```{python}
+suv.scatter('acceleration', 'msrp')
+```
+
+```{python}
+def standard_units(any_numbers):
+    "Convert any array of numbers to standard units."
+    return (any_numbers - np.mean(any_numbers)) / np.std(any_numbers)  
+
+def standardize(t):
+    """Return a table in which all columns of t are converted to standard units."""
+    t_su = Table()
+    for label in t.labels:
+        t_su = t_su.with_column(label + ' (su)', standard_units(t.column(label)))
+    return t_su
+
+def correlation(t, x, y):
+    """Return the correlation coefficient (r) of two variables."""
+    return np.mean(standard_units(t.column(x)) * standard_units(t.column(y)))
+```
+
+```{python}
+correlation(suv, 'acceleration', 'msrp')
+```
+
+```{python}
+suv_1k = suv.with_column('msrp ($k)', suv.column('msrp')/1000)
+suv_1k.scatter('acceleration', 'msrp ($k)')
+```
+
+```{python}
+correlation(suv_1k, 'acceleration', 'msrp ($k)')
+```
+
+```{python}
+suv_1k.scatter('msrp ($k)', 'acceleration')
+```
+
+```{python}
+correlation(suv_1k, 'msrp ($k)', 'acceleration')
+```
+
+## Interpreting correlation
+
+
+Visualize, then quantify!
+
+```{python}
+ac = Table.read_table('http://inferentialthinking.com/notebooks/anscombe.csv')
+ac.show(3)
+```
+
+```{python}
+# Same everything! But...
+def stats_ac(i):
+    i = str(i)
+    x = 'x' + i
+    y = 'y' + i
+    print(x + ' mean:', np.round(np.mean(ac.column(x)), 2))
+    print(y + ' mean:', np.round(np.mean(ac.column(y)), 2))
+    print(x + ' SD:', np.round(np.std(ac.column(x)), 2))
+    print(y + ' SD:', np.round(np.std(ac.column(y)), 2))
+    print('xy' + i + ' r:', np.round(correlation(ac, 'x' + i, 'y' + i), 2))
+
+_ = interact(stats_ac, i=(1, 4))
+```
+
+```{python}
+# Clearly not the same datasets
+def scatter_ac(i):
+    ac.scatter('x' + str(i), 'y' + str(i))
+    plt.show()
+    
+_ = interact(scatter_ac, i=(1, 4))
+```
+
+```{python}
+
+```
+
+```{python}
+new_x = np.arange(-4, 4.1, 0.5)
+nonlinear = Table().with_columns(
+        'x', new_x,
+        'y', new_x**2
+    )
+nonlinear
+```
+
+```{python}
+correlation(nonlinear, 'x', 'y')
+```
+
+```{python}
+nonlinear.scatter('x', 'y', s=30, color='r')
+```
+
+```{python}
+line = Table().with_columns(
+        'x', [1, 2, 3, 4],
+        'y', [1, 2, 3, 4]
+    )
+line
+```
+
+```{python}
+correlation(line, 'x', 'y')
+```
+
+```{python}
+line.scatter('x', 'y', s=30, color='r')
+```
+
+```{python}
+outlier = Table().with_columns(
+        'x', [1, 2, 3, 4, 5],
+        'y', [1, 2, 3, 4, 0]
+    )
+outlier
+```
+
+```{python}
+outlier.scatter('x', 'y', s=30, color='r')
+```
+
+```{python}
+correlation(outlier, 'x', 'y')
+```
+
+Ecological correlations can be misleading:
+
+```{python}
+sat2014 = Table.read_table('http://inferentialthinking.com/notebooks/sat2014.csv')
+sat2014.sort('State').show(3)
+```
+
+```{python}
+sat2014.sort('Math', descending=True).show(5)
+```
+
+```{python}
+sat2014.scatter('Critical Reading', 'Math')
+```
+
+```{python}
+correlation(sat2014, 'Critical Reading', 'Math')
+```
+
+Discussion question: What could have made North Dakota so great?
+
+```{python}
+sat2014.sort('Math', descending=True).show(5)
+```
+
+```{python}
+sat2014.sort('Math', descending=False).show(5)
+```
+
+## Our First Prediction Example
+
+```{python}
+galton = Table.read_table('http://inferentialthinking.com/notebooks/galton.csv')
+heights = galton.select(3, 7).relabeled(0, 'MidParent').relabeled(1, 'Child')
+heights.show(3)
+```
+
+```{python}
+heights.scatter(0)
+```
+
+```{python}
+heights.scatter(0)
+_ = plt.plot([67.5, 67.5], [50, 85], color='red', lw=2)
+_ = plt.plot([68.5, 68.5], [50, 85], color='red', lw=2)
+_ = plt.scatter(68, 66.24, color='gold', s=40)
+```
+
+```{python}
+close_to_68 = heights.where('MidParent', are.between(67.5, 68.5))
+close_to_68.show(3)
+```
+
+```{python}
+close_to_68.column('Child').mean()
+```
+
+```{python}
+def predict_child(parent):
+    """Return a prediction of the height of a child 
+    whose parents have a midparent height of parent.
+    
+    The prediction is the average height of the children 
+    whose midparent height is in the range mpht plus or minus 0.5 inches.
+    """
+    close_points = heights.where('MidParent', are.between(parent - 0.5, parent + 0.5))
+    return close_points.column('Child').mean()                       
+```
+
+```{python}
+predict_child(68)
+```
+
+```{python}
+predict_child(74)
+```
+
+```{python}
+heights_and_predict = heights.with_column(
+    'Prediction', heights.apply(predict_child, 'MidParent')
+)
+```
+
+```{python}
+heights_and_predict.scatter(0)
+```
+
+## Linear Regression
+
+```{python}
+standardize(heights).scatter(0)
+plt.xlim(-4, 4)
+plt.ylim(-4, 4)
+plt.plot([-4, 4], [-4, 4], color='r', lw=2)
+plt.plot([2.5, 2.5], [-4, 4], color='g', lw=2)
+```
+
+```{python}
+standardize(heights).scatter(0)
+plt.xlim(-4, 4)
+plt.ylim(-4, 4)
+plt.plot([-4, 4], [-4, 4], color='r', lw=2)
+plt.plot([2.5, 2.5], [-4, 4], color='g', lw=2)
+
+r = correlation(heights, 0, 1)
+plt.plot([-4, 4], [-4*r, 4*r], color='dodgerblue', lw=2)
+```
+
+```{python}
+parent_mean = np.mean(heights.column('MidParent'))
+parent_sd = np.std(heights.column('MidParent'))
+child_mean = np.mean(heights.column('Child'))
+child_sd = np.std(heights.column('Child'))
+print('Parent: mean =', parent_mean, '; SD =', parent_sd)
+print(' Child: mean =', child_mean, '; SD =', child_sd)
+print('     r:', r)
+```
+
+```{python}
+def predict_with_r(parent):
+    """Return a prediction of the height of a child 
+    whose parents have a midparent height of mp, 
+    using linear regression.
+    """
+    parent_su = (parent - parent_mean) / parent_sd
+    child_su = r * parent_su
+    return child_su * child_sd + child_mean
+```
+
+```{python}
+predict_with_r(68)
+```
+
+```{python}
+predict_with_r(74)
+```
+
+```{python}
+predict_with_r(60)
+```
+
+```{python}
+heights_and_predict.scatter(0)
+plt.plot([64, 76], [predict_with_r(64), predict_with_r(76)], color='dodgerblue', lw=2)
+```
+
+```{python}
+heights_and_predict.with_column(
+    'Prediction with r', 
+    heights_and_predict.apply(predict_with_r, 'MidParent')).scatter(0)
+```
+
+```{python}
+
+```

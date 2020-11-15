@@ -1,0 +1,595 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+# Lab 4: Testing hypotheses
+
+Welcome to lab 4!  This lab covers the use of computer simulation, in combination with data, to answer questions about the world.  You'll answer two questions:
+1. Was a panel of jurors selected at random from the population of eligible jurors?
+2. Were murder rates in US states from 1960-2003 equally likely to go up or down each year?
+
+We'll also learn some basic ways to work with data in tables.
+
+**Note:** In the interest of time, we'll start to gloss over some of the details of the Python content that we think are less critical to learn.  In this lab, we will use, but not thoroughly explain, function definitions (like `def my_function(some_argument):`) and lists (like `["Name of a column", "Name of another column"]`).  We might come back to these topics in later labs.
+
+As usual, if you are curious or confused about something, please ask a neighbor or a TA for help.
+
+
+First, run the cell below to prepare the lab and the automatic tests.
+
+```{python}
+# Run this cell, but please don't change it.
+
+# These lines import the NumPy and datascience modules.
+import numpy as np
+# This way of importing the datascience module lets you write "Table" instead
+# of "datascience.Table".  The "*" means "import everything in the module."
+from datascience import *
+# This line loads some special functions for this lab.
+from lab_utils import *
+
+# These lines set up visualizations.
+import matplotlib
+# %matplotlib inline
+import matplotlib.pyplot as plt
+plt.style.use('fivethirtyeight')
+import warnings
+warnings.simplefilter('ignore', FutureWarning)
+
+# These lines load the tests.
+from client.api.assignment import load_assignment 
+lab04 = load_assignment('longlab04.ok')
+```
+
+# 1. Jury selection: Swain v. Alabama
+In lecture, we tested the hypothesis that a jury panel in Alameda County was a random sample from the population of Alameda.  Let's go through a similar example of jury selection bias.
+
+##### Background
+Swain v. Alabama was a US Supreme Court case decided in 1965.  A black man, Swain, was accused of raping a white woman, and had been convicted by an all-white jury.  The jury was selected from a panel that contained only 8 black people and 92 whites.  The panel was supposed to be a random sample from the eligible population of Talladega County, which was 26% black and 74% other ethnicities (and, by law, all male).
+
+Swain's lawyers argued that this reflected a bias in the jury panel selection process.  A five-justice majority of the Supreme Court disagreed, asserting that,
+
+> "The overall percentage disparity has been small and reflects no studied attempt to include or exclude a specified number of Negros."
+
+Is 8 is enough smaller than 26 to indicate bias?  This may seem like a judgement call.  Apparently five Supreme Court justices thought it was a matter of judgement.
+
+In fact, we can contradict the assertion with a computer simulation.  (However, the scarcity of computers at the time was no excuse.  Any statistician could have done this calculation by hand in 1965.)
+
+Here are the data:
+
+```{python}
+jury = Table.read_table("jury.csv")
+jury.barh('Ethnicity', ["Proportion eligible", "Proportion in panel"])
+jury
+```
+
+Imagine drawing a random sample from the population of Talladega.  Each person sampled has a 26% chance of being black.  We can simulate drawing 1 person in this way by calling this function:
+
+```{python}
+one_random_sample = random_sample_counts(jury, "Proportion eligible", 1)
+one_random_sample
+```
+
+This table is the same as `jury`, but the last column in this table contains the numbers of Black and Other people in a random sample of 1 person.  The ethnicity of the person was decided randomly: they had a 26% chance of being black.
+
+Here are some more details about the function `random_sample_counts`.  It takes 3 arguments:
+1. A table, in this case `jury`.
+2. The name of a column in that table.  That column should contain chances of different things happening, adding up to 1.  In this case these chances are the proportions of people in each category in the population we're sampling from.
+3. The size of the sample to simulate.
+
+If we repeated this many times, about 26% of the time we'd get a black person.  That's what the law of averages (or more precisely the law of large numbers) says.  Let's try that out.
+
+Below we've written code to run that simulation.  But we've written our code inside a function that we've defined ourselves!  It takes the sample size of the simulated jury panel as an argument, so we can vary the sample size without rewriting all our code.
+
+```{python}
+# This function simulates many samples of sample_size people
+# from the eligible population (as defined in the jury table).
+# It makes a histogram of the numbers of black people in
+# different simulated samples.
+def simulate_samples(sample_size):
+    # Read this function if you like, but it's rather complicated
+    # and uses several programming ideas we haven't talked about
+    # yet.  For now it's more important to understand what it does
+    # (documented above) rather than how it does it.
+    
+    num_simulations = 10000
+    
+    # We can define a function just for use inside another function!
+    # This function simulates a sample of people from the eligible
+    # population and returns the number of black people in that
+    # sample.
+    def simulated_num_black():
+        sample_counts = random_sample_counts(jury, "Proportion eligible", sample_size)
+        return sample_counts.column("Count in Random Sample").item(0)
+
+    # The function repeat repeatedly calls simulated_num_black
+    # (num_simulations times), producing an array of the results.
+    # So this is where the simulation actually happens.
+    num_blacks_in_simulations = repeat(simulated_num_black, num_simulations)
+    
+    # Make a 1-column table from that array.  We do this because we
+    # want to make a histogram of the numbers in the array, and
+    # we don't know how to do that, but we do know how to
+    # make a histogram out of a column of a table.
+    simulations_table = Table().with_column("number of black people in a random sample of " + str(sample_size), num_blacks_in_simulations)
+    
+    # This customizes the bins for different sample sizes, to make
+    # the histogram look better.
+    if sample_size <= 5:
+        bins = np.arange(-.5, sample_size + .5, .01)
+    else:
+        bins = np.linspace(0, sample_size+1, 100)
+    
+    # We can finally draw the histogram, and then the function has
+    # finished its work.
+    simulations_table.hist(bins=bins)
+```
+
+This is the first time we've seen a function definition.  Running that cell doesn't really compute anything; it just defines a *way to compute* the simulation.
+
+After you run that cell, `simulate_samples` is a function just like `abs` or `sum`.  It takes one argument, which the documentation says should be the number of people in the simulated jury panel.
+
+We'll see more about defining functions in a future lab.  For now, just read the *documentation* for the function (the comments above it), and trust that it does what it promises.
+
+```{python}
+# Now we can call our function to simulate samples of size 1.
+simulate_samples(1)
+```
+
+In each sample, there was only 1 person, so there could be only 0 or 1 black people.  The histogram shows that around 26% of the time there was 1 black person and 74% of the time there were no black people.
+
+Now let's try this with a sample of 100 people.  Now we're simulating how the jury panel in Swain's case was *supposed* to be selected, according to the law.
+
+```{python}
+panel_size = 100
+simulate_samples(panel_size)
+```
+
+This histogram shows the number of black people we expect to see in a sample of 100 from the eligible population.  Sometimes it's as low as 10 or as high as 45.  It's almost never as low as 8.  It might help to draw 8 on the histogram.  We've defined another function to do that.
+
+```{python}
+# Plot a vertical red line at spot.  You don't need to
+# read this function unless you're interested.
+def draw_red_line(spot, height, description):
+    plt.plot([spot, spot], [0, height], color="red", label=description)
+    # Draw a legend off to the right to explain the red line.
+    plt.legend(loc="center left", bbox_to_anchor=[.8, .5])
+
+# Now we'll redraw our histogram and draw a line at 8.
+simulate_samples(panel_size)
+draw_red_line(8, .1, "number of black people in\nSwain's jury panel")
+```
+
+We've demonstrated by simulation that it's extremely unlikely to see a jury panel with only 8 black people, if the panel is really randomly selected from an eligible population with 26% black people.
+
+##### What can we conclude?
+The Supreme Court opinion was factually incorrect; there is strong evidence of some kind of bias.
+
+
+# 2. Understanding violent crime
+Does instituting a death penalty for murder have a deterrent effect on murder?  Social scientists have been bringing data to bear on this question for at least 40 years, but the answer is still controversial.  This is in part because the evidence is surprisingly complex.  The final project in the Spring 2016 course had students investigate the evidence.
+
+We'll look at a small part of that project, using simulation to answer a preliminary question about the overall trend in murder rates in the US.
+
+Our data source for this section comes from a [paper](http://cjlf.org/deathpenalty/DezRubShepDeterFinal.pdf) by three researchers, Dezhbakhsh, Rubin, and Shepherd.  The dataset contains per-capita rates of various violent crimes for every year 1960-2003 (44 years) in every US state.  (Actually, the rates are per 100,000 people.)  The researchers compiled their data from the FBI's Uniform Crime Reports.
+
+The dataset is in a file in your account called `crime_rates.csv`.  Run the next cell to load it.
+
+```{python}
+murder_rates = Table.read_table('crime_rates.csv').select(['State', 'Year', 'Population', 'Murder Rate'])
+murder_rates.set_format(2, NumberFormatter)
+```
+
+# 2.1. A basic question
+Here is one basic question about this dataset:
+
+> Across each 2-year period in each state, did murder rates increase more often than they decreased?
+
+Let's define the *net number of increases* as the number of times the murder rate increased year-over-year in a state, minus the number of times it decreased.  For example, for the period 1960-1964 in Alaska, the data look like this:
+
+|State|Year|Population|Murder Rate|
+|-|-|-|-|
+|Alaska|1960|226,167|10.2|
+|Alaska|1961|234,000|11.5|
+|Alaska|1962|246,000|4.5|
+|Alaska|1963|248,000|6.5||
+
+There were 2 year-over-year increases (1960-1961 and 1962-1963) and 1 year-over-year decrease, so we'll say the net number of increases was 1.
+
+Then, we can rephrase our question as:
+
+> Is the net number of increases, totalled up across all the states, positive?
+
+This is a question about the data at hand, involving no randomness or unknowns.  We can just compute the answer with Python.
+
+This seems like a complicated task.  It's useful to break down such tasks into smaller ones, until we find something that seems manageable.
+
+### 2.1.1. Calculating the answer for 1 state
+First, we'll write down how to take an array of murder rates for a single state, in order by year, and produce the net number of increases in the murder rate for that state.  Below we've defined a function that does exactly that.
+
+```{python}
+# rates should be an array of murder rates for a single state,
+# in order by year.  This function computes the number of
+# increases over each 2-year period minus the number of
+# decreases over each 2-year period.
+def two_year_increases(rates):
+    # Don't worry about how this is computed; it uses some
+    # programming ideas we haven't covered.
+    two_year_diffs = rates[1:] - rates[:-1]
+    return np.count_nonzero(two_year_diffs > 0) - np.count_nonzero(two_year_diffs < 0)
+```
+
+### 2.1.2. Calculating the answer for many states
+Now we want to do this for each state.  More precisely, here is a recipe for computing the total number of net increases in US states over this time period:
+1. take the murder rates for each state,
+2. put them in an array (50 arrays total),
+3. call `two_year_increases` on each array (50 calls to `two_year_increases`), and
+4. sum up all 50 resulting numbers to get the total net increases in the US over the period.
+
+We could do this manually, using a method called `where` that you'll learn about soon:
+
+```{python}
+alabama_increases = two_year_increases(murder_rates.where("State", are.equal_to("Alabama")).column("Murder Rate"))
+alaska_increases = two_year_increases(murder_rates.where("State", are.equal_to("Alaska")).column("Murder Rate"))
+# We'd have to write 48 more lines here:
+...
+manual_total_net_increases = alabama_increases + alaska_increases # + ...
+```
+
+But that would involve writing 50 lines of nearly-identical code!  In computer programming, it's rarely correct to do that kind of repetitive work.  So sayeth Bill Gates:
+
+<img src="https://qph.is.quoracdn.net/main-qimg-3289068633a342369f8e9319609f5762?convert_to_webp=true"/>
+
+Instead, we can have Python do the work for us, using a method called `group`.  Here's how:
+
+```{python}
+# First, make a table with just the State and Murder Rate columns,
+# for simplicity.
+state_and_murder_rate = murder_rates.select(["State", "Murder Rate"])
+
+# Group together the 44 years for each state, then compute the
+# number of net increases for each state.
+net_increase_count_by_state = state_and_murder_rate.group("State", two_year_increases)
+```
+
+### 2.1.3. Interlude: `group`
+`group` categorizes rows in a table according to one column (like the State), and then does something with the data in each category.  It's one of the workhorse functions for working with data, so it's worth learning about.  Let's see some simpler examples and build up to the code in the previous cell.
+
+One thing `group` can do with each category is count the number of things in the category.  So we could use `group` to see how many years are covered in our `murder_rates` table for each state:
+
+```{python}
+murder_rates.group("State")
+```
+
+For each row in the table you see, the `count` column is the number of rows in `murder_rates` with that `State`.  You can see that we have 44 rows for each state.  That's one for each year (1960 to 2003), so that makes sense.
+
+**Question 2.1.3.1.** Suppose we want to know, for each year, how many states have a row in our table for that year.  (For example, do we have data for all 50 states in 1960?)  Make an appropriate table using `group` to answer that question.
+
+```{python}
+num_states_by_year = ...
+num_states_by_year
+```
+
+```{python}
+_ = lab04.grade("q2131")
+```
+
+For our hypothesis test, we want to compute the net number of increases in murder rate for each state instead of its count.  It's also possible to do that kind of thing with `group`.  For example, we can compute the highest one-year murder rate in each state over the period:
+
+```{python}
+# Pare down our table to just the State and Murder Rate columns.
+state_and_murder_rate = murder_rates.select(["State", "Murder Rate"])
+
+highest_murder_rate = state_and_murder_rate.group("State", max)
+highest_murder_rate
+```
+
+`group` puts each state's murder rates in its own array, and then calls `max` on each one to produce the maximum murder rate for that state.  Pictorially, if the original table looked like this:
+
+|State|Murder Rate|
+|-|-|
+|Alabama|8.1|
+|Alabama|9.5|
+|Alaska|7.5|
+|Alaska|8.6|
+|Alaska|8.2||
+
+Then the grouped table is computed like this:
+
+|State|Murder Rate max|
+|-|-|
+|Alabama|max([8.1, 9.5])|
+|Alaska|max([7.5, 8.6, 8.2])||
+
+...which would result in `state_and_murder_rate.group("State", max)` looking like this:
+
+|State|Murder Rate max|
+|-|-|
+|Alabama|9.5|
+|Alaska|8.6|
+
+
+**Question 2.1.3.2.** Use the `murder_rates` table to compute the total US population in each year.  The total US population in a year is just the sum of the populations of the 50 states in that year.  Run the tests for a hint.
+
+```{python}
+# For your convenience, here's a table with only the Year and Population columns:
+year_and_population = murder_rates.select(["Year", "Population"])
+
+# Fill in this line.  Use something like:
+#   year_and_population.group(...).
+total_pop_by_year = ...
+
+# We can use your table to make a plot of US population over time.
+# You don't need to edit this part.
+total_pop_by_year.plot(0, 1)
+total_pop_by_year
+```
+
+```{python}
+_ = lab04.grade("q2132")
+```
+
+Originally we were trying to understand this:
+
+    net_increase_count_by_state = state_and_murder_rate.group("State", two_year_increases)
+
+If our data were just this 5-row table:
+
+|State|Murder Rate|
+|-|-|
+|Alabama|8.1|
+|Alabama|9.5|
+|Alaska|7.5|
+|Alaska|8.6|
+|Alaska|8.2||
+
+Then the call to `group` would compute a new table like this:
+
+|State|Murder Rate max|
+|-|-|
+|Alabama|two_year_increases([8.1, 9.5])|
+|Alaska|two_year_increases([7.5, 8.6, 8.2])||
+
+...which would have this value:
+
+|State|Murder Rate max|
+|-|-|
+|Alabama|1|
+|Alaska|0|
+
+The actual code does the same thing, but there are 44 pieces of data for each state and 50 states.
+
+
+### 2.1.4. Back to murder rates
+Now we have the net increases for each state, we just add them up.  The function `np.sum` adds up the elements in an array.
+
+```{python}
+# Add together the net increases for all the states to get
+# a single number.
+total_net_increases = sum(net_increase_count_by_state.column(1))
+
+print('Total increases minus total decreases, across all states and years:', total_net_increases)
+```
+
+##### What have we learned so far?
+Okay, so the murder rate increased more often than it decreased.  But does this really say anything interesting about the underlying process according to which murder rates change?
+
+Maybe this result is actually compatible with a simple story:
+
+> Murder rates *randomly* go up or down each year in each state, like the flip of a coin.
+
+Intuitively, we're unlikely to see a lot more increases than decreases if this story is true.  But it's hard to know whether 36 qualifies as "a lot."  We'll use simulation to find out.
+
+
+## 2.2. Simulation
+In the technical language of statistics, the simple story is our *null hypothesis*.  We need to simulate what would happen if that hypothesis were true, and see if we'd be surprised to see 36 net increases.  If our data would be surprising under the simple story, that would be evidence against the simple story.
+
+The number of net increases is called our *test statistic*.  It's a simple one-number summary of our data that we'll use to check whether our data are likely under the simple story.
+
+The null hypothesis says that changes are generated randomly.  So in that story, in each state, each year the murder rate goes up with chance 1/2 and down with chance 1/2.  There are 50 states and 43 2-year periods, so there are $50 \times 43$ ($2150$) separate chances for a change.
+
+Let's simulate them and count the number of net increases!
+
+```{python}
+# Simulates the increases and decreases we'd see under the simple
+# story.  Produces the net number of increases in 1 simulation.
+def simulate_net_increases():
+    # First we make a table that gives the chances of each outcome:
+    # 1/2 for an increase, and 1/2 for a decrease.
+    changes_distribution = Table().with_column("change",      ["increase", "decrease"])\
+                                  .with_column("probability", [1/2,        1/2])
+    
+    # Now we sample 2150 times from that distribution, using the
+    # built-in method sample_from_distribution.  This results in
+    # a table that tells us how many times (out of the 2150 simulated
+    # periods) we saw an increase, and how many times we saw a
+    # decrease.
+    num_periods = 50*43
+    simulated_changes = changes_distribution.sample_from_distribution("probability", num_periods)
+    
+    # You can uncomment the next line (remove the # sign) and run
+    # this cell to see what the simulated_changes table looks like.
+    #simulated_changes.show()
+    
+    # We extract the number of increases and the number of decreases
+    # and subtract one from the other.
+    num_increases_in_simulation = simulated_changes.column("probability sample").item(0)
+    num_decreases_in_simulation = simulated_changes.column("probability sample").item(1)
+    return num_increases_in_simulation - num_decreases_in_simulation
+
+# This is a little magic to make sure that you see the same results
+# we did, just for pedagogical purposes.
+np.random.seed(1234567)
+
+# Simulate once:
+one_simulation_result = simulate_net_increases()
+
+print("In one simulation, there were", one_simulation_result, "net increases (versus", total_net_increases, "in the real data).")
+```
+
+In the simulation, we happened to see about as many net increases (30) as we did in the real data (36).  This implies the real data are consistent with the simple story, where change was random.
+
+But maybe we just got lucky.  Instead of simulating once, we should simulate many times, and see how the simulations *typically* come out.  Then we can reject our null hypothesis if the number of net increases in the real murder rate data looks really unusual.
+
+```{python}
+num_simulations = 5000
+
+# An array of 5000 net increases, each from a separate simulation
+# where the changes in murder rates where random.
+simulated_net_increases = repeat(simulate_net_increases, num_simulations)
+
+# Here we've written a function to make a histogram of the
+# simulated net increases.
+increases_bins=np.arange(-200, 200, 10)
+def display_test(null_statistics, actual_statistic):
+    # Generate a histogram of the simulated net increases.
+    Table().with_column("null test statistics", null_statistics).hist(bins=increases_bins)
+    # This function was defined earlier in the lab.  It draws
+    # a vertical red line at a spot.
+    draw_red_line(actual_statistic, .01, "what we actually observed")
+
+# Now we call the function we defined to actually draw the plot.
+display_test(simulated_net_increases, total_net_increases)
+```
+
+The plot shows that it wasn't a fluke: 36 net increases in murder rates over 2150 periods is quite consistent with the simple random story.  We shouldn't reject our null hypothesis.
+
+If you prefer to be more quantitative, we can compute a P-value.  That's the proportion of simulated results that are at least as "extreme" as 36.  Graphically, it's the proportion of stuff in the magenta regions:
+
+```{python}
+# Overlays a histogram for the values in null_statistics
+# that are larger in magnitude than actual_statistic.
+def display_extreme_region(null_statistics, actual_statistic):
+    # You don't need to read this unless you want to; it's
+    # a little complicated.
+
+    # Identify the simulated net increases that are "extreme".
+    extreme_null_statistics = Table().with_column("null stats", null_statistics).where(0, are.not_between_or_equal_to(-abs(actual_statistic), abs(actual_statistic))).column(0)
+    # Make a magenta-colored histogram of just those extreme values.
+    # The tricky bit here is rescaling the height of the histogram
+    # to match up with the height of our blue histogram.
+    bin_width = increases_bins.item(1) - increases_bins.item(0)
+    plt.hist(extreme_null_statistics, bins=increases_bins, weights=[1/(len(null_statistics)*bin_width)]*len(extreme_null_statistics), color="magenta", label="random results more extreme\nthan what we observed")
+    plt.legend(loc="center left", bbox_to_anchor=[.8, .5])
+
+# We plot the actual histogram again...
+display_test(simulated_net_increases, total_net_increases)
+# ...and then this call overlays the extreme region on it.
+display_extreme_region(simulated_net_increases, total_net_increases)
+```
+
+To actually compute this proportion, we can put our simulated net increases in a table and use a method called `where` to find how many are bigger than the observed net increases.
+
+```{python}
+# First we take our array of simulated net increases and make them
+# a column of a table with only one column.  That way we can use
+# the useful table functions to filter them.
+simulation_table = Table().with_column("simulated net increases", simulated_net_increases)
+
+# Now we find the rows where the simulated net increases weren't
+# between -36 and 36.
+more_extreme = simulation_table.where("simulated net increases", are.not_between_or_equal_to(-abs(total_net_increases), abs(total_net_increases)))
+
+# The P-value is the number of times the simulated increases
+# weren't between -36 and 36, divided by the total number of
+# simulations we ran.  simulation_table has one row per
+# simulation.
+p_value = more_extreme.num_rows / simulation_table.num_rows
+p_value
+```
+
+Once you get the hang of this, you won't need to visualize the sampling distribution and observed test statistic as we did.  Then you'd only need to write the code in this last cell to compute a P-value.
+
+
+### 2.2.1. Interlude: `where`
+To find the simulations where the net increases were extreme, we used `where`.  This kind of operation is also called "filtering."  Like `group`, it's an important part of the data analysis toolbox.  Let's spend some time to understand it.
+
+##### Filtering by state
+Suppose we want to see only the murder rate data from California.  We can use `where` to do that.  Here's how:
+
+```{python}
+murder_rates.where("State", are.equal_to("California"))
+```
+
+`where` takes 2 arguments:
+1. The name of the column that contains the data you want to filter by.  In this case, we want the rows where the state has a certain name, so we use the name of the State column.
+2. A "predicate" that tells it whether to accept or reject values in that column.  Predicates are a bit magical, but they're simple to use if you don't think about how they work.  They're all created by calling functions in a module called `are`.  In this case, we want rows where the State column's value is `"California"`.
+
+It produces a table containing only the subset of the rows in the original table where the predicate matches the value in the named column.
+
+It's helpful to translate code like this into English in your head.  In this case, put a box over `murder_rates.where("State", are.equal_to("California"))` and think of its value as:
+
+> "a table of the rows in `murder_rates` where the State is California"
+
+
+**Question 2.2.1.1.** Make a table of the data from the year 1960.
+
+```{python}
+murder_rates_1960 = ...
+murder_rates_1960
+```
+
+```{python}
+_ = lab04.grade("q2211")
+```
+
+##### Filtering multiple years with `where`
+Suppose we want only the data from the years 1971 to 1973.  We can use `where` again, with a different predicate:
+
+```{python}
+murder_rates.where("Year", are.between_or_equal_to(1971, 1973))
+```
+
+If you type
+
+    are.
+
+in a code cell and hit Tab, you'll see a full list of the available predicates.  They have pretty straightforward names.
+
+**Question 2.2.1.2.** Make a table like `murder_rates`, but containing only the rows for state-years when murder rates were above 16.5 per 100,000 per year.  Run the tests for a hint.
+
+```{python}
+high_murder_rates = ...
+high_murder_rates
+```
+
+```{python}
+_ = lab04.grade("q2212")
+```
+
+So to compute the P-value in our test, we used `where` to select the simulation results that were bigger in magnitude than 36, the actual number of net increases:
+
+    simulation_table.where(
+        "simulated net increases",
+        are.not_between_or_equal_to(-abs(total_net_increases), abs(total_net_increases)))
+
+
+## 2.3. Interpretation
+There is a long tradition of declaring that we can reject a null hypothesis with "statistical significance" if our P-value is less than 0.05, and with "high statistical significance" if it is less than 0.01.  These thresholds are historical accidents.
+
+It's better to think of the P-value as measuring the strength of the evidence in favor of the null hypothesis.  Low values indicate that the evidence goes against the null hypothesis and in favor of some alternative model of the world.
+
+If you must use a threshold and come to a yes-or-no conclusion, come up with your own threshold by considering how much evidence you'd need to reject the null hypothesis.
+
+In this case, the null hypothesis seems somewhat implausible to begin with.  Why would changes in murder rates behave in such a simple way?  So we might be comfortable "rejecting" it if we found a P-value of, say, 0.02.  But, in fact, the data are quite consistent with the null hypothesis.
+
+**Question 2.3.1.** Here are some potential conclusions we could draw from this mathematical exercise.  Which ones are valid?  Would you use different words?  Discuss with a neighbor.
+
+1. The fact that there were 36 more increases than decreases in murder rates is not strong evidence against the hypothesis that murder rates were equally likely to go up or down.
+2. The changes in murder rates over this period were probably random.
+3. There is no discernable pattern in the changes in murder rates over this period.
+4. There were as many increases as decreases in the murder rate over this period.
+5. There were more increases than decreases in the murder rate over this period.
+
+
+*Write your answer here, replacing this text.*

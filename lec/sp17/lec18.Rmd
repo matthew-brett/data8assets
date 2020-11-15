@@ -1,0 +1,237 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python deletable=TRUE, editable=TRUE}
+from datascience import *
+import numpy as np
+
+import matplotlib.pyplot as plots
+plots.style.use('fivethirtyeight')
+# %matplotlib inline
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Planes
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+N = 1020 # N = The number of z's in Shakespeare's 37 plays.
+sample_size = 30
+population = Table().with_column('Serial number', np.arange(N)+1)
+observation = population.sample(sample_size).column(0)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+observation
+```
+
+```{python deletable=TRUE, editable=TRUE}
+maxes = make_array()   # max(observations)
+doubles = make_array() # 2 * np.average(observations)
+
+for i in np.arange(1000):
+    observation = population.sample(sample_size).column(0)
+    maxes = np.append(maxes, max(observation))
+    doubles = np.append(doubles, 2 * np.average(observation))
+
+estimates = Table().with_columns(
+    'Max', maxes,
+    '2 * average', doubles
+)
+
+estimates
+```
+
+```{python deletable=TRUE, editable=TRUE}
+every_ten = np.arange(1, N+300, 10)
+estimates.hist(bins=every_ten)
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## A clever estimator
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+def clever(observation):
+    return observation.max() + np.diff(sorted(observation)).mean()
+```
+
+```{python deletable=TRUE, editable=TRUE}
+maxes = make_array()    # max(observations)
+doubles = make_array()  # 2 * np.average(observations)
+max_plus = make_array() # clever(observation)
+
+for i in np.arange(1000):
+    observation = population.sample(sample_size).column(0)
+    maxes = np.append(maxes, max(observation))
+    doubles = np.append(doubles, 2 * np.average(observation))
+    max_plus = np.append(max_plus, clever(observation))
+
+estimates = Table().with_columns(
+    'Max', maxes,
+    '2 * average', doubles,
+    'Max + a little', max_plus
+)
+
+estimates
+```
+
+```{python deletable=TRUE, editable=TRUE}
+# Bias
+
+for label in estimates.labels:
+    print('Average difference for', label, ':', (N-estimates.column(label)).mean())
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Bias & Variability
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+# Variability
+
+for label in estimates.labels:
+    print('Average absolute difference for', label, ':', np.abs(N-estimates.column(label)).mean())
+```
+
+```{python deletable=TRUE, editable=TRUE}
+observation.max() + np.diff(sorted(observation)).mean()
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Swain v Alabama
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+swain = Table().with_columns(
+    'Ethnicity', make_array('Black', 'Other'),
+    'Eligible', make_array(0.26, 0.74),
+    'Panel', make_array(0.08, 0.92)
+)
+
+swain.set_format([1, 2], PercentFormatter(0))
+```
+
+```{python deletable=TRUE, editable=TRUE}
+swain.barh(0)
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+### Total Variation Distance (TVD)
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+diff = swain.with_column('Difference', swain.column(1) - swain.column(2))
+diff
+```
+
+```{python deletable=TRUE, editable=TRUE}
+abs_diff = diff.with_column('Abs. Difference', np.abs(diff.column(3)))
+abs_diff
+```
+
+```{python deletable=TRUE, editable=TRUE}
+sum(abs_diff.column(4)) / 2
+```
+
+```{python deletable=TRUE, editable=TRUE}
+def total_variation_distance(distribution_1, distribution_2):
+    """Each distribution is an array of proportions that sums to 1."""
+    return np.abs(distribution_1 - distribution_2).sum()/2
+```
+
+```{python deletable=TRUE, editable=TRUE}
+def table_tvd(table, label_1, label_2):
+    return total_variation_distance(table.column(label_1), table.column(label_2))
+
+table_tvd(swain, 'Eligible', 'Panel')
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+### Simulating the statistics
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+swain.sample(10)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+ethnicity = swain.select(0)
+ethnicity
+```
+
+```{python deletable=TRUE, editable=TRUE}
+ethnicity.sample(10)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+population_distribution = swain.column('Eligible')
+population_distribution
+```
+
+```{python deletable=TRUE, editable=TRUE}
+ethnicity.sample(10, weights=population_distribution)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+panel_size = 100
+swain.select(0).sample(panel_size, weights=swain.column('Eligible'))
+```
+
+```{python deletable=TRUE, editable=TRUE}
+panel = swain.select(0).sample(panel_size, weights=swain.column('Eligible'))
+counts = panel.group(0)
+sample_proportions = counts.select(0).with_column('Random', counts.column(1) / sample_size)
+sample_proportions.set_format(1, PercentFormatter(0))
+```
+
+```{python deletable=TRUE, editable=TRUE}
+swain.join('Ethnicity', sample_proportions)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+def random_jury_panel():
+    panel = swain.select(0).sample(panel_size, weights=swain.column('Eligible'))
+    counts = panel.group(0)
+    sample_proportions = counts.select(0).with_column('Random', counts.column(1) / panel_size)
+    sample_proportions.set_format(1, PercentFormatter(0))
+    return swain.join('Ethnicity', sample_proportions)
+
+random_jury_panel()
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+### Repeated trials
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+# Compute the empirical distribution of TVDs
+
+tvds = make_array()
+
+for i in np.arange(1000): # Repetitions
+    new_sample = random_jury_panel()
+    tvds = np.append(tvds, table_tvd(new_sample, 'Eligible', 'Random'))
+
+results = Table().with_column('TVD between the population & a random sample', tvds)
+results
+```
+
+```{python deletable=TRUE, editable=TRUE}
+results.hist(bins=np.arange(0, 0.2, 0.01))
+```
+
+```{python}
+
+```

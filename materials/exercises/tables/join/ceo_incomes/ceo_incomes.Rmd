@@ -1,0 +1,120 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+## CEO Incomes by Sector
+
+```{python}
+# Run this cell to set up the notebook, but please don't change it.
+
+# These lines import the Numpy and Datascience modules.
+import numpy as np
+from datascience import *
+
+# These lines do some fancy plotting magic.
+import matplotlib
+# %matplotlib inline
+import matplotlib.pyplot as plt
+plt.style.use('fivethirtyeight')
+import warnings
+warnings.simplefilter('ignore', FutureWarning)
+
+# These lines load the tests.
+from client.api.assignment import load_assignment 
+tests = load_assignment('ceo_incomes.ok')
+```
+
+In this exercise, we'll look at the 2015 compensation of CEOs at the 100 largest companies in California.  These data come from a Los Angeles Times analysis [here](http://spreadsheets.latimes.com/california-ceo-compensation/), and ultimately from [filings](https://www.sec.gov/answers/proxyhtf.htm) mandated by the SEC from all publicly-traded companies.  The original dataset covers 102 CEOs, since 2 companies have 2 CEOs, but we've removed the 2 extras to avoid confusion.
+
+Additionally, we'll use a dataset [from NASDAQ](http://www.nasdaq.com/screening/company-list.aspx) that tells us information about companies.
+
+```{python}
+compensation = Table.read_table("compensation.csv")
+compensation.show(5)
+companies = Table.read_table("companies.csv")
+companies.show(5)
+```
+
+We'd like to group the CEOs by their companies' business sectors.  The `compensation` table doesn't have information about business sectors, but the `companies` table does.
+
+**Question 1.** Produce a table containing:
+
+* one row for each CEO in `compensation` whose company is listed in `companies`;
+* each column in `compensation`; and
+* each column in `companies` except "Name".
+
+Call this new table `compensation_and_company`.
+
+```{python}
+compensation_and_company = ...
+compensation_and_company
+```
+
+```{python}
+_ = tests.grade('q1')
+```
+
+Now we can use the joined data to do some analysis.
+
+**Question 2.** How many companies from each *sector* are in the `compensation` dataset?  To answer this question, create a table called `companies_per_sector` with a column called "Sector" and a column called "count".
+
+```{python}
+companies_per_sector = ...
+companies_per_sector.show()
+```
+
+```{python}
+_ = tests.grade('q2')
+```
+
+**Question 3.** Create an appropriate visualization to display the data in question 2.
+
+```{python}
+...
+```
+
+**Question 4.** Among our 100 companies, what's the average compensation of CEOs in each sector?  (Here, by "compensation" we mean total compensation, not just cash.)  Create an appropriate visualization to display this.
+
+```{python}
+...
+```
+
+**Question 5.** Among our 100 companies, what's the average *stock* compensation of CEOs in each sector? Create an appropriate visualization to display this.
+
+```{python}
+...
+```
+
+**Question 6.** Is it reasonable to conclude from this dataset that CEOs at California energy companies are highly compensated compared to CEOs of other California companies?
+
+
+*Write your answer here, replacing this text.*
+
+
+**Question 7.** Is it reasonable to conclude from this dataset that many of the largest companies in California are in the technology sector?
+
+
+*Write your answer here, replacing this text.*
+
+```{python}
+# For your convenience, you can run this cell to run all the tests at once!
+import os
+_ = [tests.grade(q[:-3]) for q in os.listdir("tests") if q.startswith('q')]
+```
+
+```{python}
+# Run this cell to submit your work *after* you have passed all of the test cells.
+# It's ok to run this cell multiple times. Only your final submission will be scored.
+
+# !TZ=America/Los_Angeles ipython nbconvert --output=".ceo_incomes_$(date +%m%d_%H%M)_submission.html" ceo_incomes.ipynb
+```

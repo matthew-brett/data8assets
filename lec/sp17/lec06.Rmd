@@ -1,0 +1,160 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+import numpy as np
+from datascience import *
+# %matplotlib inline
+```
+
+## Sort
+
+```{python}
+# This table can be found online: https://www.statcrunch.com/app/index.php?dataid=1843341
+nba = Table.read_table('http://inferentialthinking.com/notebooks/nba_salaries.csv')
+nba
+```
+
+```{python}
+nba.show(3)
+```
+
+```{python}
+sum(nba.column(3))
+```
+
+```{python}
+max(nba.column(3))
+```
+
+```{python}
+nba.sort('PLAYER').show(5)
+```
+
+```{python}
+nba.sort(3).show(5)
+```
+
+```{python}
+nba.sort(3, descending=True)
+```
+
+```{python}
+nba.sort(3, descending=True).sort(1)
+```
+
+```{python}
+help(nba.sort)
+```
+
+```{python}
+nba.sort(3, True).sort(1, distinct=True)
+```
+
+## Lists
+
+```{python}
+make_array(2, 3.0)
+```
+
+```{python}
+make_array(2, 3.0).item(0)
+```
+
+```{python}
+make_array(2, 'three')
+```
+
+```{python}
+make_array(2, 'three').item(0)
+```
+
+```{python}
+[2, 'three']
+```
+
+```{python}
+type([2, 'three'])
+```
+
+```{python}
+row = ['John DeNero', 'C', 'Berkeley Data Scientists', 0.0]
+nba.with_row(row).sort(3)
+```
+
+## Take
+
+```{python}
+nba.take(0)
+```
+
+```{python}
+nba.take([0, 1, 2])
+```
+
+```{python}
+nba.sort(3, descending=True).take([0, 1, 2])
+```
+
+```{python}
+rich = nba.sort(3, descending=True).take([0, 1, 2])
+rich.sort(2)
+```
+
+```{python}
+nba
+```
+
+```{python}
+np.arange(8, 15)
+```
+
+```{python}
+nba.take(np.arange(8, 15))
+```
+
+## Where
+
+```{python}
+salary = 3
+nba.sort(salary)
+```
+
+```{python}
+nba.where(salary, are.above(10))
+```
+
+```{python}
+nba.where(salary, are.above(10)).sort(salary)
+```
+
+```{python}
+nba.where('PLAYER', are.equal_to('Stephen Curry'))
+```
+
+```{python}
+nba.where('PLAYER', 'Stephen Curry')
+```
+
+```{python}
+nba.where('TEAM', 'Golden State Warriors')
+```
+
+```{python}
+nba.where('TEAM', are.containing('Los Angeles')).sort(salary)
+```
+
+```{python}
+nba.where(salary, are.between(3, 4))
+```

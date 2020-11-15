@@ -1,0 +1,84 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+from fractions import Fraction
+from __future__ import division
+
+def P(event, space): 
+    "The probability of an event, given a sample space of equiprobable outcomes."
+    return Fraction(len(event & space), len(space))
+```
+
+```{python}
+D = {1, 2, 3, 4, 5, 6}
+```
+
+```{python}
+even = {2, 4, 6}
+
+P(even, D)
+```
+
+```{python}
+def cross(A, B):
+    "The set of all ways of concatenating one item from the iterable 'A' with one from 'B'."
+    return {a + b 
+            for a in A for b in B}
+
+urn = cross('W', '12345678') | cross('B', '123456') | cross('R', '123456789') 
+
+urn
+```
+
+```{python}
+len(urn)
+```
+
+```{python}
+import itertools
+
+U6 = {' '.join(combo)
+      for combo in itertools.combinations(urn, 6)}
+
+len(U6)
+```
+
+```{python}
+import random
+
+random.sample(U6, 10)
+```
+
+```{python}
+from math import factorial
+
+def choose(n, c):
+    "Number of ways to choose c items from a list of n items."
+    return factorial(n) // (factorial(n - c) * factorial(c))
+```
+
+```{python}
+choose(23, 6)
+```
+
+```{python}
+red6 = {s for s in U6 if s.count('R') == 6}
+
+red6
+```
+
+```{python}
+
+```

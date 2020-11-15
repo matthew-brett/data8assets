@@ -1,0 +1,637 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+<!-- #region {"deletable": true, "editable": true} -->
+# Homework 7: Correlation, Regression, and Least Squares
+
+Please complete this notebook by filling in the cells provided. 
+
+Reading:
+- Textbook chapter [12](https://www.inferentialthinking.com/chapters/12/why-the-mean-matters.html) (for review)
+- Textbook chapter [13](https://www.inferentialthinking.com/chapters/13/prediction.html)
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+Run the cell below to prepare the notebook.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+# Run this cell to set up the notebook, but please don't change it.
+import numpy as np
+from datascience import *
+
+# These lines do some fancy plotting magic.
+import matplotlib
+# %matplotlib inline
+import matplotlib.pyplot as plt
+plt.style.use('fivethirtyeight')
+import warnings
+warnings.simplefilter('ignore', FutureWarning)
+from matplotlib import patches
+from ipywidgets import interact, interactive, fixed
+import ipywidgets as widgets
+
+# Don't change this cell; just run it. 
+from client.api.notebook import Notebook
+ok = Notebook('hw07.ok')
+ok.auth(inline=True);
+```
+
+When you are finished, run the following cell to submit your work.
+
+```{python}
+ok.submit();
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## 1. Evaluating NBA Game Predictions
+
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+#### A brief introduction to sports betting
+In a basketball game, each team scores some number of points.  Conventionally, the team playing at its own arena is called the "home team," and the other team is called the "away team."  The winner is the team with the most points.
+
+We can summarize what happened in a game by the "**outcome**", defined as the **the away team's score minus the home team's score**:
+
+$$\text{outcome} = \text{points scored by the away team} - \text{points scored by the home team}$$
+
+If this number is positive, the away team won.  If it's negative, the home team won. 
+
+Casinos in Las Vegas offer bets on the outcomes of NBA games.  One kind of bet works like this:
+
+1. The casino decides on a "spread."
+2. You can bet \$11 that the outcome will be above the spread, or \$11 that the outcome will be below the spread.
+3. After the game, you end up with \$21 if you guessed correctly, and \$0 if you guessed incorrectly.
+
+The analysts at the casino try to choose the spread so that (according to their analysis of the teams) there is a 50% chance that the outcome will be below that amount, and a 50% chance that the outcome will be above that amount.
+
+**[tl;dr](https://en.wikipedia.org/wiki/Wikipedia:Too_long;_didn%27t_read): The spread is the casino's best guess at the outcome (the away team's score minus the home team's score).**
+
+The table `spreads` contains spreads from the betting website [Covers](http://www.covers.com) from every game in the 2014 NBA season, plus actual game outcomes.  
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+spreads = Table.read_table("spreads.csv")
+spreads
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+Here's a scatter plot of the outcomes and spreads, with the spreads on the horizontal axis.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+spreads.scatter("Spread", "Outcome")
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+#### Question 1
+Why do you think that the spread and outcome are never 0 (aside from 1 case of the spread being 0)? 
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true, "manual_problem_id": "nba_1"} -->
+*Write your answer here, replacing this text.*
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+Let's investigate how well the casinos are predicting game outcomes.
+
+One question we can ask is: Is the casino's prediction correct on average? In other words, for every value of the spread, is the average outcome of games assigned that spread equal to the spread? If not, the casino would apparently be making a systematic error in its predictions.
+<!-- #endregion -->
+
+#### Question 2
+Among games with a spread around 5, from 3.5 to 6.5 (including both 3.5 and 6.5), what was the average outcome? 
+
+*Hint:* Read the [documentation for the predicate `are.between_or_equal_to`](http://data8.org/datascience/predicates.html#datascience.predicates.are.between_or_equal_to).
+
+```{python deletable=TRUE, editable=TRUE}
+spreads_around_5 = ...
+spread_5_outcome_average = ...
+print("Average outcome for spreads around 5:", spread_5_outcome_average)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+_ = ok.grade('q1_2')
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+#### Question 3
+If the average outcome for games with any given spread turned out to be exactly equal to that spread, what would the slope and intercept of the linear regression line be, in original units?
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+expected_slope_for_equal_spread = ...
+expected_intercept_for_equal_spread = ...
+```
+
+```{python deletable=TRUE, editable=TRUE}
+_ = ok.grade('q1_3')
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+#### Question 4
+Fix the `standard_units` function below.  It should take an array of numbers as its argument and return an array of those numbers in standard units.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE, for_assignment_type=student}
+def standard_units(nums):
+    """Return an array where every value in nums is converted to standard units."""
+    return nums/np.std(nums) - np.mean(nums)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+_ = ok.grade('q1_4')
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+#### Question 5
+Compute the correlation between outcomes and spreads.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+spread_r = ...
+spread_r
+```
+
+```{python deletable=TRUE, editable=TRUE}
+_ = ok.grade('q1_5')
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+#### Question 6
+Compute the slope of the least-squares linear regression line that predicts outcomes from spreads, in original units.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+spread_slope = ...
+spread_slope
+```
+
+```{python deletable=TRUE, editable=TRUE}
+_ = ok.grade('q1_6')
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+#### Question 7
+For the "best fit" line that estimates the average outcome from the spread, the slope is less than 1. Is it `True` or `False` that this fact alone tells you whether the average spread was higher than the average outcome? If you think you need more information than just the slope of the regression line to answer that question, then respond `False`. Briefly justify your answer below.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+slope_implies_average_spread_above_average_outcome = ...
+```
+
+<!-- #region {"deletable": true, "editable": true, "manual_problem_id": "nba_7"} -->
+*Write your answer here, replacing this text.*
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+_ = ok.grade('q1_7')
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## 2. Finding the Least Squares Regression Line
+
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+In this exercise, you'll work with a small invented data set.  Run the next cell to generate the dataset `d` and see a scatter plot.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+d = Table().with_columns(
+    'x', make_array(0,  1,  2,  3,  4),
+    'y', make_array(1, .5, -1,  2, -3))
+d.scatter('x')
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+
+#### Question 1 (Ungraded, but you'll need the result later)
+Running the cell below will generate sliders that control the slope and intercept of a line through the scatter plot.  When you adjust a slider, the line will move.
+
+By moving the line around, make your best guess at the least-squares regression line.  (It's okay if your line isn't exactly right, as long as it's reasonable.)
+
+**Note:** Python will probably take about a second to redraw the plot each time you adjust the slider.  We suggest clicking the place on the slider you want to try and waiting for the plot to be drawn; dragging the slider handle around will cause a long lag.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+def plot_line(slope, intercept):
+    plt.figure(figsize=(5,5))
+    
+    endpoints = make_array(-2, 7)
+    p = plt.plot(endpoints, slope*endpoints + intercept, color='orange', label='Proposed line')
+    
+    plt.scatter(d.column('x'), d.column('y'), color='blue', label='Points')
+    
+    plt.xlim(-4, 8)
+    plt.ylim(-6, 6)
+    plt.gca().set_aspect('equal', adjustable='box')
+    
+    plt.legend(bbox_to_anchor=(1.8, .8))
+
+interact(plot_line, slope=widgets.FloatSlider(min=-4, max=4, step=.1), intercept=widgets.FloatSlider(min=-4, max=4, step=.1));
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+<div class="hide">\pagebreak</div>
+
+You can probably find a reasonable-looking line by just eyeballing it.  But remember: the least-squares regression line minimizes the mean of the squared errors made by the line for each point.  Your eye might not be able to judge squared errors very well.
+
+#### A note on mean and total squared error
+Before we move on, a note is in order.
+
+It is common to think of the least-squares line as the line with the least *mean* squared error (or the square root of the mean squared error), as the textbook does.
+
+But it turns out that it doesn't matter whether you minimize the mean squared error or the *total* squared error.  You'll get the same best line in either case.
+
+That's because the total squared error is just the mean squared error multipled by the number of points (`d.num_rows`).  So if one line gets a better total squared error than another line, then it also gets a better mean squared error.  In particular, the line with the smallest total squared error is also better than every other line in terms of mean squared error.  That makes it the least squares line.
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+#### Question 2 (Ungraded, but you'll need the result later)
+The next cell produces a more useful plot.  Use it to find a line that's closer to the least-squares regression line, keeping the above note in mind.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+def plot_line_and_errors(slope, intercept):
+    plt.figure(figsize=(5,5))
+    points = make_array(-2, 7)
+    p = plt.plot(points, slope*points + intercept, color='orange', label='Proposed line')
+    ax = p[0].axes
+    
+    predicted_ys = slope*d.column('x') + intercept
+    diffs = predicted_ys - d.column('y')
+    for i in np.arange(d.num_rows):
+        x = d.column('x').item(i)
+        y = d.column('y').item(i)
+        diff = diffs.item(i)
+        
+        if diff > 0:
+            bottom_left_x = x
+            bottom_left_y = y
+        else:
+            bottom_left_x = x + diff
+            bottom_left_y = y + diff
+        
+        ax.add_patch(patches.Rectangle(make_array(bottom_left_x, bottom_left_y), abs(diff), abs(diff), color='red', alpha=.3, label=('Squared error' if i == 0 else None)))
+        plt.plot(make_array(x, x), make_array(y, y + diff), color='red', alpha=.6, label=('Error' if i == 0 else None))
+    
+    plt.scatter(d.column('x'), d.column('y'), color='blue', label='Points')
+    
+    plt.xlim(-4, 8)
+    plt.ylim(-6, 6)
+    plt.gca().set_aspect('equal', adjustable='box')
+    
+    plt.legend(bbox_to_anchor=(1.8, .8))
+
+interact(plot_line_and_errors, slope=widgets.FloatSlider(min=-4, max=4, step=.1), intercept=widgets.FloatSlider(min=-4, max=4, step=.1));
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+#### Question 3
+Describe the visual criterion you used to find a line in question 2.  (For example, a possible (but incorrect) answer is, "I tried to make the red line for the bottom-right point as small as possible.")
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true, "manual_problem_id": "least_squares_3"} -->
+*Write your answer here, replacing this text.*
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+#### Question 4
+We can say that a point influences the line by how much the line would move if the point were removed from the data set. Does the point at (3, 2) have more or less influence than any other point on the location of the line? 
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true, "manual_problem_id": "least_squares_4"} -->
+*Write your answer here, replacing this text.*
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+Now, let's have Python find this line for us.  When we use `minimize`, Python goes through a process similar to the one you might have used in question 2.
+
+But Python can't look at a plot that displays errors!  Instead, we tell it how to find the total squared error for a line with a given slope and intercept.
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+#### Question 5
+Define a function called `total_squared_error`.  It should take two numbers as arguments:
+
+1. the slope of some potential line
+2. the intercept of some potential line
+
+It should return the total squared error when we use that line to make predictions for the dataset `d`.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+def total_squared_error(slope, intercept):
+    # Hint: The staff answer computed an array called predictions
+    # and an array called errors first.
+    predictions = ...
+    errors = ...
+    ...
+```
+
+```{python deletable=TRUE, editable=TRUE}
+_ = ok.grade('q2_5')
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+#### Question 6
+What is the total squared error for the line you found by "eyeballing" the errors in Question 1?  What about Question 2, where you made a guess that was "aided" by a visualization of the squared error?  (It's okay if the error went up, but for many students, the error will go down when using the visual aid.)
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE, for_assignment_type=student, manual_problem_id=least_squares_6}
+eyeballed_error = ...
+aided_error = ...
+print("Eyeballed error:", eyeballed_error, "\nAided error:", aided_error)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+_ = ok.grade('q2_6')
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+#### Question 7
+Use `minimize` to find the actual slope and intercept of the least-squares regression line.
+
+**Note:** `minimize` will return a single array containing the slope as the first element and intercept as the second.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE, for_assignment_type=student}
+# The staff solution used 1 line of code above here.
+slope_from_minimize = ...
+intercept_from_minimize = ...
+print("Least-squares regression line: predicted_y =",
+      slope_from_minimize,
+      "* x + ",
+      intercept_from_minimize)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+_ = ok.grade('q2_7')
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+#### Question 8
+What was the total squared error for that line?
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+best_total_squared_error = ...
+best_total_squared_error
+```
+
+```{python deletable=TRUE, editable=TRUE}
+_ = ok.grade('q2_8')
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+Finally, run the following cell to plot this "best fit" line and its errors:
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+plot_line_and_errors(slope_from_minimize, intercept_from_minimize)
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## 3. Triple Jump Distances vs. Vertical Jump Heights
+
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+Does skill in one sport imply skill in a related sport?  The answer might be different for different activities.  Let us find out whether it's true for the [triple jump](https://en.wikipedia.org/wiki/Triple_jump) (an horizontal jump similar to a long jump) and the vertical jump.  Since we're learning about linear regression, we will look specifically for a *linear* association between skill in the two sports.
+
+The following data was collected by observing 40 collegiate level soccer players.  Each athlete's distance in both jump activities was measured in centimeters. Run the cell below to load the data.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+# Run this cell to load the data
+jumps = Table.read_table('triple_vertical.csv')
+jumps
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+#### Question 1
+Before running a regression, it's important to see what the data look like, because our eyes are good at picking out unusual patterns in data.  Draw a scatter plot with the triple jump distances on the horizontal axis and the vertical jump heights on vertical axis **that also shows the regression line**. 
+
+See the [documentation for `scatter`](http://data8.org/datascience/_autosummary/datascience.tables.Table.scatter.html#datascience.tables.Table.scatter) for instructions on how to have Python draw the regression line automatically.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE, manual_problem_id=jumping_1}
+...
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+**Question 2** Does the correlation coefficient `r` look closer to 0, .5, or -.5? Explain. 
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true, "manual_problem_id": "jumping_2"} -->
+*Write your answer here, replacing this text.*
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+#### Question 3
+Create a function called `regression_parameters`. It takes as its argument a table with two columns.  The first column is the x-axis, and the second column is the y-axis.  It should compute the correlation between the two columns, then compute the slope and intercept of the regression line that predicts the second column from the first, in original units (centimeters).  It should return an array with three elements: the correlation coefficient of the two columns, the slope of the regression line, and the intercept of the regression line.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE, for_assignment_type=student}
+def regression_parameters(t):
+    ...
+    # Our solution had 4 lines above this one
+    r = ...
+    slope = ...
+    intercept = ...
+    return make_array(r, slope, intercept)
+
+# When your function is finished, the next lines should
+# compute the regression line predicting vertical jump 
+# distances from triple jump distances.
+parameters = regression_parameters(jumps)
+print('r:', parameters.item(0), '; slope:', parameters.item(1), '; intercept:', parameters.item(2))
+```
+
+```{python deletable=TRUE, editable=TRUE}
+_ = ok.grade('q3_3')
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+#### Question 4
+Let's use `regression_parameters` to predict what certain athletes' vertical jump heights would be given their triple jump distances.
+
+The world record for the triple jump distance is 18.29 *meters* by Johnathan Edwards. What's our prediction for what Edwards' vertical jump would be?
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+triple_record_vert_est = ...
+print("Predicted vertical jump distance: {:f} centimeters".format(triple_record_vert_est))
+```
+
+```{python deletable=TRUE, editable=TRUE}
+_ = ok.grade('q3_4')
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+#### Question 5
+Do you expect this estimate to be accurate within a few centimeters? Why or why not?
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true, "manual_problem_id": "jumping_5"} -->
+*Write your answer here, replacing this text.*
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+## 4. The Bootstrap and The Normal Curve
+
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+In this exercise, we will explore a dataset that includes the safety inspection scores for restauraunts in the city of Austin, Texas.  We will be interested in determining the average restaurant score (out of 100) for the city from a random sample of the scores.  We'll compare two methods for computing a confidence interval for that quantity: the bootstrap resampling method, and an approximation based on the Central Limit Theorem.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+# Just run this cell.
+pop_restaurants = Table.read_table('restaurant_inspection_scores.csv').drop(5,6)
+pop_restaurants
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+#### Question 1 (Ungraded)
+Plot a histogram of the scores.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+# Write your code here.
+...
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+This is the population mean:
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+pop_mean = np.mean(pop_restaurants.column(3))
+pop_mean
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+Often it is impossible to find complete datasets like this.  Imagine we instead had access only to a random sample of 100 restaurants, called `restaurant_sample`.  That table is created below. We are interested in using this sample to estimate the population mean.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+restaurant_sample = pop_restaurants.sample(100, with_replacement=False)
+restaurant_sample
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+#### Question 2 (Ungraded)
+Plot a histogram of the **sample** scores. 
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+# Write your code here:
+...
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+This is the **sample mean**:
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+sample_mean = np.mean(restaurant_sample.column(3))
+sample_mean
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+#### Question 3
+Complete the function `bootstrap_scores` below. It should take no arguments. It should simulate drawing 5000 resamples from `restaurant_sample` and computing the mean restaurant score in each resample.  It should return an array of those 5000 resample means.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+def bootstrap_scores():
+    resampled_means = ...
+    for i in range(5000):
+        resampled_mean = ...
+        resampled_means = ...
+    ...
+
+resampled_means = bootstrap_scores()
+resampled_means
+```
+
+```{python deletable=TRUE, editable=TRUE}
+_ = ok.grade('q4_3')
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+Take a look at the histogram of the **resampled means**.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+Table().with_column('Resampled Means',resampled_means).hist()
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+#### Question 4
+Compute a 95 percent confidence interval for the average restaurant score.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE, manual_problem_id=bootstrap_4}
+lower_bound = ...
+upper_bound = ...
+print("95% confidence interval for the average restaurant score, computed by bootstrapping:\n(",lower_bound, ",", upper_bound, ")")
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+#### Question 5
+Does the distribution of the sampled scores look normally distributed? State "yes" or "no" and describe in one sentence why you should expect this result.
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true, "manual_problem_id": "bootstrap_5"} -->
+*Write your answer here, replacing this text.*
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+#### Question 6
+Does the distribution of the resampled mean scores look normally distributed? State "yes" or "no" and describe in one sentence why you should expect this result.
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true, "manual_problem_id": "bootstrap_6"} -->
+*Write your answer here, replacing this text.*
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+For the last question, you'll need to recall two facts.
+1. If a group of numbers has a normal distribution, around 95% of them lie within 2 standard deviations of their mean.
+2. The Central Limit Theorem tells us the quantitative relationship between
+    * the standard deviation of an array of numbers and
+    * the standard deviation of an array of means of samples taken from those numbers.
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+#### Question 7
+Without referencing the array `resampled_means` or performing any new simulations, calculate an interval around the `sample_mean` that covers approximately 95% of the numbers in the `resampled_means` array.  **You may use the following values to compute your result, but you should not perform additional resampling.**
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE, for_assignment_type=student, manual_problem_id=bootstrap_7}
+sample_mean = np.mean(restaurant_sample.column(3))
+sample_sd = np.std(restaurant_sample.column(3))
+resample_sizes = restaurant_sample.num_rows
+
+lower_bound_normal = ...
+upper_bound_normal = ...
+print("95% confidence interval for the average restaurant score, computed by a normal approximation:\n(",lower_bound_normal, ",", upper_bound_normal, ")")
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+This confidence interval should look very similar to the one you computed in question 5. If not, try calculating the inner 95 percent using 1.96 standard deviations instead of 2, for a more precise calculation. If they are still very different, there may be an error in your code.
+<!-- #endregion -->

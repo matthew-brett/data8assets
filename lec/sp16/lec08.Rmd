@@ -1,0 +1,225 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+# From Lecture 6
+import numpy as np
+from datascience import *
+full = Table.read_table('NC-EST2014-AGESEX-RES.csv')
+partial = full.select(['SEX', 'AGE', 8])
+census = partial.relabeled(2, 'Population')
+census.set_format([2], NumberFormatter)
+```
+
+```{python}
+males = census.where('SEX', 1)
+females = census.where('SEX', 2)
+```
+
+```{python}
+females.sort('Population', descending=True)
+```
+
+```{python}
+males.sort('Population', descending=True)
+```
+
+## Apply
+
+```{python}
+def mf(code):
+    if code == 0:
+        return 'Total'
+    elif code == 1:
+        return 'Male'
+    elif code == 2:
+        return 'Female'
+    
+mf(2)
+```
+
+```{python}
+census_mf = census.with_column('MF', census.apply(mf, 'SEX'))
+census_mf
+```
+
+```{python}
+pivoted = census_mf.pivot('MF', 'AGE', 'Population', sum)
+fraction = pivoted.with_column('Male Percentage', pivoted.column(2)/pivoted.column(3))
+fraction.set_format([1, 2, 3], NumberFormatter)
+fraction.set_format(4, PercentFormatter).show()
+```
+
+## Bikes
+
+```{python}
+# Download data (it may take minutes)
+import os
+if not os.path.exists('201508_station_data.csv'):
+    !wget https://s3.amazonaws.com/babs-open-data/babs_open_data_year_2.zip && \
+        unzip babs_open_data_year_2.zip && \
+        rm 201508_status_data.csv babs_open_data_year_2.zip
+```
+
+```{python}
+trips = Table.read_table('201508_trip_data.csv')
+trips
+```
+
+```{python}
+starts = trips.select(3)
+starts
+```
+
+## Group
+
+```{python}
+starts.group(0)
+```
+
+```{python}
+starts.group(0).sort(1, descending=True)
+```
+
+```{python}
+trips.select([3, 8])
+```
+
+```{python}
+bikes = trips.select([3, 8]).group('Bike #', list)
+bikes
+```
+
+```{python}
+bikes.row(3).item(1)
+```
+
+## Groups
+
+```{python}
+duration = trips.select([3, 6, 1])
+duration
+```
+
+```{python}
+shortest = duration.groups([0, 1], min)
+shortest
+```
+
+```{python}
+shortest.where(0, 'Civic Center BART (7th at Market)').sort(2)
+```
+
+```{python}
+stations = Table.read_table('201508_station_data.csv')
+sf = stations.where('landmark', 'San Francisco')
+Marker.map_table(sf.select(['lat', 'long', 'name']))
+```
+
+```{python}
+weather = Table.read_table('201508_weather_data.csv')
+weather
+```
+
+```{python}
+temp = weather.where('Zip', 94107).select([0, 1]).sort(1)
+temp
+```
+
+```{python}
+temp = temp.relabeled(0, 'Date').relabeled(1, 'Temp')
+temp
+```
+
+```{python}
+trips.column(2)
+```
+
+```{python}
+'8/31/2015 23:26'.split()
+```
+
+```{python}
+np.array('8/31/2015 23:26'.split()).item(0)
+```
+
+```{python}
+def day(time):
+    return np.array(time.split()).item(0)
+
+dates = trips.apply(day, 2)
+dates
+```
+
+```{python}
+trip_dates = trips.select('Start Station').with_column('Date', dates)
+trip_dates
+```
+
+```{python}
+by_date = trip_dates.group('Date').sort(1)
+by_date
+```
+
+```{python}
+by_date = by_date.relabeled(1, 'Trips')
+by_date
+```
+
+## Join
+
+```{python}
+both = by_date.join('Date', temp)
+both
+```
+
+```{python}
+np.average(both.where(both.column('Temp') < 65).column('Trips'))
+```
+
+```{python}
+np.average(both.where(both.column('Temp') >= 65).column('Trips'))
+```
+
+## Pivot
+
+```{python}
+set(weather.column(' Events'))
+```
+
+```{python}
+def raining(event):
+    if event == 'Rain' or event == 'Fog-Rain' or event == 'Rain-Thunderstorm':
+        return 'Wet'
+    else:
+        return 'Dry'
+    
+def temperature(k):
+    if k >= 65:
+        return "Hot"
+    else:
+        return "Cold"
+    
+climate = Table().with_columns([
+        'Date', weather.column(0),
+        'Rain', weather.apply(raining, ' Events'),
+        'Temp', weather.apply(temperature, 'Max TemperatureF'),
+    ])
+
+climate
+```
+
+```{python}
+by_date.join('Date', climate).pivot('Rain', 'Temp', 'Trips', np.average)
+```

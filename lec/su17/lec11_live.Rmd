@@ -1,0 +1,214 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+from datascience import *
+import numpy as np
+
+# %matplotlib inline
+import matplotlib.pyplot as plots
+plots.style.use('fivethirtyeight')
+```
+
+```{python}
+galton = Table.read_table('http://inferentialthinking.com/notebooks/galton.csv')
+galton
+```
+
+```{python}
+heights = galton.select(3, 7).relabeled(0, 'MidParent').relabeled(1, 'Child')
+heights.scatter(0)
+```
+
+```{python}
+galton.row(0)
+```
+
+```{python}
+galton.row(0).item(1)
+```
+
+```{python}
+galton.row(0).item('father')
+```
+
+```{python}
+len(galton.row(0))
+```
+
+```{python}
+first = galton.row(0)
+first
+```
+
+```{python}
+m = first.item('mother')
+f = first.item('father')
+(1.08 * m + f) / 2
+```
+
+```{python}
+m = galton.row(4).item('mother')
+f = galton.row(4).item('father')
+(1.08 * m + f) / 2
+```
+
+```{python}
+def mid_parent(m, f):
+    return (1.08 * m + f) / 2
+```
+
+```{python}
+mid_parent(galton.row(4).item('mother'), galton.row(4).item('father'))
+```
+
+```{python}
+mid_parent(75.5, 66.5)
+```
+
+```{python}
+galton
+```
+
+```{python}
+galton.take(np.arange(10)).apply(mid_parent, 'mother', 'father')
+```
+
+## Group
+
+```{python}
+all_cones = Table.read_table('http://inferentialthinking.com/notebooks/cones.csv')
+cones = all_cones.drop('Color').exclude(5)
+cones
+```
+
+```{python}
+cones.group('Flavor')
+```
+
+```{python}
+cones.group('Flavor', sum)
+```
+
+```{python}
+cones.with_column('Sugar', make_array('sam', 'sam', 'no', 'no', 'no')).group('Flavor', sum)
+```
+
+```{python}
+cones.where('Flavor', 'chocolate').column('Price').sum()
+```
+
+```{python}
+cones.where('Flavor', 'strawberry').column('Price').sum()
+```
+
+```{python}
+cones.group('Flavor', max)
+```
+
+```{python}
+cones.group('Flavor', np.mean)
+```
+
+```{python}
+nba = Table.read_table('http://inferentialthinking.com/notebooks/nba_salaries.csv').relabeled(3, 'SALARY')
+nba
+```
+
+```{python}
+nba.select('TEAM', 'SALARY').group('TEAM', sum)
+```
+
+```{python}
+(nba.select('TEAM', 'SALARY')
+ .group('TEAM', sum)
+ .sort(1, descending=True)
+ .take(np.arange(10))
+ .barh('TEAM'))
+```
+
+```{python}
+nba.group('POSITION', np.mean)
+```
+
+## Group, Mulitple Columns
+
+```{python}
+all_cones
+```
+
+```{python}
+all_cones.group(make_array('Flavor', 'Color'))
+```
+
+```{python}
+all_cones.group(make_array('Flavor', 'Color'), sum)
+```
+
+```{python}
+all_cones.group(make_array('Flavor', 'Color'), np.mean)
+```
+
+```{python}
+starters = nba.select('TEAM', 'POSITION', 'SALARY').group(make_array('TEAM', 'POSITION'), max)
+starters
+```
+
+```{python}
+(starters.drop('POSITION')
+ .group('TEAM', sum)
+ .sort(1, descending=True)
+ .take(np.arange(10))
+ .barh('TEAM'))
+```
+
+## Pivot
+
+```{python}
+all_cones
+```
+
+```{python}
+all_cones.group(make_array('Flavor', 'Color'))
+```
+
+```{python}
+all_cones.pivot('Flavor', 'Color')
+```
+
+```{python}
+all_cones.group(make_array('Flavor', 'Color'), sum)
+```
+
+```{python}
+all_cones.pivot('Flavor', 'Color', values='Price', collect=sum)
+```
+
+```{python}
+nba.pivot('POSITION', 'TEAM', values='SALARY', collect=sum)
+```
+
+```{python}
+
+```
+
+```{python}
+full_table = Table.read_table('http://inferentialthinking.com/notebooks/educ_inc.csv')
+ca_2014 = full_table.where('Year', are.equal_to('1/1/14 0:00')).where('Age', are.not_equal_to('00 to 17')).drop('Year')
+ca_2014
+```
+
+```{python}
+
+```

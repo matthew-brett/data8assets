@@ -1,0 +1,266 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python deletable=TRUE, editable=TRUE}
+from datascience import *
+import numpy as np
+
+import matplotlib.pyplot as plots
+plots.style.use('fivethirtyeight')
+# %matplotlib inline
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Linear regression
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+def standard_units(any_numbers):
+    "Convert any array of numbers to standard units."
+    return (any_numbers - np.mean(any_numbers)) / np.std(any_numbers)  
+
+def correlation(t, x, y):
+    """Return the correlation coefficient (r) of two variables."""
+    return np.mean(standard_units(t.column(x)) * standard_units(t.column(y)))
+
+def slope(t, x, y):
+    """The slope of ther regression line (original units)."""
+    r = correlation(t, x, y)
+    return r * np.std(t.column(y)) / np.std(t.column(x))
+
+def intercept(t, x, y):
+    """The intercept of the regression line (original units)."""
+    return np.mean(t.column(y)) - slope(t, x, y) * np.mean(t.column(x))
+```
+
+```{python deletable=TRUE, editable=TRUE}
+x_mean = 70
+x_sd = 10
+y_mean = 50
+y_sd = 12
+r = 0.75
+```
+
+```{python deletable=TRUE, editable=TRUE}
+((90-x_mean)/x_sd) * r * y_sd + y_mean
+```
+
+```{python deletable=TRUE, editable=TRUE}
+((60-x_mean)/x_sd) * r * y_sd + y_mean
+```
+
+```{python deletable=TRUE, editable=TRUE}
+# y = a * x + b
+a = r * y_sd / x_sd
+b = y_mean - a * x_mean
+```
+
+```{python deletable=TRUE, editable=TRUE}
+a * 90 + b
+```
+
+```{python deletable=TRUE, editable=TRUE}
+a * 60 + b
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Least squares
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+little_women = Table.read_table('little_women.csv')
+little_women = little_women.move_to_start('Periods')
+little_women.show(3)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+little_women.scatter('Periods', 'Characters')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+correlation(little_women, 'Periods', 'Characters')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+def fit(table, x, y):
+    """Return the height of the regression line at each x value."""
+    a = slope(table, x, y)
+    b = intercept(table, x, y)
+    return a * table.column(x) + b
+```
+
+```{python deletable=TRUE, editable=TRUE}
+lw_fitted = little_women.with_column('Fitted', fit(little_women, 0, 1))
+lw_fitted.scatter(0)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+sample = [[131, 14431], [231, 20558], [392, 40935], [157, 23524]]
+def lw_errors(slope, intercept):
+    print('Slope:    ', np.round(slope), 'characters per period')
+    print('Intercept:', np.round(intercept), 'characters')
+    little_women.scatter('Periods', 'Characters')
+    xlims = np.array([50, 450])
+    plots.plot(xlims, slope * xlims + intercept, lw=2)
+    for x, y in sample:
+        plots.plot([x, x], [y, slope * x + intercept], color='r', lw=2)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+lw_reg_slope = slope(little_women, 'Periods', 'Characters')
+lw_reg_intercept = intercept(little_women, 'Periods', 'Characters')
+lw_errors(lw_reg_slope, lw_reg_intercept)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+lw_errors(50, 10000)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+lw_errors(-100, 50000)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+def lw_rmse(slope, intercept):
+    lw_errors(slope, intercept)
+    x = little_women.column('Periods')
+    y = little_women.column('Characters')
+    fitted = slope * x + intercept
+    mse = np.mean((y - fitted) ** 2)
+    print("Root mean squared error:", mse ** 0.5)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+lw_rmse(50, 10000)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+lw_rmse(-100, 50000)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+lw_rmse(90, 4000)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+lw_rmse(lw_reg_slope, lw_reg_intercept)
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Numerical Optimization
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+def f(x):
+    return (x - 3) ** 2 + 1
+```
+
+```{python deletable=TRUE, editable=TRUE}
+[f(1), f(2), f(3), f(4), f(5)]
+```
+
+```{python deletable=TRUE, editable=TRUE}
+minimize(f)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+f(minimize(f))
+```
+
+```{python deletable=TRUE, editable=TRUE}
+def lw_mse(any_slope, any_intercept):
+    x = little_women.column(0)
+    y = little_women.column(1)
+    fitted = any_slope*x + any_intercept
+    return np.mean((y - fitted) ** 2)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+lw_rmse(90, 4000)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+lw_mse(90, 4000)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+lw_mse(90, 4000) ** 0.5
+```
+
+```{python deletable=TRUE, editable=TRUE}
+best = minimize(lw_mse)
+best
+```
+
+```{python deletable=TRUE, editable=TRUE}
+make_array(lw_reg_slope, lw_reg_intercept)
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Non-linear regression
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+shotput = Table.read_table('shotput.csv')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+shotput.scatter(0)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+slope(shotput, 0, 1)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+intercept(shotput, 0, 1)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+def shotput_linear_mse(any_slope, any_intercept):
+    x = shotput.column(0)
+    y = shotput.column(1)
+    fitted = any_slope*x + any_intercept
+    return np.mean((y - fitted) ** 2)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+minimize(shotput_linear_mse)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+shotput.with_column('Best Straight Line', fit(shotput, 0, 1)).scatter(0)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+def shotput_quadratic_mse(a, b, c):
+    x = shotput.column(0)
+    y = shotput.column(1)
+    fitted = a*(x**2) + b*x + c
+    return np.mean((y - fitted) ** 2)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+best = minimize(shotput_quadratic_mse)
+best
+```
+
+```{python deletable=TRUE, editable=TRUE}
+x = shotput.column(0)
+quadratic_fitted = best.item(0)*(x**2) + best.item(1)*x + best.item(2)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+shotput.with_column('Best Quadratic Curve', quadratic_fitted).scatter(0)
+```

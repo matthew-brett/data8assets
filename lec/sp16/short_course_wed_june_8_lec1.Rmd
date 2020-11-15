@@ -1,0 +1,302 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+from datascience import *
+from datascience.predicates import are
+import numpy as np
+from scipy import stats
+from scipy import misc
+
+import matplotlib
+matplotlib.use('Agg', warn=False)
+# %matplotlib inline
+import matplotlib.pyplot as plots
+plots.style.use('fivethirtyeight')
+import warnings
+warnings.simplefilter(action="ignore", category=FutureWarning)
+```
+
+```{python}
+united = Table.read_table('united.csv')
+```
+
+```{python}
+pop_mean = np.mean(united.column('Delay'))
+pop_mean
+```
+
+### Inference about a parameter
+
+The average delay among all the flights is a parameter. We know it: it's roughly 15.81 minutes. But let's suppose we didn't know it, and let's see how to develop an estimate based on a random sample.
+
+```{python}
+# Specify the sample size.
+
+sample_size = 200
+```
+
+```{python}
+# Take a random sample of that size from the population.
+
+sample1 = united.sample(sample_size)
+```
+
+```{python}
+# These are all the data that we have. 
+# We can't get any more data directly from the population.
+
+sample1
+```
+
+```{python}
+# Get ready to draw a histogram of the sampled delays;
+# these are the bins.
+
+every_ten = np.arange(-10, 301, 10)
+```
+
+```{python}
+# Histogram of the sampled delays
+
+sample1.select('Delay').hist(bins=every_ten, unit='minute')
+```
+
+```{python}
+# Useful statistic: the mean of the sample
+# This is a plausible estimate for the mean of the population,
+# because we are betting that the large random sample resembles the population.
+
+np.mean(sample1.column('Delay'))
+```
+
+### But the sample could have been different ...
+So we have to give ourselves some wiggle room in the estimate.
+
+Therefore, **our estimate will be an interval**, not just one number.
+
+To get other plausible estimates, we need other samples. But we don't have other samples; we just have one.
+
+So now what?
+
+
+### Our sample looks like the population ...
+Or at least that's a pretty good bet. Our sample is large and was drawn at random. So it should resemble the population.
+
+
+### The bootstrap: a brilliant idea
+
+Treat the *sample* as the population, and draw another sample from it!
+
+Careful about sample size. We want another sample of the *same size* as the first one; we're trying to replicate the first sample. 
+
+**The Bootstrap Method**
+
+- We'll use the sample as a proxy for the population, and draw a random sample **from the sample**.
+- The amount of sampling variability in an estimate depends on the sample size. So the new sample must have the same size as the original sample. 
+- To get a random sample of size 200 from a "population" of size 200, we'll draw at random 200 times **with replacement**.
+
+```{python}
+# You don't have to say what the sample size should be.
+# The default is to sample as many times as the number of rows of the table.
+# Perfect for the bootstrap!
+
+resample = sample1.sample(with_replacement=True)
+resample.select('Delay').hist(bins=every_ten, unit='minute')
+```
+
+### A whole lot of plausible estimates
+Each of these new samples has a mean. Each of those means is a plausible estimate of the population mean.
+
+```{python}
+# A function that computes the statistic
+
+def sample_mean(table, label):
+    return np.mean(table.column(label))
+```
+
+```{python}
+# A function that bootstraps the sample "repetitions" times
+# and computes the statistic each time
+
+def bootstrap_repetitions(original_sample, label, statistic, repetitions):
+    return np.array([statistic(original_sample.sample(with_replacement=True), label) for i in range(repetitions)])
+```
+
+```{python}
+bootstrap_repetitions(sample1, 'Delay', sample_mean, 10)
+```
+
+```{python}
+def bootstrap_empirical_distribution(original_sample, label, statistic, repetitions):
+    
+    # Call bootstrap_repetitions to replicate the statistic
+    stats = bootstrap_repetitions(original_sample, label, statistic, repetitions)
+    
+    # Draw the histogram and label the plot
+    Table().with_column('statistic', stats).hist(bins=20)
+    plots.xlabel('value of '+ statistic.__name__)
+    plots.title('Empirical Distribution ('+str(repetitions)+' samples)')
+```
+
+```{python}
+bootstrap_empirical_distribution(sample1, 'Delay', sample_mean, 2000)
+```
+
+### An interval estimate: "confidence interval for the parameter"
+
+Proposed estimate for the parameter: **the middle 95% of this distribution**
+
+```{python}
+def confidence_interval(original_sample, label, parameter, statistic, repetitions):
+    # approximate 95% boostrap confidence interval for parameter
+    
+    # Generate the boostrap replications of the statistic
+    # and collect them in a table
+    stats = bootstrap_repetitions(original_sample, label, statistic, repetitions)
+    bstrap_stats = Table().with_column('statistic', stats)
+    
+    # Draw the empirical histogram of the replicated statistics
+    bstrap_stats.select('statistic').hist(bins=15)
+    
+    # Get the endpoints of the 95% confidence interval
+    left = percentile(2.5, stats)
+    right = percentile(97.5, stats)
+    
+    # Mark the the confidence interval on the horizontal axis
+    plots.plot([left, right], [0,0], color='gold', lw=10)
+    
+    # Print values and labels
+    leftend = str(round(left, 2))
+    rightend = str(round(right, 2))
+    plots.xlabel('value of '+ statistic.__name__)
+    plots.title('Empirical Distribution ('+str(repetitions)+' samples)')
+    print('Approx 95% bootstrap confidence interval for the ' + parameter +':')
+    print(leftend + ' to ' + rightend)
+    
+```
+
+```{python}
+confidence_interval(sample1, 'Delay', 'population mean', sample_mean, 2000)
+```
+
+### The steps of the process
+
+1. Take a random sample from the population.
+2. Repeat the following over and over again:
+    - Bootstrap the sample
+    - Compute the statistic
+3. Take the middle 95% of the distribution of the statistics that you calculated.
+
+
+### Is this process any good?
+That is, how likely is it that the interval contains the parameter?
+
+Explore this by repeating the entire process over and over again (from drawing and original sample to coming up with an interval), and see how often the interval contains the parameter (which luckily we happen to know is about 15.81).
+
+```{python}
+# Repeat the entire process, repetitions times
+
+repetitions = 50
+intervals = Table(['Left', 'Right'])
+for i in range(repetitions):
+    first_sample = united.sample(sample_size)
+    means = bootstrap_repetitions(first_sample, 'Delay', sample_mean, 2000)
+    intervals.append([percentile(2.5, means), percentile(97.5, means)])
+```
+
+```{python}
+intervals
+```
+
+```{python}
+# A "good" interval is one that contains the parameter.
+# This cell gives the percent of good intervals among all intervals generated.
+
+good = np.logical_and(intervals.column('Left') < pop_mean, intervals.column('Right') > pop_mean)
+(np.count_nonzero(good)/repetitions)*100
+```
+
+About 95% of the intervals contain the parameter. This has been proved in statistical theory, and you can observe it by re-running the code above. 
+
+
+**Why does the bootstrap method work?**
+- The original random sample is large. So with high probability, the original random sample resembles the population.
+- With high probability, random samples from the original sample resemble the original sample.
+- So with high probability, random samples from the original sample resemble the population too.
+
+**Caution: The bootstrap doesn't always work.** More on that later.
+
+
+### A random sample; and this time we don't have the population
+Here is a typical problem of inference. The data below are from a random sample of mothers who delivered babies in a local hospital system. The goal is to estimate some unknown parameters in the population.
+
+```{python}
+baby = Table.read_table('baby.csv')
+```
+
+```{python}
+baby
+```
+
+### Estimating the average maternal age in the population
+
+```{python}
+# The distribution of maternal ages in the sample
+
+baby.select('Maternal Age').hist(unit='year')
+```
+
+```{python}
+confidence_interval(baby, 'Maternal Age', 'population mean', sample_mean, 10000)
+```
+
+This interval is the result of a process that gives a good answer about 95% of the time. We'll never know whether this interval is good (contains the parameter).Our confidence is in the procedure that generated the interval.
+
+Notice that the empirical distribution of the sample *mean* ages is roughly bell shaped, even though the distribution of the ages in the sample is not.
+
+
+### The population median
+We can use the same bootstrap confidence interval function to estimate the population median.
+
+```{python}
+# A new variable: birth weight relative to gestational days,
+# ounces per day
+
+bw_gd = baby.select(['Birth Weight', 'Gestational Days']).with_column(
+'BW/GD', baby.column('Birth Weight')/baby.column('Gestational Days'))
+```
+
+```{python}
+bw_gd
+```
+
+```{python}
+# The distribution of the ratio is almost bell shaped.
+
+bw_gd.select('BW/GD').hist(bins=15)
+```
+
+```{python}
+def sample_median(table, label):
+    return np.median(table.column(label))
+```
+
+```{python}
+confidence_interval(bw_gd, 'BW/GD', 'population median', sample_median, 10000)
+```
+
+```{python}
+
+```

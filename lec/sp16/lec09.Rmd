@@ -1,0 +1,215 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+import numpy as np
+from datascience import *
+np.set_printoptions(threshold=50, linewidth=50)
+```
+
+## Bikes (Review)
+
+```{python}
+# Download data (it may take minutes)
+import os
+if not os.path.exists('201508_station_data.csv'):
+    !wget https://s3.amazonaws.com/babs-open-data/babs_open_data_year_2.zip && \
+        unzip babs_open_data_year_2.zip && \
+        rm 201508_status_data.csv babs_open_data_year_2.zip
+```
+
+```{python}
+# Lecture 8
+trips = Table.read_table('201508_trip_data.csv')
+trips
+```
+
+```{python}
+weather = Table.read_table('201508_weather_data.csv')
+temp = weather.where('Zip', 94107).select([0, 1]).sort(1).relabeled(0, 'Date').relabeled(1, 'Temp')
+temp
+```
+
+```{python}
+def day(time):
+    return np.array(time.split()).item(0)
+
+day('8/31/2015 23:26')
+```
+
+```{python}
+dates = trips.apply(day, 2)
+dates
+```
+
+```{python}
+trip_dates = trips.select('Start Station').with_column('Date', dates)
+trip_dates
+```
+
+```{python}
+by_date = trip_dates.group('Date').sort(1).relabeled(1, 'Trips')
+by_date
+```
+
+## Join
+
+```{python}
+both = by_date.join('Date', temp)
+both
+```
+
+#### Discussion Question
+
+```{python}
+np.average(both.where(both.column('Temp') < 65).column('Trips'))
+```
+
+```{python}
+np.average(both.where(both.column('Temp') >= 65).column('Trips'))
+```
+
+## Pivot
+
+```{python}
+set(weather.column(' Events'))
+```
+
+```{python}
+def moisture(event):
+    if event == 'Rain' or event == 'Fog-Rain' or event == 'Rain-Thunderstorm':
+        return 'Wet'
+    elif event == 'Fog':
+        return 'Moist'
+    else:
+        return 'Dry'
+    
+def temperature(k):
+    if k >= 65:
+        return "Hot"
+    else:
+        return "Cold"
+    
+climate = Table().with_columns([
+        'Date',  weather.column(0),
+        'Water', weather.apply(moisture, ' Events'),
+        'Temp',  weather.apply(temperature, 'Max TemperatureF'),
+    ])
+
+climate
+```
+
+```{python}
+days = by_date.join('Date', climate)
+days
+```
+
+```{python}
+days.select([3, 1]).group(0, np.average)
+```
+
+```{python}
+days.groups(['Water', 'Temp'])
+```
+
+```{python}
+days.pivot('Water', 'Temp')
+```
+
+```{python}
+days.pivot('Water', 'Temp', 'Trips', np.average)
+```
+
+## Charts
+
+```{python}
+days.select([3, 1]).group(0, np.average).barh('Temp')
+```
+
+```{python}
+days.pivot('Water', 'Temp', 'Trips', np.average).barh('Temp')
+```
+
+```{python}
+# Download data
+import os
+if not os.path.exists('kaiser_ethnicity_everyone.csv'):
+    !wget https://raw.githubusercontent.com/data-8/textbook/gh-pages/notebooks/kaiser_ethnicity_everyone.csv
+    !wget https://raw.githubusercontent.com/data-8/textbook/gh-pages/notebooks/kaiser_ethnicity_children.csv
+```
+
+```{python}
+# Configure notebook (happens automatically on data8.berkeley.edu)
+# %matplotlib inline
+import matplotlib.pyplot as plt
+plt.style.use('fivethirtyeight')
+```
+
+```{python}
+everyone = Table.read_table('kaiser_ethnicity_everyone.csv')
+children = Table.read_table('kaiser_ethnicity_children.csv')
+children.set_format(2, NumberFormatter)
+everyone.set_format(2, NumberFormatter)
+```
+
+```{python}
+everyone.where('State', 'California')
+```
+
+```{python}
+everyone.where('State', 'California').barh('Race/Ethnicity', 'Population')
+```
+
+```{python}
+children.where('State', 'California')
+```
+
+```{python}
+children.where('State', 'California').barh(1, 2)
+```
+
+```{python}
+totals = everyone.join('State', everyone.where(1, 'Total').relabeled('Population', 'State Total')).drop(3)
+totals
+```
+
+```{python}
+proportions = everyone.select([0, 1]).with_column('Proportion', totals.column(2)/totals.column(3))
+proportions.set_format(2, PercentFormatter)
+```
+
+```{python}
+children_proportions = children.select([0, 1]).with_column(
+    'Children Proportion', children.column(2) / children.join('State', children.where(1, 'Total')).column(4))
+children_proportions.set_format(2, PercentFormatter)
+```
+
+```{python}
+def compare(state):
+    prop_for_state = proportions.where('State', state).drop(0)
+    children_prop_for_state = children_proportions.where('State', state).drop(0)
+    joined = prop_for_state.join('Race/Ethnicity', children_prop_for_state)
+    joined.set_format([1, 2], PercentFormatter)
+    return joined.sort('Proportion')
+
+compare('California')
+```
+
+```{python}
+compare('California').barh('Race/Ethnicity')
+```
+
+```{python}
+compare('Minnesota').barh('Race/Ethnicity')
+```

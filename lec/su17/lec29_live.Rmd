@@ -1,0 +1,157 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+from datascience import *
+import numpy as np
+
+import matplotlib.pyplot as plt
+plt.style.use('fivethirtyeight')
+# %matplotlib inline
+
+from ipywidgets import interact, interactive, fixed, interact_manual
+import ipywidgets as widgets
+```
+
+## Discussion
+
+```{python}
+0.975 ** 100
+```
+
+## More Confidence Intervals and Sample Size
+
+```{python}
+sf = Table.read_table('http://inferentialthinking.com/notebooks/san_francisco_2015.csv').select(3, 11, 21)
+sf.set_format(2, NumberFormatter(0))
+sf = sf.where(2, are.above(10000))
+sf.show(3)
+```
+
+```{python}
+comp_bins = np.arange(0, 700000, 25000)
+sf.hist(2, bins=comp_bins, unit='dollar')
+```
+
+```{python}
+def bootstrap_mean(sample_from_population, label, repetitions):
+    resampled_means = []
+    for i in np.arange(repetitions):
+        resample = sample_from_population.sample()
+        mean = np.mean(resample.column(label))
+        resampled_means.append(mean)
+    return resampled_means
+
+def bootstrap_ci_mean(sample_from_population, label, repetitions):
+    resampled_means = bootstrap_mean(sample_from_population, label, repetitions)
+    
+    interval_95 = make_array(
+        percentile(2.5, resampled_means),
+        percentile(97.5, resampled_means)
+    )
+    
+    Table().with_column('Resampled mean', resampled_means).hist(0)
+    plt.plot(interval_95, [0, 0], color='gold', lw=8)
+    print('Approximate 95% Bootstrap Confidence Interval for Population Mean:')
+    print(np.round(interval_95, 3))
+```
+
+```{python}
+sf_sample = sf.sample(200)
+sf_sample.show(3)
+```
+
+```{python}
+bootstrap_ci_mean(sf_sample, 'Total Compensation', 1000)
+```
+
+```{python}
+122609.638 - 105077.941
+```
+
+```{python}
+sf_sample = sf.sample(800)
+bootstrap_ci_mean(sf_sample, 'Total Compensation', 1000)
+```
+
+```{python}
+113044.545 - 104834.732
+```
+
+## Experiment Design
+
+```{python}
+votes = [1, 1, 1, 1, 1, 0, 0, 0, 0, 0]
+np.std(votes)
+```
+
+```{python}
+total_voters=10
+
+def sd_voters(n_voters_for_a):
+    votes = np.append(np.ones(n_voters_for_a), np.zeros(total_voters - n_voters_for_a))
+    print(votes)
+    return np.std(votes)
+
+sd_voters(6)
+```
+
+```{python}
+_ = interact(sd_voters, n_voters_for_a=(0, 10))
+```
+
+```{python}
+worst_sd_pop = 0.5
+width_in_sds = 4
+desired_width = 0.03
+(width_in_sds * (worst_sd_pop / desired_width)) ** 2
+```
+
+### Conducting the experiment
+
+```{python}
+voters.labels
+```
+
+```{python}
+voters.select(0)
+```
+
+```{python}
+observed_sample = voters.select(0).sample(1000, weights=voters.column('Chance'))
+observed_sample.show(3)
+```
+
+```{python}
+n = 4445
+observed_sample = voters.select(0).sample(n, weights=voters.column('Chance'))
+
+means = []
+for i in np.arange(1000):
+    resample = observed_sample.sample()
+    means.append(np.count_nonzero(resample.column(0) == 'A') / n)
+print(percentile(2.5, means), percentile(97.5, means))
+```
+
+```{python}
+0.625421822272216 - 0.597525309336333
+```
+
+```{python}
+voters
+```
+
+```{python}
+
+```

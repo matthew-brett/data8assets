@@ -1,0 +1,394 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+<!-- #region {"deletable": true, "editable": true} -->
+# Lab 5: Randomization
+
+Welcome to lab 5! This week, we will go over conditionals and iteration, and introduce the concept of randomness. All of this material is covered in [Chapter 8](https://www.inferentialthinking.com/chapters/08/randomness.html) of the textbook. 
+
+First, set up the tests and imports by running the cell below.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+import numpy as np
+from datascience import *
+
+# These lines load the tests. 
+from client.api.notebook import Notebook
+ok = Notebook('lab05.ok')
+_ = ok.auth(inline=True)
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## 1. Nachos and Conditionals
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+In Python, Boolean values can either be `True` or `False`. We get Boolean values when using comparison operators, among which are `<` (less than), `>` (greater than), and `==` (equal to). For a complete list, refer to [Booleans and Comparison](https://www.inferentialthinking.com/chapters/08/randomness.html#Booleans-and-Comparison) at the start of Chapter 8.
+
+Run the cell below to see an example of a comparison operator in action.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+3 > 1 + 1
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+We can even assign the result of a comparison operation to a variable.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+result = 10 / 2 == 5
+result
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+Arrays are compatible with comparison operators. The output is an array of boolean values.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+make_array(1, 5, 7, 8, 3, -1) > 3
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+Waiting on the dining table just for you is a hot bowl of nachos! Let's say that whenever you take a nacho, it will have cheese, salsa, both, or neither (just a plain tortilla chip). 
+
+Using the function call `np.random.choice(array_name)`, let's simulate taking nachos from the bowl at random. Start by running the cell below several times, and observe how the results change.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+nachos = make_array('cheese', 'salsa', 'both', 'neither')
+np.random.choice(nachos)
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+**Question 1.** Assume we took ten nachos at random, and stored the results in an array called `ten_nachos`. Find the number of nachos with only cheese using code (do not hardcode the answer).  
+
+*Hint:* Our solution involves a comparison operator and the `np.count_nonzero` method.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+ten_nachos = make_array('neither', 'cheese', 'both', 'both', 'cheese', 'salsa', 'both', 'neither', 'cheese', 'both')
+number_cheese = ...
+number_cheese
+```
+
+```{python deletable=TRUE, editable=TRUE}
+_ = ok.grade('q1_1')
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+**Conditional Statements**
+
+A conditional statement is made up of many lines that allow Python to choose from different alternatives based on whether some condition is true.
+
+Here is a basic example.
+
+```
+def sign(x):
+    if x > 0:
+        return 'Positive'
+```
+
+How the function works is if the input `x` is greater than `0`, we get the string `'Positive'` back.
+
+If we want to test multiple conditions at once, we use the following general format.
+
+```
+if <if expression>:
+    <if body>
+elif <elif expression 0>:
+    <elif body 0>
+elif <elif expression 1>:
+    <elif body 1>
+...
+else:
+    <else body>
+```
+
+Only one of the bodies will ever be executed. Each `if` and `elif` expression is evaluated and considered in order, starting at the top. As soon as a true value is found, the corresponding body is executed, and the rest of the expression is skipped. If none of the `if` or `elif` expressions are true, then the `else body` is executed. For more examples and explanation, refer to [Section 8.1](https://www.inferentialthinking.com/chapters/08/1/conditional-statements.html).
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+**Question 2.** Complete the following conditional statement so that the string `'More please'` is assigned to `say_please` if the number of nachos with cheese in `ten_nachos` is less than `5`.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE, for_assignment_type=student}
+say_please = '?'
+
+if ...
+    say_please = 'More please'
+    
+say_please
+```
+
+```{python deletable=TRUE, editable=TRUE}
+_ = ok.grade('q1_2')
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+**Question 3.** Write a function called `nacho_reaction` that returns a string based on the type of nacho passed in. From top to bottom, the conditions should correspond to: `'cheese'`, `'salsa'`, `'both'`, `'neither'`.  
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE, for_assignment_type=student}
+def nacho_reaction(nacho):
+    if ...:
+        return 'Cheesy!'
+    # next condition should return 'Spicy!'
+    ...
+    # next condition should return 'Wow!'
+    ...
+    # next condition should return 'Meh.'
+    ...
+
+spicy_nacho = nacho_reaction('salsa')
+spicy_nacho
+```
+
+```{python deletable=TRUE, editable=TRUE}
+_ = ok.grade('q1_3')
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+**Question 4.** Add a column `'Reactions'` to the table `ten_nachos_reactions` that consists of reactions for each of the nachos in `ten_nachos`. 
+
+*Hint:* Use the `apply` method. 
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE, for_assignment_type=student}
+ten_nachos_reactions = Table().with_column('Nachos', ten_nachos)
+...
+ten_nachos_reactions
+```
+
+```{python deletable=TRUE, editable=TRUE}
+_ = ok.grade('q1_4')
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+**Question 5.** Using code, find the number of `'Wow!'` reactions for the nachos in `ten_nachos_reactions`.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+number_wow_reactions = ...
+number_wow_reactions
+```
+
+```{python deletable=TRUE, editable=TRUE}
+_ = ok.grade('q1_5')
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+**Question 6:** Change just the comparison operators from `==` to some other operators so that `should_be_true` is `True`.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE, for_assignment_type=student}
+should_be_true = number_cheese == number_wow_reactions == np.count_nonzero(ten_nachos == 'neither')
+should_be_true
+```
+
+```{python deletable=TRUE, editable=TRUE}
+_ = ok.grade('q1_6')
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+**Question 7.** Complete the function `both_or_neither`, which takes in a table of nachos with reactions (just like the one from Question 4) and returns `'Wow!'` if there are more nachos with both cheese and salsa, or `'Meh.'` if there are more nachos with neither. If there are an equal number of each, return `'Okay!'`.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE, for_assignment_type=student}
+def both_or_neither(nacho_table):
+    reactions = ...
+    number_wow_reactions = ...
+    number_meh_reactions = ...
+    if ...:
+        return 'Wow!'
+    # next condition should return 'Meh.'
+    ...
+    # next condition should return 'Okay!'
+    ...
+
+many_nachos = Table().with_column('Nachos', np.random.choice(nachos, 250))
+many_nachos = many_nachos.with_column('Reactions', many_nachos.apply(nacho_reaction, 'Nachos'))
+result = both_or_neither(many_nachos)
+result
+```
+
+```{python deletable=TRUE, editable=TRUE}
+_ = ok.grade('q1_7')
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## 2. Iteration
+Using a `for` statement, we can perform a task multiple times. This is known as iteration. Here, we'll simulate drawing different suits from a deck of cards. 
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+suits = make_array("♤", "♡", "♢", "♧")
+
+draws = make_array()
+
+repetitions = 6
+
+for i in np.arange(repetitions):
+    draws = np.append(draws, np.random.choice(suits))
+
+draws
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+Another use of iteration is to loop through a set of values. For instance, we can print out all of the colors of the rainbow.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+rainbow = make_array("red", "orange", "yellow", "green", "blue", "indigo", "violet")
+
+for color in rainbow:
+    print(color)
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+We can see that the indented part of the `for` loop, known as the body, is executed once for each item in `rainbow`. Note that the name `color` is arbitrary; we could easily have named it something else.
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+**Question 1.** Clay is playing darts. His dartboard contains ten equal-sized zones with point values from 1 to 10. Write code that simulates his total score after 1000 dart tosses.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE, for_assignment_type=student}
+possible_point_values = ...
+tosses = 1000
+
+total_score = ...
+
+total_score
+```
+
+```{python deletable=TRUE, editable=TRUE}
+_ = ok.grade('q2_1')
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+**Question 2.** What is the average point value of a dart thrown by Clay?
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+average_score = ...
+average_score
+```
+
+```{python deletable=TRUE, editable=TRUE}
+_ = ok.grade('q2_2')
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+**Question 3.** In the following cell, we've loaded the text of _Pride and Prejudice_ by Jane Austen, split it into individual words, and stored these words in an array. Using a `for` loop, assign `longer_than_five` to the number of words in the novel that are more than 5 letters long.
+
+*Hint*: You can find the number of letters in a word with the `len` function.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE, for_assignment_type=student}
+austen_string = open('Austen_PrideAndPrejudice.txt', encoding='utf-8').read()
+p_and_p_words = np.array(austen_string.split())
+
+longer_than_five = ...
+        
+longer_than_five
+```
+
+```{python deletable=TRUE, editable=TRUE}
+_ = ok.grade('q2_3')
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+**Question 4.** Using simulation with 10,000 trials, assign `chance_of_all_different` to an estimate of the chance that if you pick three words from Pride and Prejudice uniformly at random (with replacement), they all have different lengths.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE, for_assignment_type=student}
+trials = 10000
+
+chance_of_all_different = ...
+
+chance_of_all_different
+```
+
+```{python deletable=TRUE, editable=TRUE}
+_ = ok.grade('q2_4')
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## 3. Finding Probabilities
+After a long day of class, Clay decides to go to Crossroads for dinner. Today's menu has Clay's four favorite foods: enchiladas, hamburgers, pizza, and spaghetti. However, each dish has a 30% chance of running out before Clay can get to Crossroads.
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+**Question 1.** What is the probability that Clay will be able to eat pizza at Crossroads?
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+pizza_prob = ...
+```
+
+```{python deletable=TRUE, editable=TRUE}
+_ = ok.grade('q3_1')
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+**Question 2.** What is the probability that Clay will be able to eat all four of these foods at Crossroads?
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+all_prob = ...
+```
+
+```{python deletable=TRUE, editable=TRUE}
+_ = ok.grade('q3_2')
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+**Question 3.** What is the probability that Crossroads will have run out of something before Clay can get there?
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+something_is_out = ...
+```
+
+```{python deletable=TRUE, editable=TRUE}
+_ = ok.grade('q3_3')
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+To make up for their unpredictable food supply, Crossroads decides to hold a contest for some free Cal Dining swag. There is a bag with two red marbles, two green marbles, and two blue marbles. Clay has to draw three marbles separately. In order to win, all three of these marbles must be of different colors.
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+**Question 4.** What is the probability of Clay winning the contest?
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+winning_prob = ...
+```
+
+```{python deletable=TRUE, editable=TRUE}
+_ = ok.grade('q3_4')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+# For your convenience, you can run this cell to run all the tests at once!
+import os
+_ = [ok.grade(q[:-3]) for q in os.listdir("tests") if q.startswith('q')]
+```
+
+```{python deletable=TRUE, editable=TRUE}
+_ = ok.submit()
+```

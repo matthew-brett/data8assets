@@ -1,0 +1,96 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+## Causes of Death in California
+
+```{python}
+# Run this cell to set up the notebook, but please don't change it.
+
+# These lines import the Numpy and Datascience modules.
+import numpy as np
+from datascience import *
+
+# These lines do some fancy plotting magic.
+import matplotlib
+# %matplotlib inline
+import matplotlib.pyplot as plt
+plt.style.use('fivethirtyeight')
+import warnings
+warnings.simplefilter('ignore', FutureWarning)
+
+# These lines load the tests.
+from client.api.assignment import load_assignment 
+tests = load_assignment('causes_of_death.ok')
+```
+
+This exercise is designed to give you practice using the Table method `group`.
+
+We'll be looking at a dataset from the California Department of Public Health (available [here](http://www.healthdata.gov/dataset/leading-causes-death-zip-code-1999-2013) and described [here](http://www.cdph.ca.gov/data/statistics/Pages/DeathProfilesbyZIPCode.aspx)) that records the cause of death (as recorded on a death certificate) for everyone who died in California from 1999 to 2013.  The data are in the file `causes_of_death.csv.zip`.  Each row records the number of deaths by one cause in one year in one ZIP code.
+
+To make the file smaller, we've compressed it; run the next cell to unzip and load it.
+
+```{python}
+# !unzip -o causes_of_death.csv.zip
+causes = Table.read_table('causes_of_death.csv')
+causes
+```
+
+The causes of death in the data are abbreviated.  If you want to know what the abbreviations mean, we've provided a table called `abbreviations.csv`.
+
+
+**Question 1.** Find the top 5 causes of death in California over the entire period covered by the data.  To do that, create a table with one row for each of the top 5 causes of death, a column called "Cause of Death", and a column called "Count" that records the total number of deaths due to that cause.  Sort it in descending order by count, and call it `top_5_causes`.
+
+```{python for_assignment_type=student}
+# Use this cell to find the top 5 causes of death.
+```
+
+```{python}
+_ = tests.grade('q1')
+```
+
+**Question 2.** Create a bar chart that displays the *proportion of all deaths* by each cause.
+
+```{python for_assignment_type=student}
+# Use this cell to make your plot.
+```
+
+**Question 3.** Create a plot of the total number of deaths per year in California.
+
+*Hint:* Use the Table method `plot`.  The first argument is the name or index of the column to put on the horizontal axis.
+
+```{python}
+...
+
+# This line will make the vertical axis start at 0.  You can remove
+# it if you want to see the default plot, which is more zoomed-in.
+plt.ylim(0, 300000)
+```
+
+**Question 4.** You should see that deaths have increased a little over time, though not uniformly.  How would you explain that?  Describe a dataset you'd like to see to test whether your explanation is valid.
+
+
+*Write your answer here, replacing this text.*
+
+```{python}
+# For your convenience, you can run this cell to run all the tests at once!
+import os
+_ = [tests.grade(q[:-3]) for q in os.listdir("tests") if q.startswith('q')]
+```
+
+```{python}
+# Run this cell to submit your work *after* you have passed all of the test cells.
+# It's ok to run this cell multiple times. Only your final submission will be scored.
+
+# !TZ=America/Los_Angeles ipython nbconvert --output=".causes_of_death_$(date +%m%d_%H%M)_submission.html" causes_of_death.ipynb
+```

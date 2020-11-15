@@ -1,0 +1,131 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+import numpy as np
+```
+
+## Birthday Review
+
+```{python}
+k = 40
+numerators = np.arange(364, 365-k, -1)
+all_different = np.prod(numerators/365)
+```
+
+```{python}
+1-all_different
+```
+
+```{python}
+eight = np.arange(1, 9)
+np.cumprod(eight)
+```
+
+```{python}
+k = 60
+numerators = np.arange(364, 365-k, -1)
+birth = np.concatenate([[0, 0], 1-np.cumprod(numerators/365)])
+birth
+```
+
+```{python}
+birth.item(4)
+```
+
+```{python}
+birth.item(40)
+```
+
+```{python}
+import bokeh.plotting as plt
+plt.output_notebook(hide_banner=True)
+p = plt.figure(title="Same birthday chances", x_axis_label='k', 
+               y_axis_label='chance of at least one shared birthday')
+p.line(np.arange(k+1), birth, line_width=4)
+plt.show(p)
+```
+
+## Comparison
+
+```{python}
+birth >= 0.5
+```
+
+```{python}
+np.round(birth, 1) == 0.5
+```
+
+```{python}
+# You don't need to know the flatnonzero function for this class
+np.flatnonzero(np.round(birth, 1) == 0.5)
+```
+
+```{python}
+birth != 0
+```
+
+## Combinations
+
+```{python}
+birthdays = np.random.randint(0, 365, 60)
+birthdays
+```
+
+```{python}
+np.sort(birthdays)
+```
+
+```{python}
+same_sorted = birthdays == np.sort(birthdays)
+same_sorted
+```
+
+```{python}
+np.any(same_sorted)
+```
+
+```{python}
+np.all(same_sorted)
+```
+
+```{python}
+np.any(np.diff(np.sort(birthdays)) == 0)
+```
+
+```{python}
+np.all(np.diff(np.sort(birthdays)) > 0)
+```
+
+## Tables
+
+```{python}
+from datascience import *
+```
+
+```{python}
+url = 'http://www.census.gov/popest/data/national/asrh/2014/files/NC-EST2014-AGESEX-RES.csv'
+full = Table.read_table(url)
+full
+```
+
+```{python}
+partial = full.select(['SEX', 'AGE', 4, 8])
+partial
+```
+
+```{python}
+simple = partial.relabeled('POPESTIMATE2010', '2010').relabeled(3, '2014')
+simple
+```

@@ -1,0 +1,120 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+# !pip install plotly
+
+from datascience import *
+import numpy as np
+
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+plt.style.use('fivethirtyeight')
+# %matplotlib inline
+
+from ipywidgets import interact, interactive, fixed, interact_manual
+import ipywidgets as widgets
+
+# Plotly plotting support
+import plotly.plotly as py
+
+# import cufflinks as cf
+# cf.go_offline() # required to use plotly offline (no account required).
+
+import plotly.graph_objs as go
+import plotly.figure_factory as ff
+```
+
+## Classification examples
+
+```{python}
+ckd = Table.read_table('http://inferentialthinking.com/notebooks/ckd.csv').relabeled('Blood Glucose Random', 'Glucose')
+ckd.show(3)
+```
+
+```{python}
+ckd.group('Class')
+```
+
+```{python}
+ckd.scatter('White Blood Cell Count', 'Glucose', colors='Class')
+```
+
+```{python}
+ckd.scatter('Hemoglobin', 'Glucose', colors='Class')
+```
+
+```{python}
+banknotes = Table.read_table('http://inferentialthinking.com/notebooks/banknote.csv')
+banknotes.show(3)
+```
+
+```{python}
+banknotes.scatter('WaveletVar', 'WaveletCurt', colors='Class')
+```
+
+```{python}
+banknotes.scatter('WaveletSkew', 'Entropy', colors='Class')
+```
+
+```{python}
+# This is a lot of code that you don't need to understand!
+legit = banknotes.where('Class', 0)
+fake = banknotes.where('Class', 1)
+
+legit_points = go.Scatter3d(
+    x=legit.column('WaveletSkew'),
+    y=legit.column('WaveletVar'), 
+    z=legit.column('WaveletCurt'), 
+    mode='markers',
+    marker=dict(
+        size=3,
+        line=dict(
+            color='rgba(0, 30, 66, 0.1)',
+            width=0.1
+        ),
+        opacity=1
+    )
+)
+
+fake_points = go.Scatter3d(
+    x=fake.column('WaveletSkew'),
+    y=fake.column('WaveletVar'), 
+    z=fake.column('WaveletCurt'), 
+    mode='markers',
+    marker=dict(
+        size=3,
+        line=dict(
+            color='rgba(255, 199, 44, 0.1)',
+            width=0.1
+        ),
+        opacity=1
+    )
+)
+```
+
+```{python}
+data = [legit_points, fake_points]
+# Axis labels
+layout = go.Layout(
+    scene=go.Scene(
+        xaxis=go.XAxis(title='WaveletSkew'),
+        yaxis=go.YAxis(title='WaveletVar'),
+        zaxis=go.ZAxis(title='WaveletCurt'),
+        aspectratio=dict(x=1.,y=1., z=1.)
+    )
+)
+fig = go.Figure(data=data, layout=layout)
+py.iplot(fig, filename="lec35-banknotes")
+```

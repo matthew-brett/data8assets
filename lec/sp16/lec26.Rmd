@@ -1,0 +1,238 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+import numpy as np
+from datascience import *
+
+# Configure notebook (happens automatically on data8.berkeley.edu)
+# %matplotlib inline
+import matplotlib.pyplot as plt
+plt.style.use('fivethirtyeight')
+
+# Configure for presentation
+np.set_printoptions(threshold=50, linewidth=50)
+import matplotlib as mpl
+mpl.rc('font', size=16)
+```
+
+```{python}
+xs = np.arange(2000, 0, -1)
+xs
+```
+
+```{python}
+percentile(2.5, xs)
+```
+
+```{python}
+percentile(97.5, xs)
+```
+
+```{python}
+1900/2000
+```
+
+```{python}
+percentile(97.49, xs)
+```
+
+```{python}
+percentile(97.51, xs)
+```
+
+## Discussion question
+
+```{python}
+s = [1, 7, 3, 9, 5]
+```
+
+```{python}
+percentile(40, s)
+```
+
+```{python}
+tenth = percentile(10)
+```
+
+```{python}
+tenth(np.arange(1, 251))
+```
+
+## Resampled Confidence Interval
+
+```{python}
+free_trips = Table.read_table("trip.csv").where('Duration', are.below(1800)).select([3, 6, 1])
+free_trips
+```
+
+```{python}
+np.average(free_trips.column('Duration'))
+```
+
+```{python}
+n = 100
+sample = free_trips.sample(n)
+sample
+```
+
+```{python}
+average = np.average(sample.column(2))
+average
+```
+
+```{python}
+deviations = Table(['Resample #', 'Deviation'])
+for i in np.arange(2000):
+    resample = sample.sample(n, with_replacement=True)
+    d = average - np.average(resample.column(2))
+    deviations.append([i, d])
+deviations
+```
+
+```{python}
+deviations.hist(1, bins=np.arange(-80, 81, 10))
+```
+
+```{python}
+lower = average - percentile(97.5, deviations.column(1))
+lower
+```
+
+```{python}
+upper = average - percentile(2.5, deviations.column(1))
+upper
+```
+
+```{python}
+print('A 95% confidence interval:', lower, 'to', upper)
+```
+
+```{python}
+def average_ci(sample, label):
+    deviations = Table(['Resample #', 'Deviation'])
+    n = sample.num_rows
+    average = np.average(sample.column(label))
+    for i in np.arange(2000):
+        resample = sample.sample(n, with_replacement=True)
+        dev = np.average(resample.column(label)) - average
+        deviations.append([i, dev])
+    return (average - percentile(97.5, deviations.column(1)),
+            average - percentile(2.5, deviations.column(1)))
+
+average_ci(sample, 'Duration')
+```
+
+## Functional Arguments
+
+```{python}
+def means(table, n, label, k):
+    results = Table(['Sample #', label])
+    for i in np.arange(k):
+        sampled_values = table.sample(n).column(label)
+        statistic = np.mean(sampled_values)
+        results.append([i, statistic])
+    return results
+```
+
+```{python}
+means(free_trips, 100, 'Duration', 10)
+```
+
+```{python}
+def stats(table, n, label, k, f):
+    results = Table(['Sample #', label])
+    for i in np.arange(k):
+        sampled_values = table.sample(n).column(label)
+        statistic = f(sampled_values)
+        results.append([i, statistic])
+    return results
+```
+
+```{python}
+stats(free_trips, 100, 'Duration', 10, percentile(50))
+```
+
+```{python}
+free_trips.hist(2)
+```
+
+```{python}
+def ci(sample, label, f): # confidence interval
+    deviations = Table(['Resample #', 'Deviation'])
+    n = sample.num_rows
+    stat = f(sample.column(label))
+    for i in np.arange(400):
+        resample = sample.sample(n, with_replacement=True)
+        dev = f(resample.column(label)) - stat
+        deviations.append([i, dev])
+    return (stat - percentile(97.5, deviations.column(1)),
+            stat - percentile(2.5, deviations.column(1)))
+```
+
+```{python}
+ci(sample, 'Duration', np.average)
+```
+
+```{python}
+ci(sample, 'Duration', np.median)
+```
+
+```{python}
+ci(sample, 'Duration', percentile(90))
+```
+
+```{python}
+ci(free_trips.sample(1000), 'Duration', percentile(90))
+```
+
+### Evaluation
+
+```{python}
+samples = Table(['Sample #', 'Resample average', 'Sample Average'])
+for i in np.arange(6):
+    sample = free_trips.sample(n)
+    average = np.average(sample.column('Duration'))
+    for j in np.arange(100):
+        resample = sample.sample(n, with_replacement=True)
+        resample_average = np.average(resample.column('Duration'))
+        samples.append([i, resample_average, average])
+samples.scatter(0, s=80)
+```
+
+```{python}
+samples = Table(['Sample #', 'Lower', 'Estimate', 'Upper'])
+for i in np.arange(6):
+    sample = free_trips.sample(n)
+    average = np.average(sample.column('Duration'))
+    lower, upper = ci(sample, 'Duration', np.average)
+    samples.append([i, lower, average, upper])
+```
+
+```{python}
+samples
+```
+
+```{python}
+samples.scatter(0, s=80)
+```
+
+```{python}
+correct = np.logical_and(samples.column('Lower') <= 550, samples.column('Upper') >= 550)
+np.count_nonzero(correct)
+```
+
+```{python}
+Table().with_column('Width', samples.column('Upper')-samples.column('Lower')).hist(0)
+```

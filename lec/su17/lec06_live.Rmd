@@ -1,0 +1,180 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+from datascience import *
+```
+
+```{python}
+# This table can be found online: https://www.statcrunch.com/app/index.php?dataid=1843341
+nba = Table.read_table('http://inferentialthinking.com/notebooks/nba_salaries.csv')
+nba
+```
+
+```{python}
+nba.show(3)
+```
+
+```{python}
+sum(nba.column(3))
+```
+
+```{python}
+max(nba.column(3))
+```
+
+```{python}
+nba.sort('PLAYER').show(5)
+```
+
+```{python}
+nba.sort("'15-'16 SALARY").show(5)
+```
+
+```{python}
+nba.sort("'15-'16 SALARY", descending=True).show(5)
+```
+
+```{python}
+salary = "'15-'16 SALARY"
+nba.sort(salary, descending=True).show(5)
+```
+
+```{python}
+nba.sort?
+```
+
+```{python}
+nba.sort(salary, descending=True).sort(1)
+```
+
+```{python}
+nba.sort?
+```
+
+```{python}
+nba.sort(salary, descending=True).sort('POSITION', distinct=True)
+```
+
+```{python}
+(nba.sort(salary, descending=True)
+ .select("PLAYER")
+ .sort("PLAYER", descending=True))
+```
+
+```{python}
+make_array(2, 3.0)
+```
+
+```{python}
+make_array(2, 'three')
+```
+
+```{python}
+[2, 'three']
+```
+
+```{python}
+type([2, 'three'])
+```
+
+```{python}
+nba
+```
+
+```{python}
+row = ['Sam Lau', 'PG', 'Berkeley Data Scientists', 0.0]
+nba.with_row(row).sort(salary)
+```
+
+```{python}
+nba.show(3)
+```
+
+```{python}
+nba.take(0)
+```
+
+```{python}
+nba.take(make_array(0, 1, 2))
+```
+
+```{python}
+import numpy as np
+```
+
+```{python}
+nba.sort(salary, descending=True).take(np.arange(3))
+```
+
+```{python}
+rich = nba.sort(salary, descending=True).take(np.arange(3))
+rich
+```
+
+```{python}
+rich.sort('TEAM')
+```
+
+```{python}
+nba
+```
+
+```{python}
+nba.sort(salary, descending=True).take(np.arange(10, 20))
+```
+
+```{python}
+nba.sort(salary)
+```
+
+```{python}
+nba.where(salary, are.above(10))
+```
+
+```{python}
+nba.where(salary, are.above(10)).sort(salary)
+```
+
+```{python}
+nba.where("TEAM", are.equal_to('Golden State Warriors'))
+```
+
+```{python}
+nba.where("TEAM", are.containing('Warriors'))
+```
+
+```{python}
+nba.where("TEAM", are.containing('Warriors')).sort(salary)
+```
+
+```{python}
+are.between_or_equal_to?
+```
+
+```{python}
+nba.where(salary, are.between(11, 12))
+```
+
+```{python}
+nba.where('PLAYER', are.containing('Curry'))
+```
+
+```{python}
+nba
+```
+
+```{python}
+
+```

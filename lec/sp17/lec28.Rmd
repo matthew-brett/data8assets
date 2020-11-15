@@ -1,0 +1,203 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python deletable=TRUE, editable=TRUE}
+from datascience import *
+import numpy as np
+
+import matplotlib.pyplot as plots
+plots.style.use('fivethirtyeight')
+# %matplotlib inline
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Correlation
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+hybrid = Table.read_table('http://inferentialthinking.com/notebooks/hybrid.csv')
+hybrid
+```
+
+```{python deletable=TRUE, editable=TRUE}
+hybrid.scatter('acceleration', 'msrp')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+hybrid.scatter('mpg', 'msrp')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+suv = hybrid.where('class', 'SUV')
+suv.scatter('mpg', 'msrp')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+suv.scatter('acceleration', 'msrp')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+def standard_units(any_numbers):
+    "Convert any array of numbers to standard units."
+    return (any_numbers - np.mean(any_numbers)) / np.std(any_numbers)  
+```
+
+```{python deletable=TRUE, editable=TRUE}
+msrp = suv.column('msrp')
+standard_units(msrp)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+Table().with_columns(
+    'MSRP', msrp,
+    'MSRP (su)', standard_units(msrp)
+).scatter(0, 1)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+np.count_nonzero(standard_units(msrp) > 0) / len(msrp)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+def standardize(t):
+    """Return a table in which all columns of t are converted to standard units."""
+    t_su = Table()
+    for label in t.labels:
+        t_su = t_su.with_column(label + ' (su)', standard_units(t.column(label)))
+    return t_su
+
+standardize(suv.select('mpg', 'msrp'))
+```
+
+```{python deletable=TRUE, editable=TRUE}
+standardize(suv.select('mpg', 'msrp')).scatter(0, 1)
+plots.xlim(-3, 3)
+plots.ylim(-3, 3)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+standardize(suv.select('acceleration', 'msrp')).scatter(0, 1)
+plots.xlim(-3, 3)
+plots.ylim(-3, 3)
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Visualizing Correlations
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+def r_scatter(r):
+    "Generate a scatter plot with a correlation approximately r"
+    plots.figure(figsize=(5,5))
+    x = np.random.normal(0, 1, 1000)
+    z = np.random.normal(0, 1, 1000)
+    y = r*x + (np.sqrt(1-r**2))*z
+    plots.scatter(x, y)
+    plots.xlim(-4, 4)
+    plots.ylim(-4, 4)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+r_scatter(0)
+```
+
+```{python}
+r_scatter(0.2)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+r_scatter(0.5)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+r_scatter(0.8)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+r_scatter(0.99)
+```
+
+```{python}
+r_scatter(-0.5)
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Calculating r
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+x = np.arange(1, 7, 1)
+y = make_array(2, 3, 1, 5, 2, 7)
+t = Table().with_columns(
+        'x', x,
+        'y', y
+    )
+t
+```
+
+```{python deletable=TRUE, editable=TRUE}
+t.scatter(0, 1, s=40)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+standardize(t).scatter(0, 1, s=40)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+su_products = standard_units(t.column('x')) * standard_units(t.column('y'))
+```
+
+```{python deletable=TRUE, editable=TRUE}
+standardize(t).with_column('product', su_products)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+np.mean(su_products)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+def correlation(t, x, y):
+    return np.mean(standard_units(t.column(x)) * standard_units(t.column(y)))
+
+correlation(t, 'x', 'y')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+correlation(suv, 'acceleration', 'msrp')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+suv.scatter('acceleration', 'msrp')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+correlation(suv, 'mpg', 'msrp')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+suv.scatter('mpg', 'msrp')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+correlation(suv, 'msrp', 'mpg')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+suv_thousands = suv.with_column('msrp', suv.column('msrp') / 1000)
+suv_thousands.scatter('mpg', 'msrp')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+correlation(suv_thousands, 'mpg', 'msrp')
+```

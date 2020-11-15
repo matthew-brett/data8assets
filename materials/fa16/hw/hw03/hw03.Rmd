@@ -1,0 +1,295 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+# Homework 3: Tables and Charts
+
+Please complete this notebook by filling in the cells provided. When you’re done:
+
+1. Select `Run All` from the `Cell` menu to ensure that you have executed all cells.
+2. Select `Download as PDF via LaTeX (.pdf)` from the `File` menu
+3. Read that file! If any of your lines are too long and get cut off, we won't be able to see them,
+   so break them up into multiple lines and download again.
+4. Submit that downloaded file to Gradescope.
+
+If you cannot submit online, come to office hours for assistance. The office hours
+schedule appears on [data8.org/fa16/weekly.html](http://data8.org/fa16/weekly.html).
+
+This assignment is due Thursday, September 15 at 5PM. You will receive an early submission bonus point if you turn it in by Wednesday, September 14 at 5PM. Directly sharing answers is not okay, but discussing problems with course staff or with other students is encouraged.
+
+Reading:
+- Textbook chapter [5](http://www.inferentialthinking.com/chapters/05/tables.html)
+
+
+Run the cell below to prepare the notebook. **Passing the automatic tests does not guarantee full credit on any question.** The tests are provided to help catch some common errors, but it is *your* responsibility to answer the questions correctly.
+
+```{python}
+# Run this cell to set up the notebook, but please don't change it.
+import numpy as np
+from datascience import *
+
+# These lines do some fancy plotting magic.
+import matplotlib
+# %matplotlib inline
+import matplotlib.pyplot as plt
+plt.style.use('fivethirtyeight')
+import warnings
+warnings.simplefilter('ignore', FutureWarning)
+
+from client.api.assignment import load_assignment
+tests = load_assignment('hw03.ok')
+```
+
+## 1. Differences between Universities, Part II
+
+
+
+**Question 1.** Suppose you're choosing a university to attend, and you'd like to *quantify* how *dissimilar* any two universities are.  You rate each university you're considering on several numerical traits.  You decide on a very detailed list of 1000 traits, and you measure all of them!  Some examples:
+
+* The cost to attend (per year)
+* The average Yelp review of nearby Thai restaurants
+* The USA Today ranking of the Medical school
+* The USA Today ranking of the Engineering school
+
+You decide that the dissimilarity between two universities is the *total* of the differences in their traits.  That is, the dissimilarity is:
+
+* the **sum** of
+* the absolute values of
+* the 1000 differences in their trait values.
+
+In the next cell, we've loaded arrays containing the 1000 trait values for Stanford and Berkeley.  Compute the dissimilarity (according to the above method) between Stanford and Berkeley.  Call your answer `dissimilarity`.  Use a single line of code to compute the answer.
+
+*Note:* The data we're using aren't real -- we made them up for this exercise, except for the cost-of-attendance numbers, which we estimated for a student from a median-income family living in California using [this tool](http://college-tuition.startclass.com).
+
+```{python}
+stanford = Table.read_table("stanford.csv").column("Trait value")
+berkeley = Table.read_table("berkeley.csv").column("Trait value")
+
+dissimilarity = ...
+dissimilarity
+```
+
+```{python}
+_ = tests.grade('q1_1')
+```
+
+**Question 2.** Identify all the subexpressions in your answer to the previous question, excluding the whole expression itself.  Write each on its own line.  Before each one, write a one-line comment describing the value of the subexpression, including what type of value it is.  We've written the first one for you.  (It should appear somewhere in your answer to the previous question!)
+
+```{python for_assignment_type=student}
+# An array of 1000 numbers, each a different measured trait of Stanford University.
+stanford
+...
+```
+
+**Question 3.** Why do we sum up the absolute values of the differences in trait values, rather than just summing up the differences?
+
+
+*Write your answer here, replacing this text.*
+
+
+##### Weighing the traits
+After computing dissimilarities between several schools, you notice a problem with your method: the scale of the traits matters a lot.
+
+Since schools cost tens of thousands of dollars to attend, the cost-to-attend trait is always a much bigger *number* than most other traits.  That makes it affect the dissimilarity a lot more than other traits.  Two schools that differ in cost-to-attend by \$900, but are otherwise identical, get a dissimilarity of 900.  But two schools that differ in graduation rate by .9 (a huge difference!), but are otherwise identical, get a dissimilarity of only .9.
+
+One way to fix this problem is to assign different "weights" to different traits.  For example, we could fix the problem above by multiplying the difference in the cost-to-attend traits by .001, so that a difference of \$900 in cost-to-attend results in a dissimilarity of $900 \times .001$, or $.9$.
+
+Here's a revised method that does that for every trait:
+
+1. For each trait, subtract the two schools' trait values.
+2. Then take the absolute value of that difference.
+3. *Now multiply that absolute value by a trait-specific number, like .001 or 2.*
+4. Now sum the 1000 resulting numbers.
+
+**Question 4.** Suppose you've already decided on a weight for each trait.  These are loaded into an array called `weights` in the cell below.  `weights.item(0)` is the weight for the first trait, `weights.item(1)` is the weight for the second trait, and so on.  Use the revised method to compute a revised dissimilarity between Berkeley and Stanford.
+
+*Hint:* Using array arithmetic, your answer should be almost as short as in question 1.
+
+```{python}
+weights = Table.read_table("weights.csv").column("Weight")
+
+revised_dissimilarity = ...
+revised_dissimilarity
+```
+
+```{python}
+_ = tests.grade('q1_4')
+```
+
+## 2. Period Plots
+
+
+
+Below is a plot that compares the number of characters to the number of periods in each chapter of Little Women.  Each point represents one chapter.
+
+<img src="little_women.png">
+
+
+**Question 1.** About how many periods are in the chapter with the most characters per period?
+
+```{python}
+periods_in_most_characters_per_period = ...
+```
+
+**Question 2.** About how many periods are in the chapter with the most characters?
+
+```{python}
+periods_in_most_characters = ...
+```
+
+## 3. Unemployment
+
+
+
+The Federal Reserve Bank of St. Louis publishes data about jobs in the US.  Below we've loaded data on unemployment in the United States.  There are many ways of defining unemployment, and our dataset includes two notions of the unemployment rate:
+
+1. Among people who are able to work and are looking for a full-time job, the percentage who can't find a job.  This is called the Non-Employment Index, or NEI.
+2. Among people who are able to work and are looking for a full-time job, the percentage who can't find any job *or* are only working at a part-time job.  The latter group is called "Part-Time for Economic Reasons", so the acronym for this index is NEI-PTER.  (Economists are great at marketing.)
+
+The source of the data is [here](https://fred.stlouisfed.org/categories/33509).
+
+
+**Question 1.** The data are in a CSV file called `unemployment.csv`.  Load that file into a table called `unemployment`.
+
+```{python}
+unemployment = ...
+unemployment
+```
+
+```{python}
+_ = tests.grade('q3_1')
+```
+
+**Question 2.** Sort the data in decreasing order by NEI, naming the sorted table `by_nei`.  Create another table called `by_nei_pter` that's sorted in decreasing order by NEI-PTER instead.
+
+```{python}
+by_nei = ...
+by_nei_pter = ...
+```
+
+```{python}
+_ = tests.grade('q3_2')
+```
+
+**Question 3.** Use `take` to make a table containing the data for the 10 quarters when NEI was greatest.  Call that table `greatest_nei`.
+
+```{python}
+greatest_nei = ...
+greatest_nei
+```
+
+```{python}
+_ = tests.grade('q3_3')
+```
+
+**Question 4.** It's believed that many people became PTER (recall: "Part-Time for Economic Reasons") in the "Great Recession" of 2008-2009.  NEI-PTER is the percentage of people who are unemployed (and counted in the NEI) plus the proportion of people who are PTER.  Compute an array containing the percentage of people who were PTER in each quarter.  (The first element of the array should correspond to the first row of `unemployment`, and so on.)
+
+*Note:* Use the original `unemployment` table for this.
+
+```{python}
+pter = ...
+pter
+```
+
+```{python}
+_ = tests.grade('q3_4')
+```
+
+**Question 5.** Add `pter` as a column to `unemployment` (named "PTER") and sort the resulting table by that column in decreasing order.  Call the table `by_pter`.
+
+Try to do this with a single line of code, if you can.
+
+```{python}
+by_pter = ...
+by_pter
+```
+
+```{python}
+_ = tests.grade('q3_5')
+```
+
+**Question 6.** Does it seem true that the PTER rate was very high during the Great Recession, compared to other periods in the dataset?  **Also**, is the sorted table the best way to find this out, or can you think of other ways to look at the data to answer this question?
+
+
+*Write your answer here, replacing this text.*
+
+
+## 4. Consumer Financial Protection Bureau Complaints
+
+
+
+The Consumer Financial Protection Bureau has collected and published consumer complaints against financial companies since 2011.  The data are available [here](https://dev.socrata.com/foundry/data.consumerfinance.gov/jhzv-w97w) (or at this [direct link](https://data.consumerfinance.gov/resource/jhzv-w97w.csv).  For this exercise, to make your code run faster, we've selected only the data from May 2016.
+
+Run the next cell to load the data.  Each row represents one consumer's complaint.
+
+```{python}
+# Just run this cell.
+complaints = Table.read_table("complaints.csv")
+complaints
+```
+
+**Question 1.** Financial companies offer a variety of products.  How many complaints were made against each kind of product?  Make a table called `complaints_per_product` with one row per product category and 2 columns: "product" (the name of the product) and "number of complaints" (the number of complaints made against that kind of product).
+
+```{python}
+complaints_per_product = ...
+complaints_per_product
+```
+
+```{python}
+_ = tests.grade('q4_1')
+```
+
+**Question 2.** Make a bar chart showing how many complaints were made about each product category.
+
+```{python}
+...
+```
+
+**Question 3.** Make a table of the number of complaints made against each *company*.  Call it `complaints_per_company`.  It should have one row per company and 2 columns: "company" (the name of the company) and "number of complaints" (the number of complaints made against that company).
+
+```{python}
+complaints_per_company = ...
+complaints_per_company
+```
+
+```{python}
+_ = tests.grade('q4_3')
+```
+
+**Question 4.** It wouldn't be a good idea to make a bar chart of that data.  (Don't try it!)  Why not?
+
+
+*Write your answer here, replacing this text.*
+
+
+**Question 5.** Make a bar chart of just the companies with the most complaints.  Specifically, make a chart that displays the number of complaints against the companies with the 10 most complaints.
+
+```{python}
+...
+```
+
+**Question 6.** Make a bar chart like the one above, with one difference: The size of each company's bar should be the *proportion* (among *all complaints* made against any company in `complaints`) that were made against that company.
+
+**Note:** Graphs aren't very useful without accurate labels.  Make sure that the text on the horizontal axis of the graph makes sense.
+
+```{python for_assignment_type=student}
+...
+```
+
+```{python}
+# For your convenience, you can run this cell to run all the tests at once!
+import os
+print("Running all tests...")
+_ = [tests.grade(q[:-3]) for q in os.listdir("tests") if q.startswith('q')]
+print("Finished running all tests.")
+```

@@ -1,0 +1,357 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+# Just run this cell and see what it prints.  This is a preview of Tables!
+Table().with_columns([
+    "Item",                  [5.2    , 3.0     , 42     , -1.0    , 7.5    ],
+    "Position (in English)", ["first", "second", "third", "fourth", "fifth"],
+    "Index (in Python)",     [0      , 1       , 2      , 3       , 4      ]
+    ])
+```
+
+```{python}
+# Run this cell, but please don't change it.
+
+# These lines import the Numpy and Datascience modules.
+import numpy as np
+from datascience import *
+
+# These lines load the tests.
+from client.api.assignment import load_assignment 
+lab03 = load_assignment('lab03.ok')
+```
+
+```{python}
+# Just run this cell and see what it prints.  This is a preview of Tables!
+Table().with_columns([
+    "Item",                  [5.2    , 3.0     , 42     , -1.0    , 7.5    ],
+    "Position (in English)", ["first", "second", "third", "fourth", "fifth"],
+    "Index (in Python)",     [0      , 1       , 2      , 3       , 4      ]
+    ])
+```
+
+```{python}
+email = Table().with_columns([
+    "Item",                  [5.2    , 3.0     , 42     , -1.0    , 7.5    ],
+    "text", ["first", "second", "HI", "Deee", "fifth"],
+    "Index (in Python)",     [0      , 1       , 2      , 3       , 4      ]
+    ])
+```
+
+```{python}
+for email_text in email.column("text"):
+    if email_text == email.upper():
+        print("Potential spam email: " + email_text)
+```
+
+```{python}
+value = "Tree"
+x = value.upper()
+print(x)
+```
+
+```{python}
+email.column("text")
+```
+
+```{python}
+value = ["Tree","fc"]
+type(value)
+```
+
+```{python}
+list(email.column("text"))
+```
+
+```{python}
+a = list(email.column("text"))
+type(a)
+```
+
+```{python}
+value = ["Tree","fc"]
+```
+
+```{python}
+for 
+```
+
+```{python}
+2+2
+```
+
+```{python}
+for email_text in email.column("text"):
+        
+```
+
+```{python}
+
+```
+
+```{python}
+for email_text in email.column("text"):
+        
+```
+
+```{python}
+energy = Table().with_columns([
+    "county",                  ["china","US","UK","Japan","Germany"  ],
+    "pop", [15, 20,30,40,60],
+    "epp",     [20,50,60,35,15     ]
+    ])
+```
+
+```{python}
+energy
+```
+
+```{python}
+energy = Table().with_columns([
+    "county",                  ["china","US","UK","Japan","Germany"  ],
+    "pop", [15, 20,30,40,60],
+    "epp",     [20,50,60,35,15     ]
+    ])
+```
+
+```{python}
+
+```
+
+```{python}
+energy = Table().with_columns([
+    "county",                  ["china","US","UK","Japan","Germany"  ],
+    "pop", [15, 20,30,40,60],
+    "epp",     [20,50,60,35,15     ]
+    ])
+```
+
+```{python}
+energy
+```
+
+```{python}
+energy.column("pop")*energy.column("epp")/sum(energy.column("epp"))
+```
+
+```{python}
+sum(energy.column("epp"))
+```
+
+```{python}
+energy.column("pop")*energy.column("epp")
+```
+
+```{python}
+np.average(energy.column("pop")*energy.column("epp")/sum(energy.column("epp")))
+```
+
+```{python}
+people = Table().with_columns([
+    "name",                  ["Russia","US","UK","Japan","Germany"  ],
+    "age", [15, 20,30,16,60],
+    "epp",     [20,50,60,35,15     ]
+    ])
+```
+
+```{python}
+def millenial(name):
+    if (16 <= people.where(people.column("name") == name) <= 36):
+        return True
+    else:
+        return False
+    
+```
+
+```{python}
+millenial('US')
+```
+
+```{python}
+people
+```
+
+```{python}
+15 <= people.where(people.column("name") == 'Russia') <=35
+```
+
+```{python}
+def millenial(name):
+    if (16<= people.where(people.column("age") <=36) == people.where(people.column("name") == name)):
+        return True
+    else:
+        return False
+    
+```
+
+```{python}
+millenial("Russia")
+```
+
+```{python}
+def millenial(name):
+    if (16<= people.where(people.column("age") <=36) == people.where(people.column("name") == name)):
+        return True
+    else:
+        return False
+```
+
+```{python}
+millenial("Russia")
+```
+
+```{python}
+def millenial(name):
+    if (np.logical_and(people.where('name', name).column("age") >=16, \
+                       people.where('name', name).column("age") <= 36)):
+        return True
+    else:
+        return False
+```
+
+```{python}
+millenial("Russia")
+```
+
+```{python}
+millenial("US")
+```
+
+```{python}
+people.with_column(["is_millenial", millenial(people.column("name"))])
+```
+
+```{python}
+millenial(people.column("name"))
+```
+
+```{python}
+people.column("name")
+```
+
+```{python}
+list(millenial(people.column("name")))
+```
+
+```{python}
+millenial.any(people.column("name"))
+```
+
+```{python}
+people.with_column("is_millenial", people.apply(millenial, "name"))
+```
+
+```{python}
+millenial2 = people.with_column("is_millenial", people.apply(millenial, "name"))
+```
+
+```{python}
+a = np.count_nonzero(np.logical_and(people.where('name').column("age") >=16, people.where('name').column("age") <= 36))
+```
+
+```{python}
+a
+```
+
+```{python}
+email = Table().with_columns([
+    "Item",                  [5.2    , 3.0     , 42     , -1.0    , 7.5    ],
+    "text", ["first", "second", "HI", "Deee", "fifth"],
+    "Index (in Python)",     [0      , 1       , 2      , 3       , 4      ]
+    ])
+
+```
+
+```{python}
+email
+```
+
+```{python}
+for email_text in email.column("text"):
+   if email_text == email_text.upper():
+    print("Potential spam email: " + email_text)
+```
+
+```{python}
+sum(energy.column("pop")*energy.column("epp")/sum(energy.column("epp")))
+```
+
+```{python}
+people
+```
+
+```{python}
+len(people.column('name'))
+```
+
+```{python}
+people.num_rows
+```
+
+```{python}
+people.where(people.column("age") < 50)
+```
+
+```{python}
+millenials2 = people.where(people.column("age") < 50)
+milenialss = millenials2.group("age")
+```
+
+```{python}
+milenialss
+```
+
+```{python}
+millenials2
+```
+
+```{python}
+millenials2 = people.where(people.column("age") < 50)
+milenialss = millenials2.group("age")
+```
+
+```{python}
+milenialss
+```
+
+```{python}
+millenial1
+```
+
+```{python}
+millenials2 = millenial1.where(millenial1.column("age") < 50)
+milenialss = millenials2.group("is_millenial")
+
+```
+
+```{python}
+milenialss
+```
+
+```{python}
+aid_new  = millenial1.select(["name", "epp"]).group("name",sum)
+```
+
+```{python}
+aid_new
+```
+
+```{python}
+millenial1
+```
+
+```{python}
+
+```

@@ -1,0 +1,45 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+*The Song of Insects* by Dr. G.W. Pierce describes measurements of the number of chirps per second for the striped ground cricket on several days. The air temperature in degrees farenheit was also recorded.
+
+```{python}
+cricket = Table.read_table('cricket.csv')
+cricket.scatter(0, 1, s=50, fit_line=True)
+```
+
+```{python}
+def describe(values, units):
+    print(round(np.average(values)), units, 'with std. dev', round(np.std(values), 1))
+
+describe(cricket.column(0), 'chirps/sec')
+describe(cricket.column(1), 'degrees F ')
+```
+
+```{python}
+def standard_units(any_numbers):
+    return (any_numbers - np.average(any_numbers))/np.std(any_numbers)    
+```
+
+```{python}
+round(np.average(standard_units(cricket.column(0))*standard_units(cricket.column(1))), 1)
+```
+
+```{python}
+-0.8 * 1.6
+```
+
+```{python}
+
+```

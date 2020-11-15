@@ -1,0 +1,886 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+# Lab 3
+
+# 0. Intro
+Previous labs introduced you to the basics of programming in Python.  Today, you'll see how to combine the ideas you've learned so far to perform data analysis.  You'll learn about:
+
+* Including text notes (*comments*) in code you write;
+* Performing logical operations on `True`/`False` (*Boolean*) values;
+* Using arrays to operate on many values at once;
+* Using tables to work with different kinds of data that describe aspects of many different individuals.
+
+**Run the next cell first** to set up the lab:
+
+```{python}
+# Run this cell, but please don't change it.
+
+# These lines import the Numpy and Datascience modules.
+import numpy as np
+from datascience import *
+
+# These lines load the tests.
+from client.api.assignment import load_assignment 
+lab03 = load_assignment('lab03.ok')
+```
+
+# 1. Comments
+Comments are a useful bit of Python syntax we haven't had a chance to talk about yet.  The following cell has a line of code whose meaning is unclear, and above it a comment clarifying what it does:
+
+```{python}
+# The speed of light, in meters per second:
+c = 299792458
+```
+
+Comments can also go at the ends of lines:
+
+```{python}
+elementary_charge = 1.602 * 10**-19 # The electrical charge of an electron
+```
+
+The way comments work is pretty simple: anything after a `#` character in a line is ignored.  There's one exception: inside a string, `#` just means `#`.  Call it the "hashtag rule."
+
+```{python}
+tweet = "17th of all I wish I was a data scientist blessings blessings #worldpeace"
+```
+
+Most programmers spend more time changing, fixing, or understanding existing code than they do writing new code.  That won't happen so often in labs, but you'll probably find it's the case when you work on the projects for this course.  Spending a bit of extra time up front writing clear code will often save you much more time later, and writing good comments is part of that.  Get in the habit of commenting tricky code now and you'll thank yourself later.
+
+<img src="http://imgs.xkcd.com/comics/future_self.png">
+
+
+## 1.0. Comments, strings and code
+Sometimes, comments, strings, and names are easy to confuse.  Here are some review exercises to make sure you understand the differences.
+
+**Question 1.0.0.** The following cell is trying to compute the number of characters in this sentence:
+
+    All work and no play makes Jack a dull boy.
+
+Run it, and you'll see that it fails with an error.  Fix it so that it works.
+
+```{python}
+sentence_length = len(All work and no play makes Jack a dull boy.)
+```
+
+```{python}
+_ = lab03.grade("q100")
+```
+
+**Question 1.0.1.** In the next cell, we're trying to define Avogadro's number.  After the definition, we have attempted to write a comment to explain what the number is, but something went wrong.  Fix it so that the line works.
+
+```{python}
+avogadros_number = 6.022 * 10**23 "# The number of atoms in 1 gram of atomic hydrogen"
+```
+
+```{python}
+_ = lab03.grade("q101")
+```
+
+# 2. Comparing Values
+## 2.0 Review: Comparisons and boolean values
+The *comparison operators* like `<`, `>=`, `==`, and `!=` are used to compare two values, producing `True` if the comparison is true (as in `2 + 2 == 4`) and `False` if it isn't (as in `3 > 4` or `2 + 2 != 4`).
+
+Suppose we have two study groups, one composed of 3 humans from Earth, and the other composed of 5 martians from Mars.  Recall from lecture that the probability that 3 humans don't share a birthday is:
+$$\frac{365}{365} \times \frac{364}{365} \times \frac{363}{365}$$
+
+That's because the first person you pick can have any birthday at all; the second person's birthday can't overlap the first person's, so 364 of the 365 days are okay birthdays; and the third person's birthday can't overlap either of the first two, so 363 days are okay.  (This computation assumes that every birthday is equally likely, years have 365 days, and the birthdays of people in the same study group aren't related.)
+
+**Question 2.0.0.** Set `prob_no_shared_human_birthdays` to that probability.  Use Python code to compute it!  Try using `np.arange` and `np.prod` as in lecture, but you don't have to.
+
+```{python}
+# Set prob_no_shared_human_birthdays.
+prob_no_shared_human_birthdays = ...
+prob_no_shared_human_birthdays
+```
+
+```{python}
+_ = lab03.grade("q200")
+```
+
+**Question 2.0.1.** On Mars, there are 687 days in a year, not 365, so martians have 687 possible birthdays.  Figure out how to compute the probability that none of the 5 martians share a birthday.  Set `prob_no_shared_martian_birthdays` to that number.
+
+```{python}
+# Set prob_no_shared_martian_birthdays.
+prob_no_shared_martian_birthdays = ...
+prob_no_shared_martian_birthdays
+```
+
+```{python}
+_ = lab03.grade("q201")
+```
+
+** Question 2.0.2.** Determine whether it's more likely that none of the 3 humans share a birthday than that none of the 5 martians share a birthday.  Using a comparison operator, set `humans_less_likely_to_share_birthdays` to `True` if it's less likely that the humans share a birthday.  Don't just set `humans_less_likely_to_share_birthdays` to `True` or `False` directly -- use a comparison operator!
+
+```{python}
+# Set humans_less_likely_to_share_birthdays.
+humans_less_likely_to_share_birthdays = ...
+humans_less_likely_to_share_birthdays
+```
+
+```{python}
+_ = lab03.grade("q202")
+```
+
+**Question 2.0.3.** Suppose we want to check whether a sentence is a *palindrome*, meaning that it's the same forwards and backwards, ignoring spaces, punctuation, and capitalization.  For example, a famous palindrome is "A man, a plan, a canal: Panama!"
+
+In the next cell, we have written a sentence that might be a palindrome, and we have done some of the work involved in checking whether it's a palindrome.  Starting where we left off (described in comments), use the `==` operator to check whether the sentence is really a palindrome.  Name the resulting boolean value `is_palindrome`.
+
+```{python}
+# The sentence we want to check:
+sentence = "Doc, note. I dissent. A fast never prevents a fatness. I diet on cod."
+# The same sentence, but in lower case and without spaces or punctuation:
+simplified = sentence.lower().replace(" ", "").replace(",", "").replace(".", "")
+simplified
+```
+
+```{python}
+# The same as the simplified sentence, but in reverse order:
+reverse = ''.join(reversed(simplified))
+
+# Finish the work; set is_palindrome to True if the sentence is
+# a palindrome, and otherwise False.  Use a comparison operator.  
+# For a clue about which one, check the value of reverse.
+is_palindrome = ...
+is_palindrome
+```
+
+```{python}
+_ = lab03.grade("q203")
+```
+
+## 2.1. Logical operators
+
+Sometimes you want to check whether two things are both true.  To do that in Python, we use the `and` operator.  That is, the expression
+
+    x and y
+has value `True` if `x` is `True` *and* `y` is also `True`; otherwise, it has value `False`.  We wrote `x` and `y` because they're very short expressions, but we could have written any boolean-valued expression instead, as in the expression in this cell:
+
+```{python}
+# Just run this cell and see what its output is.
+3 > 2 and 2 + 2 == 4
+```
+
+### 2.1.0. A medical experiment
+Let's see a more concrete use for logical operators.
+
+Imagine you are evaluating a medical experiment in which cancer patients were given radiation therapy.  Consulting with oncologists, you decide to count a radiation treatment as successful if the patient's cancerous tumor shrinks below a certain size *and* the patient didn't receive a dangerously high dose of radiation.  Suppose we decide the threshold for post-therapy tumor size is 0.1 centimeters and the threshold for radiation levels is 8000 rads.  That is, if the patient's tumor is smaller than 0.1 cm after therapy and he/she received less than 8000 rads, the therapy was a success.
+
+**Question 2.1.0.0.** One patient's tumor size and radiation level data are given in the next cell.  Compute the boolean values `tumor_size_okay` and `radiation_level_okay` based on the thresholds mentioned above.
+
+```{python}
+# Size of the patient's tumor, in cm:
+tumor_size = 0.05
+# The amount of radiation delivered to the patient by the treatment, in rads:
+radiation_level = 1000 + 2030 + 1500 + 1820 + 900 + 800 
+
+# Fill in the next two lines:
+tumor_size_okay = ...
+radiation_level_okay = ...
+```
+
+```{python}
+_ = lab03.grade("q2100")
+```
+
+**Question 2.1.0.1.** Decide whether the treatment was successful for this patient according to the criteria described above.  Set `treatment_successful` to `True` if it was successful and `False` otherwise.  Use Python code to compute the answer; don't just write something like `treatment_successful = False`.
+
+```{python}
+# Fill in the next line:
+treatment_successful = ...
+treatment_successful
+```
+
+```{python}
+_ = lab03.grade("q2101")
+```
+
+### 2.1.1. Other logical operators
+Here are two other basic ways to operate on boolean values:
+* `x or y` is `True` if `x` is `True`, or if `y` is `True`, or if both are `True`.
+* `not x` is the opposite of `x` -- it's `True` if `x` is `False`, and vice-versa.
+
+Each is its own expression, so they can be combined together.  Parentheses are often helpful:
+
+    (not (x == 3 or x == 5)) and y > 1.2
+
+
+**Question 2.1.1.0.** Let's go back to the cancer treatment experiment.  The reason to avoid giving too much radiation to a patient is that it can cause negative side-effects, sometimes including cancer or even death.  Sometimes nothing bad happens, though.
+
+Suppose we follow up our experiment and find out how long each patient survived after the treatment and whether they experienced long-term side-effects of the radiation therapy.  It might be reasonable to declare the treatment successful for patients that survive at least 10 years and don't experience side-effects, even if they received a radiation dose above the 8000 rad threshold.
+
+In the next cell, we have data from the same (fictional) patient as in section 2.1.0.  Use Python code to compute whether the treatment was successful according to these revised criteria.
+
+```{python}
+# The number of years the patient survived after the treatment.
+post_op_survival_time = 18
+# "yes" if the patient experienced substantial negative side-effects
+# from the radiation treatment in the long term, and "no" otherwise:
+long_term_side_effects = "no"
+
+revised_treatment_successful = ...
+revised_treatment_successful
+```
+
+```{python}
+# We only automatically check the result of your expression on this one patient.
+# Find someone else from lab who has also completed this question and read
+# each other's expressions for revised_treatment_successful. Do you agree?
+
+_ = lab03.grade("q2110")
+```
+
+# 3. Arrays: advanced features
+## 3.0. Review: Array basics
+Lists are a type of sequence that Python functions sometimes expect you to use.  In particular, to create an array with a few things in it, we create a list of them, then convert it to an array.  We won't use lists much other than this; the important thing is to know how to create them.  To do that, put a comma-separated sequence of expressions inside `[`square brackets`]`. Comma-separated sequences are common in Python; we also use them for the sequence of arguments to a function.
+
+**Question 3.0.0.** Create an empty list, a list with one element, and a list with five elements.  Call them `empty_list`, `singleton_list`, and `list_of_five_things`, respectively.  The elements can be whatever you want.
+
+```{python}
+empty_list = ...
+singleton_list = ...
+list_of_five_things = ...
+
+# For your convenience, this just makes sure the cell displays
+# all of your lists in one big list:
+[empty_list, singleton_list, list_of_five_things]
+```
+
+```{python}
+_ = lab03.grade("q300")
+```
+
+There are two main ways to make an array.  `np.array` takes a single argument, which should be a list.  It returns an array with the same elements as that list.
+
+**Question 3.0.1.** Using `np.array`, create an array called `array_of_three_things` with 3 elements in it.  The elements can be whatever you want.  (Note, though, that all the elements of an array must always be the same *type*, or you'll see an error message.)
+
+```{python}
+array_of_three_things = ...
+array_of_three_things
+```
+
+```{python}
+_ = lab03.grade("q301")
+```
+
+**Question 3.0.2.** How many arguments did you pass to `np.array` in your code for the previous question?  Set `number_of_arguments` to that number.
+
+```{python}
+number_of_arguments = ...
+```
+
+```{python}
+_ = lab03.grade("q302")
+```
+
+`np.arange` is the other way to make an array, and it takes 3 arguments: An initial value, a stop value, and an increment.  It returns an array that starts with the initial value and counts up by the increment, stopping before the stop value is reached.  You can also call `np.arange` with 2 arguments, in which case the increment is 1; or you can call it with 1 argument, in which case the increment is 1 and initial value is 0.  You can call `np.arange` with non-integer arguments if you want, for example, to count up by a fraction.
+
+
+**Question 3.0.3.** Inspect the results of some call to `np.arange` to find the smallest number `funny` such that $\frac{3}{\mathit{funny}}$ contains the digits 789 consecutively within its first 8 digits.
+
+```{python}
+# Complete this call to np.arange and inspect the result so that you can fill in the
+# value for joke in the next cell. You can just assign joke directly to an integer.
+
+np.arange(...)
+```
+
+```{python}
+joke = ...
+```
+
+```{python}
+_ = lab03.grade("q303")
+```
+
+Items in an array can be selected by their *index*, which counts up from 0 for the first element. The index is always one less than the position in common English. You can also think of an item's index as the number of elements before it.
+
+Here's an array:
+
+    np.array([5.2, 3.0, 42, -1.0, 7.5])
+
+Run the next cell to see a display of its items, their positions, and their indices:
+
+```{python}
+# Just run this cell and see what it prints.  This is a preview of Tables!
+Table().with_columns([
+    "Item",                  [5.2    , 3.0     , 42     , -1.0    , 7.5    ],
+    "Position (in English)", ["first", "second", "third", "fourth", "fifth"],
+    "Index (in Python)",     [0      , 1       , 2      , 3       , 4      ]
+    ])
+```
+
+**Question 3.0.4.** What's the index of the last element in the array `six_hundred_to_1001`, which is defined below?
+
+```{python}
+# An array of the numbers 600, 601, ..., 1001:
+six_hundred_to_1001 = np.arange(600, 1001+1, 1)
+
+# Manually set index_of_last_element to the index of the last
+# element of the above array.
+index_of_last_element = ...
+```
+
+```{python}
+_ = lab03.grade("q304")
+```
+
+## 3.1. Elementwise operations on arrays
+Last time, you saw an example of a function (`np.log10`) that performs the same operation on each element of an array (in this case, taking the logarithm, base 10) and produces a new array with the results of those operations.  Functions that handle arrays this way are called *elementwise* functions.  (NumPy actually calls them "universal" functions, but that terminology isn't widely used.  Some people call them "entry-wise" functions.)  Many other NumPy functions, including `np.sqrt`, work elementwise on arrays.
+
+
+<img width=300px src="array_sqrt.jpg">
+
+
+**Question 3.1.0.** Use `np.arange` and the function `np.sqrt` to find the square roots of all the integers from 0 to 20 (including 0 and 20) in one short line of code.  Name the result `small_square_roots`. (Before looking at the result, try figuring out how many will be integers themselves.)
+
+```{python}
+small_square_roots = ...
+small_square_roots
+```
+
+```{python}
+_ = lab03.grade("q310")
+```
+
+[The textbook's section on arrays](http://www.inferentialthinking.com/chapter1/arrays.html) has a useful list of NumPy functions that are designed to work elementwise.
+
+Most of the arithmetic and logical operators you've seen work elementwise, too.  You can multiply each number in an array by .18 like this:
+
+```{python}
+restaurant_bills = np.array([20.12, 39.90, 31.01])
+tips = .18 * restaurant_bills
+```
+
+`tips` is now an array of length 3.  Its first element is $.18 \times 20.12$, its second element is $.18 \times 39.90$, and its third element is $.18 \times 31.01$.
+
+<img width=300px src="array_multiply.jpg">
+
+`/`, `+`, `-`, and `**` all work the same way.  Note that, just like `8 / 9` and `9 / 8` mean different things,
+
+    np.array([2, 3]) / 5
+and 
+
+    5 / np.array([2, 3])
+have different values.  Order also matters for `-` and `**`.  Here's a picture of `np.array([2, 3]) / 5`:
+
+<img width=300px src="array_divide_left.jpg">
+
+...and here's a picture of `5 / np.array([2, 3])`:
+
+<img width=300px src="array_divide_right.jpg">
+
+If it's still unclear, mess around with math operators in the next cell.
+
+```{python}
+# Experiment with math operators here, if you want.
+```
+
+**Question 3.1.1.** Suppose we have an array containing tumor sizes *in centimeters* for many patients, and we want to display them *in inches* for American patients who don't understand centimeters.  There are 2.54 centimeters in an inch. Round each result to 2 decimal places.
+
+```{python}
+# Tumor sizes of some cancer patients, in centimeters:
+tumor_sizes_cm = np.array([0.05, 0.00, 1.20, 0.42, 0.0])
+
+# Set this to an array of the same tumor sizes, but in inches:
+tumor_sizes_inches = ...
+tumor_sizes_inches
+```
+
+```{python}
+_ = lab03.grade("q311")
+```
+
+**Question 3.1.2.** The `n`ths place of a number (such as the tenths or hundredths place) can be computed by multiplying by n, rounding down to the nearest integer using `np.floor`, and then finding the remainder of dividing the result by 10. As an example, the cell below already computes the hundredths place of `pi`, which is the **4** in **3.14159**. In the following cell, create an array of the first 12 digits of pi and call it `pi_digits`. 
+
+Using elementwise operators, you can do it in one line. *Hint: First try to create the array `[1, 10, 100, ..., 1e11]` from `np.arange(12)`.*
+
+```{python}
+import math
+n = 100
+np.floor(n * math.pi) % 10
+```
+
+```{python}
+pi_digits = ...
+pi_digits
+```
+
+```{python}
+_ = lab03.grade("q312")
+```
+
+## 3.2. Elementwise comparisons on arrays
+We can also perform many comparisons at once using arrays.  Suppose we have an array of people's heights:
+
+    heights_in_meters = np.array([1.5, 1.4, 2.0])
+and we want to know whether each height is greater than 1.6.  We can do this with:
+
+    heights_in_meters > 1.6
+
+The result of this is a new array of *boolean* values with the same length as `heights_in_meters`.  Here is a picture of how it is computed:
+
+<img width=300px src="array_compare.jpg">
+
+The same works for the other numerical comparison operators (`<`, `>=`, and `>`) and for equality comparison (`==` and `!=`).
+
+**Question 3.2.0.** Suppose we have data from a study on HSV2 infection (a common sexually-transmitted infection).  For each person surveyed, the surveyors wrote down "positive" if the person had HSV2 and "negative" otherwise.  Example results are in `hsv2_status_strings` in the cell below.  It's more useful for analysis to have an array of boolean values, `True` for HSV2-positive people and `False` for HSV2-negative people.  In the cell below, make that array and call it `hsv2_status`.
+
+```{python}
+hsv2_status_strings = np.array(['negative', 'negative', 'positive', 'negative', 'negative', 'negative', 'positive', 'positive', 'positive', 'negative'])
+
+# Set hsv2_statuses to an array of boolean values of the same length as
+# hsv2_status_strings.  Each element should be True if that person is
+# HSV2-positive (according to hsv2_status_strings) and false otherwise.
+hsv2_statuses = ...
+hsv2_statuses
+```
+
+```{python}
+_ = lab03.grade("q320")
+```
+
+## 3.3. Combining two arrays
+Sometimes we don't just want to do the same thing to each element of an array.  Instead, we might have two datasets, and we want to combine them in some way.
+
+For example, suppose we are studying the sleeping habits of couples in which a female partner has recently given birth, and we have data from 100 couples.   We have the data in two arrays:
+* `mother_sleep`: For each couple, the average number of hours slept by the mother.
+* `partner_sleep`: For each couple, the average number of hours slept by the mother's partner.
+
+To find out whether the mother in each couple sleeps more, we can say:
+
+    mother_sleep > partner_sleep
+
+The result is an array of 100 boolean values.  Each value is `True` if the mother in that couple sleeps more than her partner, and `False` otherwise.  Here's a picture of what happens with the first 3 elements:
+
+<img width=500px src="array_pair_compare.jpg">
+
+We can do the same with many other operators:
+* `+`, `-`, `*`, `/`, and `**` perform mathematical operations on each corresponding pair of values in two arrays, producing an array of numbers.
+* `>`, `<`, `>=`, `<=`, `==`, and `!=` compare corresponding pairs of values in two arrays, producing an array of boolean values.
+* Unfortunately, `and` and `or` don't work on NumPy arrays, but NumPy provides special functions instead: `np.logical_and` and `np.logical_or`.  For example, `np.logical_and` takes two arrays of boolean values as arguments and returns an array where each element is the `and` of the corresponding elements.
+
+<img width=500px src="array_pair_and.jpg">
+
+
+**Question 3.3.0.** Suppose you are studying personal finance, and you have data about the wealth of 6 people.  For each person in the dataset, you observed that person's wealth twice, separated by some number of years, and you recorded two numbers, putting them into two separate arrays:
+* The ratio $\frac{\text{wealth when observed again}}{\text{wealth when first observed}}$, which goes in the array `wealth_ratios`.
+* The number of years in between the observations, which goes in the array `observation_intervals`.
+
+For example, Ananya was the first study participant, and you saw that she had \$1000 when you first observed her and \$1200 when you observed her two years later, so you recorded the ratio $1.2$ as the first element of `wealth_ratios` and the number of years 2 as the first element of `observation_intervals`.
+
+In the cell below, compute the *annual rate of wealth growth* for each person.  *Hint:* Recall the formula:
+$$\text{rate of growth after }t\text{ periods} = \left(\frac{\text{after}}{\text{before}}\right)^{\frac{1}{t}} - 1$$
+
+```{python}
+# The data you collected:
+wealth_ratios = np.array([1.2, 1.1, 0.9, 1.5, 3.9, 0.5])
+observation_intervals = np.array([2, 0.5, 1.5, 2, 2, 0.2])
+
+# Set this to an array of annual rates of wealth growth,
+# one for each of the 6 study participants.
+growth_rates = ...
+growth_rates
+```
+
+```{python}
+_ = lab03.grade("q330")
+```
+
+**Question 3.3.1.** Consider the hypothetical radiation experiment again.  Suppose we know that a person's tolerance for radiation actually depends on his or her weight; larger bodies can absorb more radiation.  Say that the formula is:
+$$\text{maximum radiation tolerance (rads)} = 8000 + 100 \times (\text{weight_in_kg} - 60)$$
+
+
+The cell below has the weights, radiation treatment levels, and post-therapy tumor sizes of 5 (hypothetical) patients.  Using the array operations you've learned, determine whether the therapy was successful for each.  (Remember, we have decided that the therapy was successful for a patient if the radiation level was below the tolerance for a person with that weight, *and* the patient's post-therapy tumor size was less than 0.1 cm.)
+
+*Hint:* You'll need to use several array operations for this question.  You can do it in one line.  If you're having trouble, though, you might want to build up to the answer by defining some intermediate arrays, like the array of maximum radiation tolerances for the 5 patients. *Ask questions if you're stuck! That's how you learn.*
+
+```{python}
+weights = np.array([81.03, 113.79, 103.53, 70.32, 89.24])
+radiation_levels = np.array([9791.0, 11449.0, 11157.0, 7166.0, 11300.0])
+# Tumor size data are the same as those in Question 3.1.1, but we've
+# redefined them here for convenience.
+tumor_sizes_cm = np.array([0.05, 0.00, 1.2, 0.42, 0.0])
+
+# Set treatments_successful to an array of boolean values, one for
+# each of the 5 patients.  The value for a patient should be True if
+# the treatment was successful for that patient and False otherwise.
+treatments_successful = ...
+treatments_successful
+```
+
+```{python}
+_ = lab03.grade("q331")
+```
+
+## 3.4. How many successful treatments?
+Suppose we want to know how many treatments were successful. The function `np.count_nonzero` counts the number of `True` values in an array of boolean values.  (It would be better if the name were `count_true`, but sometimes we have to live with bad names.)
+
+**Question 3.4.0.** Use `np.count_nonzero` and the `len` function to compute the *proportion* of successful treatments (`True` values in `successful_treatments`).
+
+```{python}
+proportion_successful = ...
+proportion_successful
+```
+
+```{python}
+_ = lab03.grade("q340")
+```
+
+# 4. Tables
+
+As you can see, arrays are conceptually simple but are a surprisingly powerful tool for working with data. 
+
+For example, here's an array with the ratings of the top 10 rated movies on IMDb (datasets are available at http://www.imdb.com/interfaces).
+
+```{python}
+# Ratings are on a scale from 1-10
+top_ten_ratings = np.array([9.2, 9.2, 9.0, 8.9, 8.9, 8.9, 8.9, 8.9, 8.9, 8.8])
+
+min(top_ten_ratings) # Get the lowest rating of the top 10 movies
+```
+
+```{python}
+max(top_ten_ratings) # Get the highest rating
+
+# Are these numbers not what you expected? Remember, floating point arithmetic is approximate
+```
+
+But! What if we want to get the **name** of the highest and lowest rated movies?
+
+Now we need a way to associate a movie title with its rating. In fact, we might want to associate a title with other information as well, such as how many votes it got.
+
+As a puzzle, we invite you to think about how you would do this with arrays.
+
+
+## 4.0 Creating Tables
+The solution that we use in this class is the **`Table`** object. You can think of a `Table` as a collection of arrays.  Each array contains a different attribute of the things described by the `Table`.  A `Table` of movies might include a title, rating, and other information about each one.  The titles constitute one column, and the ratings are another column.  Each movie is a *row* of the `Table`.
+
+Here's how to make a `Table` with the top three highest-rated movies:
+
+```{python}
+Table().with_columns([
+        'Votes',  [1498733, 1027398, 692753],
+        'Rating', [9.2, 9.2, 9.0],
+        'Title',  ['The Shawshank Redemption (1994)', 'The Godfather (1972)', 'The Godfather: Part II (1974)'],
+        'Year',   [1994, 1972, 1974],
+        'Decade', [1990, 1970, 1970]
+    ])
+```
+
+Let's break that down.
+
+First, we create a new `Table` with the function call `Table()`. Then, we specify what data the `Table` contains by calling `with_columns`.
+
+We've done something like this before. For example, compare these two lines of code:
+    
+    'hElLo WOrld'.lower()
+          Table().with_column('x', [1, 2, 3])
+
+These two lines both follow the syntax of `<some object>.<method call>`.
+
+In the first case, the object is a string. In the second, the object is an empty `Table`.
+
+In the first case, the method call is `lower()`. In the second, the method call is `with_column('x', [1, 2, 3])`.
+
+The argument to `with_columns` is a list containing a column name (which is a *string*), then the values for that column (in a list), then possibly more column name and values. The names and values must alternate.
+
+For example, this works:
+
+```{python}
+# These two are the exact same code; the second example has line breaks, but to
+# Python they're exactly the same.
+
+Table().with_columns(['Age', [10, 11], 'Name', ['Sam', 'Henry']])
+
+Table().with_columns([
+        'Age', [10, 11],
+        'Name', ['Sam', 'Henry']
+    ])
+```
+
+But this doesn't because the third item isn't a string:
+
+```{python}
+Table().with_columns(['Age', 10, 11, 12])
+```
+
+**Question 4.0.0.** Create a `Table` with the variable name `xy_points` that looks like this:
+
+    x    | y
+    0    | 2
+    1    | 4
+    2    | 6
+    3    | 8
+    4    | 10
+    
+The name of the first column is the *string* `x`; the name of the second is the string `y`.
+
+```{python}
+xy_points = ...
+print(xy_points)
+```
+
+```{python}
+_ = lab03.grade("q400")
+```
+
+## 4.1. Loading a dataset into a `Table`
+
+Of course, we'd like to work with bigger datasets. We can read in data from files by using `Table.read_table`.
+
+The `imdb` table in the cell below contains the top 250 rated movies on IMDb in no particular order.
+
+```{python}
+imdb = Table.read_table('imdb_ratings.csv')
+imdb
+```
+
+Notice the part about "... (240 rows omitted)."  This table is big enough that only a few of its rows are displayed, but the others are still there.
+
+Where did the `imdb_ratings.csv` come from? Take a look at [your `lab03` folder](./). You should see a `imdb_ratings.csv` file.
+
+`Table.read_table` takes in the name of a file or URL as an argument.
+
+Open up the `imdb_ratings.csv` file and look at the format. What do you notice? The `.csv` filename ending says that this file is in the [CSV (comma-separated value) format](http://edoceo.com/utilitas/csv-file-format).
+
+
+**Question 4.1.0.** Create your own CSV file called `my_data.csv` inside your `lab03` folder, then load it into a `Table` called `my_data`.
+
+You can create the file by going to the lab03/ folder and clicking the "New -> Text File" button.
+
+The `my_data` `Table` must have **two columns** and **three rows**. It can have whatever values you want.
+
+```{python}
+my_data = Table.read_table('my_data.csv') #SOlUTION
+my_data
+```
+
+```{python}
+_ = lab03.grade("q410")
+```
+
+## 4.2. Accessing data in tables
+
+Use the `column` method to get values out of a `Table`.  It takes the name of a column and returns that column.  A column is just an array.
+
+```{python}
+imdb.column('Year')
+```
+
+**Question 4.2.0.** Set `third_movie_title` to the title of the third movie in the `imdb` table. Try doing it without adding lines of code if you can.
+
+```{python}
+# Set third_movie_title to the title of the third movie in the imbd table.
+third_movie_title = ...
+third_movie_title
+```
+
+```{python}
+_ = lab03.grade("q420")
+```
+
+**Question 4.2.1.** Set `oldest_year` to the release year of the oldest movie in the `imdb` table.
+
+```{python}
+oldest_year = ...
+oldest_year
+```
+
+```{python}
+_ = lab03.grade("q421")
+```
+
+# 5. Doing interesting things with tables
+
+These questions are more interesting but are a bit tougher! If you get stuck, ask for help from a classmate or your GSI.
+
+There are lots more things tables can do, but it's more fun to learn by doing rather than learning each method individually. We'll be introducing the methods needed to complete each question as they're needed.
+
+```{python}
+# Here's what the imdb table looks like for reference
+imdb
+```
+
+**Question 5.0.** Find the **title** of the movie that received the least number of votes. Store that value in `least_voted_movie`.
+
+The `sort` method takes in one argument: the name of a column as a string. Try `imdb.sort('Year')` and see what happens. (Optionally, you can add `descending=True` as a second argument to sort in the opposite order.)
+
+For this and the rest of the problems, feel free to use additional names if they help you with the problem.
+
+As an extra challenge, try solving each of the following problems in one line of code.
+
+```{python}
+least_voted_movie = ...
+least_voted_movie
+```
+
+```{python}
+_ = lab03.grade("q50")
+```
+
+**Question 5.1.** Find the rating of the oldest movie. Store the value in `oldest_rating`.
+
+```{python}
+oldest_rating = ...
+oldest_rating
+```
+
+```{python}
+_ = lab03.grade("q51")
+```
+
+Here's a table with data on five of the staff members:
+
+```{python}
+staff = Table.read_table('staff_small.csv')
+staff
+```
+
+The `select` method takes in one input: a list of column names. Try running `staff.select(['Email', 'Gender'])`.
+
+**Question 5.2.** Set `names_only` to a `Table` containing the first and last names of the 5 staff members.
+
+```{python}
+names_only = ...
+names_only
+```
+
+```{python}
+_ = lab03.grade("q52")
+```
+
+**Question 5.3.** The `where` method takes in an list or array of booleans and returns a table containing only the rows where the array contained `True`. Try running `staff.where([True, False, True, False, True])`.
+
+Set `evens_only` to a table containing the second and fourth rows of the `staff` table.
+
+```{python}
+evens_only = ...
+evens_only
+```
+
+```{python}
+_ = lab03.grade("q53")
+```
+
+**Question 5.4.** Set `with_pets` to a Table containing only the staff members with at least one pet.
+
+Remember how arrays behave with math operators:
+
+    >>> np.array([2, 3, 4, 5, 6]) > 4
+    array([False, False, False, True, True])
+
+See if you can use this fact to solve this problem.
+
+*Hint:* Remember the `column` method?  It returns an array.
+
+```{python}
+with_pets = ...
+with_pets
+```
+
+```{python}
+_ = lab03.grade("q54")
+```
+
+**Question 5.5.** Set `great_movies` to a Table containing only the movies with rating greater than or equal to 9.0 in order of release from oldest to newest.
+
+If you didn't use the hint from the last question, you'll need it now.
+
+```{python}
+great_movies = ...
+great_movies
+```
+
+```{python}
+list(great_movies.column('Year'))
+```
+
+```{python}
+_ = lab03.grade("q55")
+```
+
+**Question 5.6.** Set `odd_ones` to a Table containing the movies in the `imdb` table that were released on odd years. For example, you should not include movies from 1936 and should include movies from 1985.
+
+The `%` operator computes the remainder (it's also called the modulo operator).
+
+`a % b` is the remainder produced from `a / b`.
+
+Try these statements out:
+
+    5 % 3
+    6 % 3
+    7 % 3
+    8 % 3
+    np.array([2, 5, 8]) % 3
+
+Then, see if you can use this knowledge to construct the `odd_ones` table.
+
+```{python}
+odd_ones = ...
+odd_ones
+```
+
+```{python}
+_ = lab03.grade("q56")
+```
+
+**Question 5.7.** All the staff in the `staff` table have one sibling except Fahad, who has two siblings.
+
+Set `with_siblings` to the `staff` table with a column called `'# Siblings'` with the number of siblings for each staff member.
+
+*Hint:* Use the `with_columns` method?
+
+```{python}
+with_siblings = ...
+with_siblings
+```
+
+```{python}
+_ = lab03.grade("q57")
+```
+
+**Question 5.8.** Oops! It looks like we undercounted the number of pets that each of the staff has by one. For example, Fahad looks like he has 0 pets in the `staff` table but he should have 1.
+
+Set `correct_pets` to the `staff` table with the `# Pets` column corrected.
+
+The `with_columns` method replaces an existing column if the label is already present.
+
+```{python}
+correct_pets = ...
+correct_pets
+```
+
+```{python}
+_ = lab03.grade("q58")
+```
+
+## Whew!
+
+Hope you're beginning to see why tables are useful. Think about solving the problems above with just arrays.
+
+Onward!
+
+```{python}
+# For your convenience, you can run this cell to run all the tests at once!
+import os
+_ = [lab03.grade(q[:-3]) for q in os.listdir("tests") if q.startswith('q')]
+```
+
+```{python}
+# Run this cell to submit your work *after* you have passed all of the test cells.
+# It's ok to run this cell multiple times. Only your final submission will be scored.
+
+# !TZ=America/Los_Angeles ipython nbconvert --output=".lab03_$(date +%m%d_%H%M)_submission.html" lab03.ipynb && echo "Submitted Successfully"
+```

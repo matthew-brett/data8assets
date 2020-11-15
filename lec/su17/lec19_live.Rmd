@@ -1,0 +1,139 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+from datascience import *
+import numpy as np
+
+import matplotlib.pyplot as plt
+plt.style.use('fivethirtyeight')
+# %matplotlib inline
+
+from ipywidgets import interact, interactive, fixed, interact_manual
+import ipywidgets as widgets
+```
+
+## Pea Flowers
+
+```{python}
+total_plants = 929
+observed = 705 / 929 # were purple
+observed_statistic = abs(observed - 0.75)
+observed_statistic
+```
+
+```{python}
+null = make_array('Purple', 'Purple', 'Purple', 'White')
+null
+```
+
+```{python}
+sample = np.random.choice(null, 10)
+sample
+```
+
+```{python}
+abs(np.count_nonzero(sample == 'Purple') / len(sample) - 0.75)
+```
+
+```{python}
+def test_stat(sample):
+    prop_purple = abs(np.count_nonzero(sample == 'Purple')
+                      / len(sample)
+                      - 0.75)
+    return prop_purple
+```
+
+```{python}
+test_stat(np.random.choice(null, total_plants))
+```
+
+```{python}
+repetitions = 5000
+sample_stats = make_array()
+
+for i in np.arange(repetitions):
+    stat = test_stat(np.random.choice(null, total_plants))
+    sample_stats = np.append(sample_stats, stat)
+    
+sample_stats
+```
+
+```{python}
+null_dist = Table().with_columns('Null distribution', sample_stats)
+null_dist
+```
+
+```{python}
+null_dist.hist()
+_ = plt.plot([observed_statistic, observed_statistic], [0, 60])
+```
+
+```{python}
+observed_statistic
+```
+
+```{python}
+# compute the p-value
+np.count_nonzero(sample_stats >= observed_statistic) / len(sample_stats)
+```
+
+```{python}
+sam_tried_again = 0.03
+```
+
+```{python}
+null_dist.hist()
+_ = plt.plot([sam_tried_again, sam_tried_again], [0, 60])
+```
+
+```{python}
+np.count_nonzero(sample_stats >= sam_tried_again) / len(sample_stats)
+```
+
+## Discussion Question: What Happens If...
+
+I remove the absolute value from the test statistic?
+
+```{python}
+def test_stat(sample):
+    prop_purple = (np.count_nonzero(sample == 'Purple')
+                   / len(sample)
+                   - 0.75)
+    return prop_purple
+```
+
+```{python}
+repetitions = 5000
+sample_stats = make_array()
+
+for i in np.arange(repetitions):
+    stat = test_stat(np.random.choice(null, total_plants))
+    sample_stats = np.append(sample_stats, stat)
+    
+null_dist = Table().with_columns('Null distribution', sample_stats)
+null_dist.hist()
+_ = plt.plot([observed_statistic, observed_statistic], [0, 60])
+```
+
+```{python}
+# compute the p-value
+np.count_nonzero(sample_stats >= observed_statistic) / len(sample_stats)
+
+# the previous p-value was around 0.54. Why is it different this time?
+```
+
+```{python}
+
+```

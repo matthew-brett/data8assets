@@ -1,0 +1,59 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+## StudentLife
+
+This notebook loads the StudentLife data described in the Lab 12 handout.
+
+```{python}
+# Run this cell, but please don't change it.
+
+# These lines import the Numpy and Datascience modules.
+import numpy as np
+from datascience import *
+
+# These lines do some fancy plotting magic.
+import matplotlib
+# %matplotlib inline
+import matplotlib.pyplot as plt
+plt.style.use('fivethirtyeight')
+import warnings
+warnings.simplefilter('ignore', FutureWarning)
+```
+
+### Data
+
+Over the course of a semester, the Piazza usage of a 30-student class at Dartmouth College was recorded and released as part of the Student Life research project, which is [described online](http://studentlife.cs.dartmouth.edu/). 
+
+Each row of the `students` table represents a student. In addition to the student's GPA, the row tallies 
+
+* `days online`: The number of days on which the student viewed the online forum
+* `views`: The number of posts viewed
+* `contributions`: The number of contributions, including posts and follow-up discussions
+* `questions`: The number of questions posted
+* `notes`: The number of notes posted
+* `answers`: The number of answers posted
+
+```{python}
+students = Table.read_table('grades_and_piazza.csv')
+students
+```
+
+```{python}
+students.where('GPA', are.above(3.1)).where('contributions', are.below(30)).scatter('GPA', 'contributions', fit_line=True)
+```
+
+```{python}
+np.count_nonzero(students.column('answers'))
+```

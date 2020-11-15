@@ -1,0 +1,52 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+## Errors in Naming
+
+```{python}
+# Run this cell to set up the notebook, but please don't change it.
+
+# These lines load the tests.
+from client.api.assignment import load_assignment 
+tests = load_assignment('naming_errors.ok')
+```
+
+**Question 1.** When you run the following cell, Python will produce an slightly-cryptic error message.  Explain in the text cell below, in your own words, what's wrong with the code.  (Remember, double-click the cell to edit it, and then click the Run button when you're done.)
+
+```{python}
+4 = 2 + 2
+```
+
+*Write your answer here, replacing this text.*
+
+
+**Question 2.** When you run the following cell, Python will produce an slightly-cryptic error message.  **Fix the error,** and then **explain below** in your own words what was wrong with the code.
+
+```{python}
+two = 2
+four = two plus two
+```
+
+```{python}
+_ = tests.grade("q2")
+```
+
+*Write your answer here, replacing this text.*
+
+```{python}
+# Run this cell to submit your work *after* you have passed all of the test cells.
+# It's ok to run this cell multiple times. Only your final submission will be scored.
+
+# !TZ=America/Los_Angeles ipython nbconvert --output=".naming_errors_$(date +%m%d_%H%M)_submission.html" naming_errors.ipynb
+```

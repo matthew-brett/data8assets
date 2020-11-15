@@ -1,0 +1,180 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python deletable=TRUE, editable=TRUE}
+from datascience import *
+import numpy as np
+
+import matplotlib.pyplot as plots
+plots.style.use('fivethirtyeight')
+# %matplotlib inline
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## At least one 6
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+Roll a die 4 times. What's P(at least one 6).
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+1 - (5/6) ** 4
+```
+
+```{python deletable=TRUE, editable=TRUE}
+rolls = np.arange(1, 51, 1)
+at_least_one = Table().with_columns(
+    'Rolls', rolls,
+    'Chance of at least one 6', 1 - (5/6)**rolls
+)
+at_least_one.set_format(1, PercentFormatter(3))
+```
+
+```{python deletable=TRUE, editable=TRUE}
+at_least_one.scatter('Rolls')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+at_least_one.where('Rolls', 20)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+faces = np.arange(6)+1
+outcomes = np.random.choice(faces, 20)
+outcomes
+```
+
+```{python deletable=TRUE, editable=TRUE}
+np.count_nonzero(outcomes==6)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+trials = 1000
+successes = 0
+
+for i in np.arange(trials):
+    outcomes = np.random.choice(faces, 20)
+    if np.count_nonzero(outcomes==6) > 0:
+        successes = successes + 1
+
+successes/trials
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Estimation
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+def roll_20(trials):
+    successes = 0
+
+    for i in np.arange(trials):
+        outcomes = np.random.choice(faces, 20)
+        if np.count_nonzero(outcomes==6) > 0:
+            successes = successes + 1
+
+    return successes/trials
+
+estimates = Table(['estimate'])
+for k in np.arange(1000):
+    estimates.append([roll_20(1000)])
+
+estimates.group(0).barh(0)
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Planes
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+N = 300
+serialno = Table().with_column('Serial number', np.arange(N)+1)
+serialno
+```
+
+```{python deletable=TRUE, editable=TRUE}
+serialno.sample(30).column(0).max()
+```
+
+```{python deletable=TRUE, editable=TRUE}
+max(serialno.sample(30).column(0))
+```
+
+```{python deletable=TRUE, editable=TRUE}
+a = np.arange(3, 7)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+a
+```
+
+```{python deletable=TRUE, editable=TRUE}
+np.append(a, 7)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+a
+```
+
+```{python deletable=TRUE, editable=TRUE}
+a = np.append(a, 7)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+a
+```
+
+```{python deletable=TRUE, editable=TRUE}
+sample_size = 30
+repetitions = 750
+
+maxes = make_array()
+
+for i in np.arange(repetitions):
+    sampled_numbers = serialno.sample(sample_size).column(0)
+    maxes = np.append(maxes, sampled_numbers.max())  
+
+estimates = Table().with_column('Max serial number', maxes)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+every_ten = np.arange(1, N+100, 10)
+estimates.hist(bins=every_ten)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+300**30
+```
+
+```{python deletable=TRUE, editable=TRUE}
+maxes = make_array()
+doubles = make_array()
+
+for i in np.arange(repetitions):
+    sampled_numbers = serialno.sample(sample_size).column(0)
+    maxes = np.append(maxes, sampled_numbers.max())  
+    doubles = np.append(doubles, 2 * sampled_numbers.mean())
+
+estimates = Table().with_columns(
+    'Max', maxes,
+    '2 * average', doubles
+)
+
+estimates
+```
+
+```{python deletable=TRUE, editable=TRUE}
+estimates.hist(bins=every_ten)
+```

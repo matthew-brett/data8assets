@@ -1,0 +1,240 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+from datascience import *
+import numpy as np
+
+# %matplotlib inline
+import matplotlib.pyplot as plots
+plots.style.use('fivethirtyeight')
+```
+
+## Last Time...
+
+```{python}
+galton = Table.read_table('http://inferentialthinking.com/notebooks/galton.csv')
+galton
+```
+
+```{python}
+heights = galton.select(3, 7).relabeled(0, 'MidParent').relabeled(1, 'Child')
+heights.scatter(0)
+```
+
+## Apply with two arguments
+
+```{python}
+first = galton.row(0)
+first
+```
+
+```{python}
+len(first)
+```
+
+```{python}
+galton.num_rows
+```
+
+```{python}
+galton.num_columns
+```
+
+```{python}
+first.item(2)
+```
+
+```{python}
+first.item('mother')
+```
+
+```{python}
+m = first.item('mother')
+f = first.item('father')
+(1.08 * m + f) / 2
+```
+
+```{python}
+def mid_parent(m, f):
+    return (1.08 * m + f) / 2
+```
+
+```{python}
+galton.take(np.arange(10)).apply(mid_parent, 'mother', 'father')
+```
+
+```{python}
+galton.take(np.arange(3)).apply(len)
+```
+
+```{python}
+galton.take(np.arange(3)).apply(len, 'gender')
+```
+
+```{python}
+len('male')
+```
+
+```{python}
+def mid_parent_from_row(row):
+    return (1.08 * row.item('mother') + row.item('father')) / 2
+```
+
+```{python}
+galton.take(np.arange(10)).apply(mid_parent_from_row)
+```
+
+## Group
+
+```{python}
+all_cones = Table.read_table('http://inferentialthinking.com/notebooks/cones.csv')
+cones = all_cones.drop('Color').exclude(5)
+cones
+```
+
+```{python}
+cones.group('Flavor')
+```
+
+```{python}
+cones.group('Flavor', sum)
+```
+
+```{python}
+cones.where('Flavor', are.equal_to('chocolate')).column('Price')
+```
+
+```{python}
+sum(cones.where('Flavor', are.equal_to('chocolate')).column('Price'))
+```
+
+```{python}
+sum(cones.where('Flavor', are.equal_to('strawberry')).column('Price'))
+```
+
+```{python}
+cones.group('Flavor', max)
+```
+
+```{python}
+cones.group('Flavor', list)
+```
+
+```{python}
+nba = Table.read_table('http://inferentialthinking.com/notebooks/nba_salaries.csv').relabeled(3, 'SALARY')
+nba
+```
+
+```{python}
+teams_and_money = nba.select('TEAM', 'SALARY')
+teams_and_money.group('TEAM', sum).sort(1, descending=True).barh('TEAM')
+```
+
+```{python}
+nba.group('POSITION')
+```
+
+```{python}
+positions_and_money = nba.select('POSITION', 'SALARY')
+positions_and_money.group('POSITION', np.mean)
+```
+
+```{python}
+nba.group('POSITION', np.mean)
+```
+
+## Group by multiple columns
+
+
+Note: textbook is out-of-date!
+
+```{python}
+all_cones
+```
+
+```{python}
+all_cones.group('Flavor')
+```
+
+```{python}
+all_cones.group(['Flavor', 'Color'])
+```
+
+```{python}
+all_cones.group(['Flavor', 'Color'], sum)
+```
+
+```{python}
+nba
+```
+
+```{python}
+starters = nba.drop('PLAYER').group(['TEAM', 'POSITION'], max)
+starters.drop('POSITION').group('TEAM', sum).sort(1, descending=True)
+```
+
+```{python}
+all_cones.pivot('Flavor', 'Color')
+```
+
+```{python}
+all_cones.pivot('Flavor', 'Color', values='Price', collect=sum)
+```
+
+```{python}
+all_cones.groups(['Flavor', 'Color'], sum)
+```
+
+```{python}
+nba.pivot('POSITION', 'TEAM')
+```
+
+```{python}
+nba.pivot('POSITION', 'TEAM', 'SALARY', max)
+```
+
+```{python}
+# Solution to take-home question:
+# How do you make a table of the highest paid players for each team & position
+indexed = nba.with_column('INDEX', np.arange(nba.num_rows))
+def highest_paid(indices):
+    return indexed.take(indices).sort('SALARY', descending=True).column('PLAYER').item(0)
+indexed.pivot('POSITION', 'TEAM', 'INDEX', highest_paid)
+```
+
+```{python}
+# The solution above does not assume that the nba table is already sorted.
+# Since nba is sorted in decreasing order of salary by team, the following works too
+def first(players):
+    return players.item(0)
+indexed.pivot('POSITION', 'TEAM', 'PLAYER', first)
+```
+
+## Example
+
+```{python}
+full_table = Table.read_table('http://inferentialthinking.com/notebooks/educ_inc.csv')
+ca_2014 = full_table.where('Year', are.equal_to('1/1/14 0:00')).where('Age', are.not_equal_to('00 to 17')).drop('Year')
+ca_2014
+```
+
+```{python}
+totals = ca_2014.pivot('Educational Attainment', 3, values=4, collect=sum)
+totals
+```
+
+```{python}
+totals.select(0, 1, 4).barh(0)
+```

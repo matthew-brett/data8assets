@@ -1,0 +1,148 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+import numpy as np
+np.set_printoptions(threshold=50)
+```
+
+```{python}
+from datascience import *
+```
+
+```{python}
+Table()
+```
+
+```{python}
+Table().with_columns('Petals', make_array(8, 34, 5))
+```
+
+```{python}
+Table().with_columns(
+    'Petals', make_array(8, 34, 5),
+    'Name', make_array('lotus', 'sunflower', 'rose')
+)
+```
+
+```{python}
+flowers = Table().with_columns(
+    'Petals', make_array(8, 34, 5),
+    'Name', make_array('lotus', 'sunflower', 'rose')
+)
+flowers.with_columns('Color', make_array('pink', 'yellow', 'red'))
+```
+
+```{python}
+flowers = flowers.with_columns('Color', make_array('pink', 'yellow', 'red'))
+flowers
+```
+
+```{python}
+x = 3
+```
+
+```{python}
+x + 2
+```
+
+```{python}
+x
+```
+
+```{python}
+x = x + 2
+```
+
+```{python}
+x
+```
+
+```{python}
+minard = Table.read_table('http://inferentialthinking.com/notebooks/minard.csv')
+minard
+```
+
+```{python}
+minard.num_columns
+```
+
+```{python}
+minard.num_rows
+```
+
+```{python}
+minard.labels
+```
+
+```{python}
+minard
+```
+
+```{python}
+minard.relabeled('City', 'City Name')
+```
+
+```{python}
+minard = minard.relabeled('City', 'City Name')
+minard
+```
+
+```{python}
+minard.column('Survivors')
+```
+
+```{python}
+minard.column(4)
+```
+
+```{python}
+minard.column(4).item(0)
+```
+
+```{python}
+initial = minard.column(4).item(0)
+minard = minard.with_columns(
+    'Percent Surviving', minard.column('Survivors') / initial
+)
+minard
+```
+
+```{python}
+minard.select('Longitude', 'Direction')
+```
+
+```{python}
+minard.select('Longitude', 'Direction').select('Direction')
+```
+
+```{python}
+minard.select('Longitude', 4)
+```
+
+```{python}
+minard.column('Survivors') + 1
+```
+
+```{python}
+minard.drop('Longitude', 'Latitude', 'Direction')
+```
+
+```{python}
+minard
+```
+
+```{python}
+
+```

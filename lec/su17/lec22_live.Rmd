@@ -1,0 +1,167 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+from datascience import *
+import numpy as np
+
+import matplotlib.pyplot as plt
+plt.style.use('fivethirtyeight')
+# %matplotlib inline
+
+from ipywidgets import interact, interactive, fixed, interact_manual
+import ipywidgets as widgets
+```
+
+## Deflategate
+
+```{python}
+football = Table.read_table('http://inferentialthinking.com/notebooks/football.csv')
+football = football.drop('Team')
+football.show()
+```
+
+```{python}
+averages = (football.column(1) + football.column(2)) / 2
+temp = football.with_column('Average at Half', averages)
+temp.show(3)
+```
+
+```{python}
+initials = np.append(np.ones(11) * 12.5, np.ones(4) * 13)
+temp = temp.with_column('Estimate at Start', initials)
+temp
+```
+
+```{python}
+temp = temp.with_column('Drop', temp.column(4) - temp.column(3))
+temp
+```
+
+```{python}
+['Patriots'] * 11 + ['Colts'] * 4
+```
+
+```{python}
+drops = temp.select('Ball', 'Drop')
+drops = drops.with_column(
+    'Ball', ['Patriots'] * 11 + ['Colts'] * 4
+).relabeled('Ball', 'Team')
+drops
+```
+
+```{python}
+drops.show()
+```
+
+```{python}
+drops.where('Team', 'Patriots').hist(1)
+plt.xlim(0.25, 1.9)
+```
+
+```{python}
+drops.where('Team', 'Colts').hist(1)
+plt.xlim(0.25, 1.9)
+```
+
+Null: The Patriots and the Colts drops in pressure came from the same distribution.
+
+Alternative: The two teams' drops in pressures did not come from the same distribution.
+
+```{python}
+drops.show()
+```
+
+```{python}
+drops.group('Team', np.average)
+```
+
+```{python}
+def difference_in_average_drop(t):
+    averages = t.group('Team', np.average).column(1)
+    return abs(averages.item(0) - averages.item(1))
+    
+difference_in_average_drop(drops)
+```
+
+How would I draw more samples under the null?
+
+```{python}
+shuffled = drops.select('Drop').sample(with_replacement=False)
+sample = drops.select('Team').with_column('Drop', shuffled.column(0))
+sample.show(3)
+```
+
+```{python}
+sample.where('Team', 'Patriots').hist(1)
+plt.xlim(0.25, 1.9)
+
+sample.where('Team', 'Colts').hist(1)
+plt.xlim(0.25, 1.9)
+```
+
+```{python}
+difference_in_average_drop(sample)
+```
+
+```{python}
+shuffled = drops.select('Drop').sample(with_replacement=False)
+sample = drops.select('Team').with_column('Drop', shuffled.column(0))
+difference_in_average_drop(sample)
+```
+
+```{python}
+repetitions = 10000
+sampled_stats = make_array()
+
+for i in np.arange(repetitions):
+    shuffled = drops.select('Drop').sample(with_replacement=False)
+    sample = drops.select('Team').with_column('Drop', shuffled.column(0))
+    sampled_stats = np.append(sampled_stats, difference_in_average_drop(sample))
+
+sampled_stats
+```
+
+```{python}
+null = Table().with_column('Null distribution', sampled_stats)
+null
+```
+
+```{python}
+null.hist()
+```
+
+```{python}
+observed = difference_in_average_drop(drops)
+observed
+```
+
+```{python}
+def plot_null_n_samples(n=1):
+    (Table().with_column('Null distribution', sampled_stats[:n])
+     .hist(bins=np.arange(0, 0.9, 0.05)))
+    plt.plot([observed, observed], [0, 3])
+    plt.ylim(0, 3)
+    plt.show()
+
+_ = interact(plot_null_n_samples, n=(1, 10001, 10))
+```
+
+```{python}
+np.count_nonzero(sampled_stats >= observed) / repetitions
+```
+
+```{python}
+
+```

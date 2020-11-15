@@ -1,0 +1,107 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python [conda root]
+    language: python
+    name: conda-root-py
+---
+
+```{python}
+# %matplotlib inline
+import matplotlib.pyplot as plots
+plots.style.use('fivethirtyeight')
+```
+
+## Review of Table manipulation ##
+
+Let's see if we can make some interesting conclusions by using what we've learned about tables and visualization!
+
+First, let's set things up: import datascience and numpy, and read in the table called "all-ages".
+
+```{python}
+import ... as ...
+from ... import ...
+collegedata = ...
+collegedata
+```
+
+Some of these majors are pretty uncommon/obscure. Let's remove any major with less than 50000 graduates (number of graduates is listed in the Total column). How many rows did we lose? Print this number before displaying the table.
+
+```{python}
+before = ...
+bigmajors = ...
+after = ...
+print(...)
+bigmajors
+```
+
+There are some columns that we aren't too concerned with, so let's get rid of them. Specifically,
+ * Major_code means nothing to us
+ * Distinction between full time and part time isn't important right now, so let's drop employed_full_time_year_round
+
+```{python}
+dropped = ...
+dropped
+```
+
+I wonder how different majors stack up in terms of employment, relative to other majors in the same category? Let's take a look. 
+* Sort first by unemployment rate (low to high), and then by major category.
+     * Does it matter what order I sort these in?
+     * Can I do this in one line?
+* Now show 40 lines so we can see a couple different categories
+
+```{python}
+employsorted = ...
+categorysorted = ...
+bothsorted = ...
+...
+```
+
+What's the business major with the lowest unemployment rate?
+It's a little hard to see patterns with just a table like this, so let's use a bar chart to see patterns within certain categories. Use barh to plot unemployement rates of business majors.
+* Make a new table called business containing just business majors (try using take for this: the rows with business majors are 18-29, inclusive on both ends)
+    * Challenge: how would I figure out what these rows are? (look up np.where())
+* Plot unemployment rate vs each major in the business category.
+
+```{python}
+business = ...
+...
+```
+
+It's good to think about what we can use visualization for. Here's an example of something that might not be terribly insightful: plot the employement rate vs unemployment rate for all majors. 
+
+First, create and add a new column called employment rate to bothsorted. (This is employed/(unemployed + employed)). Assign this new table to the same name as before, bothsorted. Then, use the second cell to plot. 
+
+```{python}
+bothsorted = ...
+```
+
+```{python}
+...
+```
+
+Here's something that might be a little more useful; is there a relationship between unemployment rate and median income? Plot the two and find out.
+
+```{python}
+...
+```
+
+You'll learn how to quantify the difference between these two scatter plots as the course progresses.
+
+
+Bonus set of questions as time allows:
+You may add code cells as necessary.
+
+Now, let's take a look at the majors we ignored earlier, and see what they look like. 
+
+* Create a table called smallmajors with every major that wasn't included in the bigmajors. 
+* Drop the columns we did before
+* Make a bar chart comparing the differences in Median income of a major group of your choice. 
+* Compare differences between P25 and P75 of every major (from the original all majors table). Should you use a bar graph, scatter plot, or histogram? Do that.
+

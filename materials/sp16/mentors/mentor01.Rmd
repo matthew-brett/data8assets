@@ -1,0 +1,93 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+Data 8 Mentoring Week 01
+
+```{python}
+from datascience import *
+# %matplotlib inline
+import matplotlib.pyplot as plots
+plots.style.use('fivethirtyeight')
+import numpy as np
+```
+
+Welcome to week one!
+
+Let's start by loading the file `top250_movies.txt` into a `Table` called `movies`.
+
+```{python}
+
+```
+
+Select 5 rows uniformly at random from the `movies` table.
+
+```{python}
+
+```
+
+Select all rows that have an even row index (including 0).
+
+```{python}
+
+```
+
+What is the average number of `Votes` given to a movie in the `movies` table?
+
+```{python}
+
+```
+
+Sample 50 rows uniformly at random without replacement; what is the average number of `Votes` given to these movies?
+
+```{python}
+
+```
+
+Sample 50 rows uniformly at a random 5 times using a `for` statement and `print` the average number of `Votes` for each sample.
+
+```{python}
+
+```
+
+Use `pivot` to count how many movies have each rating in each year.
+
+```{python}
+
+```
+
+Draw a horizontal bar chart of the count of how many movies have each rating.
+
+```{python}
+
+```
+
+Make a histogram of ratings. Each bin should have width .1 starting from the lowest value in ratings all the way to 10.
+
+```{python}
+
+```
+
+Make a histogram of ratings for only the 100 movies with the most votes. Is it different?
+
+```{python}
+
+```
+
+Make a histogram of ratings for a uniform random sample *with replacement* of 1000 movies. Is it different?
+
+```{python}
+
+```
+
+Congratulations! You've finished your first tutoring exercise. Be sure to give your tutor feedback on what you liked, didn't like, and would like to cover in the coming weeks!

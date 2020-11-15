@@ -1,0 +1,95 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+import numpy as np
+from datascience import *
+
+# Configure notebook (happens automatically on data8.berkeley.edu)
+# %matplotlib inline
+import matplotlib.pyplot as plt
+plt.style.use('fivethirtyeight')
+
+# Configure for presentation
+np.set_printoptions(threshold=50, linewidth=50)
+import matplotlib as mpl
+mpl.rc('font', size=16)
+```
+
+```{python}
+def standard_units(any_numbers):
+    "Convert any array of numbers to standard units."
+    return (any_numbers - np.mean(any_numbers))/np.std(any_numbers)  
+
+def correlation(t, x, y):
+    "Compute r."
+    return np.mean(standard_units(t.column(x))*standard_units(t.column(y)))
+```
+
+```{python}
+heights = Table.read_table('heights.csv')
+heights.scatter('father', 'son', s=10)
+```
+
+```{python}
+heights.num_rows
+```
+
+```{python}
+heights.hist(bins=np.arange(55.5, 80, 1), unit='inch')
+```
+
+```{python}
+son_average = np.mean(heights.column('son'))
+father_average = np.mean(heights.column('father'))
+son_average - father_average
+```
+
+```{python}
+diffs = Table().with_column('son-father difference',
+    heights.column('son') - heights.column('father'))
+diffs.hist(bins=np.arange(-9.5, 10, 1), unit='inch')
+```
+
+```{python}
+r = correlation(heights, 'father', 'son')
+r
+```
+
+```{python}
+six_foot_fathers = heights.where(np.round(heights.column('father')) == 72)
+six_foot_fathers.hist('son', bins=np.arange(55.5, 80, 1))
+```
+
+```{python}
+np.count_nonzero(six_foot_fathers.column('son') < 72) / six_foot_fathers.num_rows
+```
+
+```{python}
+np.mean(six_foot_fathers.column('son'))
+```
+
+```{python}
+father_su = standard_units(heights['father'])
+son_su = standard_units(heights['son'])
+heights_su = Table().with_columns([
+        'father (su)', father_su,
+        'son (su)', son_su
+    ])
+heights_su.scatter('father (su)', s=10)
+```
+
+```{python}
+(72-father_average)/np.std(heights.column('father'))
+```

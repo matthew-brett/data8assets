@@ -1,0 +1,162 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python deletable=TRUE, editable=TRUE}
+from datascience import *
+import numpy as np
+
+import matplotlib.pyplot as plots
+plots.style.use('fivethirtyeight')
+# %matplotlib inline
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Pea Flowers
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+null = make_array('Purple', 'Purple', 'Purple', 'White')
+
+def test_stat(sample):
+    proportion_purple = np.count_nonzero(sample == 'Purple') / len(sample)
+    return abs(proportion_purple - 0.75)
+
+total_plants = 929
+observed_statistic = 0.0088805166846070982 # 705 were Purple
+```
+
+```{python deletable=TRUE, editable=TRUE}
+# Simulating the test statistic under the null hypothesis
+repetitions = 5000
+sampled_stats = make_array()
+
+for i in np.arange(repetitions):
+    new_sample = np.random.choice(null, total_plants)
+    sampled_stats = np.append(sampled_stats, test_stat(new_sample))
+```
+
+```{python deletable=TRUE, editable=TRUE}
+null_dist = Table().with_column('Distribution of the test statistic under the null hypothesis', sampled_stats)
+null_dist.hist()
+_ = plots.plot([observed_statistic, observed_statistic], [0, 60])
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## P-value
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+# The P-value (an approximation based on the simulation)
+np.count_nonzero(sampled_stats >= observed_statistic)/repetitions
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Test Statistics
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+def number_of_different_colors(sample):
+    return Table().with_column('values', sample).group(0).num_rows
+
+observed = 2
+```
+
+```{python deletable=TRUE, editable=TRUE}
+# Simulating the test statistic under the null hypothesis
+repetitions = 500
+sampled_stats = make_array()
+
+for i in np.arange(repetitions):
+    new_sample = np.random.choice(null, total_plants)
+    sampled_stats = np.append(sampled_stats, number_of_different_colors(new_sample))
+```
+
+```{python deletable=TRUE, editable=TRUE}
+Table().with_column('Null distribution', sampled_stats).hist()
+_ = plots.plot([observed, observed], [0, 10])
+```
+
+```{python deletable=TRUE, editable=TRUE}
+def number_of_purples(sample):
+    return np.count_nonzero(sample == 'Purple')
+
+observed = 705
+```
+
+```{python deletable=TRUE, editable=TRUE}
+# Simulating the test statistic under the null hypothesis
+repetitions = 5000
+sampled_stats = make_array()
+
+for i in np.arange(repetitions):
+    new_sample = np.random.choice(null, total_plants)
+    sampled_stats = np.append(sampled_stats, number_of_purples(new_sample))
+```
+
+```{python deletable=TRUE, editable=TRUE}
+Table().with_column('Null distribution', sampled_stats).hist()
+_ = plots.plot([observed, observed], [0, .03])
+```
+
+## Deflategate
+
+```{python}
+football = Table.read_table('http://inferentialthinking.com/notebooks/football.csv')
+football = football.drop('Team')
+football.show()
+```
+
+```{python}
+initials = np.append(np.ones(11) * 12.5, np.ones(4) * 13)
+averages = (football.column(1)+football.column(2))/2
+football = football.with_column(
+    'Team', np.char.strip(football.column('Ball'), [' 1234567890']),
+    'Average at Half', averages,
+    'Estimate at Start', initials,
+    'Drop', initials - averages
+)
+football.show()
+```
+
+```{python}
+def difference_in_average_drop(t):
+    averages = t.select('Team', 'Drop').group('Team', np.average).column(1)
+    return averages.item(1) - averages.item(0)
+
+observed = difference_in_average_drop(football)
+observed
+```
+
+```{python}
+shuffled = football.select('Drop').sample(15, with_replacement=False)
+football.select('Team').with_column('Drop', shuffled.column(0))
+```
+
+```{python}
+sampled_stats = make_array()
+
+for i in np.arange(10000):
+    shuffled = football.select('Drop').sample(15, with_replacement=False)
+    sample = football.select('Team').with_column('Drop', shuffled.column(0))    
+    sampled_stats = np.append(sampled_stats, difference_in_average_drop(sample))
+```
+
+```{python}
+Table().with_column('Null distribution', sampled_stats).hist()
+_ = plots.plot([observed, observed], [0, 1.4])
+```
+
+```{python}
+np.count_nonzero(sampled_stats >= observed)/len(sampled_stats)
+```

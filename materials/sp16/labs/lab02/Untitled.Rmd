@@ -1,0 +1,56 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+a = Table.with_columns(["country", ["UK","US","Japan","Germany","England"],
+                         "reipient", ["Ryan","James ", "David", "Sam", "Ben"])
+```
+
+```{python}
+a = Table.with_columns(["country", ["UK","US","Japan","Germany","England"],
+                         "reipient", ["Ryan","James ", "David", "Sam", "Ben"]])
+```
+
+```{python}
+# Test cell; please do not change!
+from client.api.assignment import load_assignment 
+lab02 = load_assignment('lab02.ok')
+```
+
+```{python}
+a = Table.with_columns(["country", ["UK","US","Japan","Germany","England"],
+                         "reipient", ["Ryan","James ", "David", "Sam", "Ben"]])
+```
+
+```{python}
+# Run this cell, but please don't change it.
+
+# These lines import the numpy and datascience modules.
+import numpy as np
+from datascience import *
+
+# These lines load the tests.
+from client.api.assignment import load_assignment 
+hw04 = load_assignment('hw04.ok')
+
+# These lines set up visualizations.
+import matplotlib
+# %matplotlib inline
+import matplotlib.pyplot as plots
+plots.style.use('fivethirtyeight')
+```
+
+```{python}
+
+```

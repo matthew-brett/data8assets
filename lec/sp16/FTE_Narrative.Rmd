@@ -1,0 +1,406 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+# Introducing Tables in a data narrative
+
+```{python}
+# HIDDEN
+# This useful nonsense should just go at the top of your notebook.
+from datascience import *
+# For documentation see http://data8.org/datascience/tables.html
+# %matplotlib inline
+import matplotlib.pyplot as plots
+import numpy as np
+from numpy import mean
+plots.style.use('fivethirtyeight')
+from ipywidgets import interact
+# datascience version number of last run of this notebook
+version.__version__
+```
+
+## A question of size
+
+The university might like to understand the differences in large and small departments.  For example, is the student experience more personal in a small department or program?  Do they have more or less access to faculty.  To approach this question, it wants to understand the current departmental demographics and develop a strategy for putting a committee together to study the issue.
+
+Let's start with some data.
+
+```{python}
+# read a table full of data from a file or a URL
+# assigning it to a variable gives it a name
+
+#raw_fte = Table.read_table('./data/deptFTE.csv')
+raw_fte = Table.read_table("https://deculler.github.io/DataScienceTableDemos/data/deptFTE.csv")
+```
+
+```{python}
+# By referring to the name, we can render the contents of the Table, i.e., the data,
+# regardless of the amount of data.  Only a piece is rendered.
+raw_fte
+```
+
+```{python}
+# How easy is it to access the data?
+Total_FTE = sum(raw_fte['FTE'])
+Total_FTE
+```
+
+```{python}
+# But be careful working on raw data before you've had a chance to understand it.
+mean(raw_fte['FTE'])
+```
+
+## Refining the data and the argument
+
+
+Often the first step is to clean or manipulate the raw data into a more useful form.
+Here, we will do just a tiny bit.  Many of the rows have 0 FTE, as they are groups that somehow overlay departments or other institutional programs.
+
+```{python}
+# Create a new table from the raw table where a predicate is satisfied.
+# Here the simplest predicate, the values are not zero (which is like False for numbers)
+raw_fte.where('FTE')
+```
+
+```{python}
+# Assign this value to a variable so we can use it in what follows.
+fte = raw_fte.where('FTE')
+```
+
+```{python}
+# What is the value of this variable?
+fte
+```
+
+### Explaining python
+
+A method is invoked on a object, including a table, using `.` (dot) and `( )` with arguments.
+
+`<table object>`.`<method>( <arguments> )`
+
+Here `raw_fte` is the table; we are invoking `where` on it, passing a column label `FTE`.  It returns a table derived from this one consisting of the rows that are non-zero ("truthy") in the `FTE` column.
+
+You may notice that we created `raw_fte` in a similar fashion, invoking `read_table` on the `Table` class and passing it a string describing a path to the data.
+
+```{python}
+# Descriptive statistics are built in to Tables
+# Table.stats returns a table of summaries for each column, like R summary
+# The value returned from the expression is rendered in the notebook
+fte.stats()
+```
+
+```{python}
+# Tables have attributes, such as their length and width
+#  - they are values, not functions, so no ()
+fte.num_rows
+```
+
+```{python}
+# Using these in expressions, which return a value
+raw_fte.num_rows - fte.num_rows
+```
+
+```{python}
+mean(fte['FTE'])
+```
+
+### Data exploration
+
+```{python}
+# Data exploration is often important to understand what you are working with.
+# Create a table by selecting columns from a table.
+fte.select(['Dept', 'FTE'])
+```
+
+```{python}
+# Operators on tables can be composed - the result of one is provided to the next
+# Select two columns of a Table
+# Produce a bar plot using one column as labels (or barh to see them all)
+#   - the resulting graph is rendered in the document
+fte.select(['Dept', 'FTE']).bar('Dept')
+```
+
+Visualization often is essential to understand the data that you are working with, before doing any kind of summarization or analysis
+
+
+### Computational concept: composition
+* Functional composition: use the results of one as input to another
+* Sequential composition: give the result of a computation a name and use it in a subsequent computation
+
+```{python}
+# Operators on tables keep the rows together, for example sorting on
+# a column produces a new table with the rows reordered.
+# Here we compose that with some visualization
+#
+# fte.select(['Dept', 'FTE']).sort('FTE').barh('Dept')
+dept_fte = fte.select(['Dept', 'FTE'])
+sorted_fte = dept_fte.sort('FTE')
+sorted_fte.barh('Dept')
+```
+
+### Statistical concept: frequency analysis
+
+```{python}
+# The data itself is often overwelming in its detail.  Frequency analysis
+# seeks to understand patterns, such as what is common and what is rare.
+
+fte.hist('FTE')
+```
+
+Like so many things is life, the 80/20 rule... most departments are small, but the few large ones have a lot in them.
+
+```{python}
+# If you can visualize it, you should be able to compute on the data
+# in the visualization... create a table.
+fte.bin('FTE')
+```
+
+### Computing on data in a table
+
+```{python}
+# Indexing a table by a column label returns an array containing the data in that column
+fte['FTE']
+```
+
+```{python}
+# We can compute on this just like any other data
+sum(fte['FTE'])
+```
+
+```{python}
+ave_fte = sum(fte['FTE'])/fte.num_rows
+ave_fte
+```
+
+```{python}
+# The result of computation can be recorded in the table by assigning the column.
+#  - this modifies the table, rather than creating a new one
+bins = fte.bin('FTE')
+bins['Min Count'] = bins['bin']*bins['FTE count']
+bins
+```
+
+```{python}
+# Functions are a beautiful way to express categories
+nbin = 5
+def dept_bin(size):
+    return (size//nbin)*nbin
+```
+
+```{python}
+dept_bin(13)
+```
+
+### Functions in python
+- defined using `def`, the name of the function, and the arguments
+- "body" of the function is indented
+- `return` statement gives expression of returned value
+
+```{python}
+fte_bin = fte.copy()
+fte_bin['bin'] = fte_trend.apply(dept_bin, 'FTE')
+fte_bin
+```
+
+### Computing on the data versus the statistical summary
+
+
+### Grouping and computing aggregates
+
+```{python}
+fte_bin.group('bin')
+#fte_bin.group('bin', collect=sum)
+```
+
+```{python}
+# Building a new table "with" additional columns
+fte_trends = fte_bin.group('bin').with_column('sum', fte_bin.group('bin', collect=sum)['FTE sum'])
+fte_trends
+```
+
+```{python}
+# Build this up a column at a time.
+# We will use a cumulative sum function from numpy
+fte_trends = fte_bin.group('bin').with_column('sum', fte_bin.group('bin', collect=sum)['FTE sum'])
+fte_trends['CumCount'] = np.cumsum(fte_trends['count'])
+fte_trends['CumFTE'] = np.cumsum(fte_trends['sum'])
+fte_trends['Dept Frac'] = fte_trends['CumCount'] / sum(fte_trends['count'])
+fte_trends.set_format('Dept Frac', PercentFormatter)
+fte_trends['FTE Frac'] = fte_trends['CumFTE'] / sum(fte_trends['sum'])
+fte_trends.set_format('FTE Frac', PercentFormatter)
+fte_trends
+```
+
+```{python}
+# plot the portion we are interested in
+fte_trends.select(['bin', 'Dept Frac', 'FTE Frac']).plot('bin')
+```
+
+Many natural phenomenom result in most of the items are small and comprise little of the total, whereas most of the total is in a few big ones. 
+
+For departments in out study: 
+- 2/3rds of the departments contain 1/3rd of the faculty
+- 1/3rd of the departments contain 2/3rds of the faculty
+
+
+
+## Essential statistical concept simulated in tables - sampling
+
+We want to make sound inferences about a population we generally cannot observe based on sample of the population that we can.
+
+Think of the table as representing the population - here of departments.
+The `sample` method take a sample (uniformly at random) from the table.
+
+```{python}
+# Try it over again in the computational document with ctrl-enter
+fte.sample(5)
+```
+
+```{python}
+# Compute on a sample by indexing a column and passing it to a function.
+# Try this a few times.
+mean(fte.sample(5)['FTE'])
+```
+
+## Essential computing concept - abstraction
+
+Take a particular computation on particular objects and values and abstract it into a function that provides a useful tool that can be applied in many situations.
+
+```{python}
+def ave_sample(tbl, col, size):
+    return mean(tbl.sample(size)[col])
+```
+
+```{python}
+# Apply this to the fte table on the 'FTE' column
+ave_sample(fte, 'FTE', 5)
+```
+
+## Essential computing concept - iteration
+
+Create a sequence of values in a systematic fashion
+
+```{python}
+n_samples = 10
+[ave_sample(fte, 'FTE', 5) for sample in range(n_samples)]
+```
+
+```{python}
+n_samples = 10
+tbl = fte
+col = 'FTE'
+[ave_sample(tbl, col, 5) for sample in range(n_samples)]
+```
+
+### Explaining python - comprehension
+- a collection of data is obtained by an expression over a variable for each element in a set
+- `[` expression `for` variable `in` data `]`
+
+
+```{python}
+# Create a table object with this column of values, giving it a name
+n_samples = 10
+tbl = fte
+col = 'FTE'
+Table().with_column('Ave fte', [ave_sample(tbl, col, 5) for sample in range(n_samples)])
+```
+
+```{python}
+# Abstract this whole process
+def distr(tbl, col, size, samples):
+    col_data = [ave_sample(tbl, col, size) for sample in range(samples)]
+    return Table().with_column("ave " + col, col_data)
+```
+
+```{python}
+# Apply it as a general tool to create a table
+distr(fte, 'FTE', 5, 100)
+```
+
+```{python}
+# Compute a sample distribution by obtaining lots of samples, computing a statistic on each
+# and forming a histogram of those
+fte_distr = distr(fte, 'FTE', 5, 1000)
+fte_distr.hist()
+```
+
+```{python}
+# What if we did statistics on this?
+fte_distr.stats(ops=[min, mean, max])
+```
+
+```{python}
+ave_fte
+# What is that showing?
+```
+
+```{python}
+def show_ave_fte_dist(samples):
+    ave_fte_distr = distr(fte, 'FTE', 5, samples)
+    ave_fte_distr.hist()
+    #print(mean(ave_fte_distr['ave FTE']))
+```
+
+```{python}
+interact(show_ave_fte_dist, samples=(10,400,10))
+```
+
+## Reaching some conclusions and presenting them
+
+We have learned a lot about the structure of departments.  Lots of little ones, but most of the faculty are in large ones.  
+
+From this understanding, we might want to build a little tool for constructing a committee as a stratified sample of departments, say two small one, one middle size, and one large.
+
+```{python}
+def categorize_dept(fte):
+    if fte < 15:
+        return 'Small'
+    elif fte > 45:
+        return 'Big'
+    else:
+        return 'Medium'
+```
+
+```{python}
+fte['Size'] = fte.apply(categorize_dept, 'FTE')
+fte
+```
+
+```{python}
+fte.where('Size', 'Small').sample(2)
+```
+
+```{python}
+fte.where('Size', 'Small').sample(2).append(fte.where('Size', 'Medium').sample(1)).append(fte.where('Size', 'Big').sample(1))
+```
+
+```{python}
+
+```
+
+## Appendix
+
+Zipf law - for many natural processes rank and frequency are inversely proportional.
+What about department sizes?
+
+```{python}
+# Really too small a data set for this, but its interesting.
+ordered_fte = fte.sort('FTE', descending = True)
+ordered_fte['rank'] = np.array(range(ordered_fte.num_rows))+1
+ordered_fte['rank*FTE'] = ordered_fte['rank'] * ordered_fte['FTE']
+ordered_fte.select('rank*FTE').plot()
+```
+
+```{python}
+
+```

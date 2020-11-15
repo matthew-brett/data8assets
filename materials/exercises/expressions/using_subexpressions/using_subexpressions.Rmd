@@ -1,0 +1,54 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+## Using Subexpressions
+
+
+Once you've figured out the value of an expression, you can work with that value by making the expression a *subexpression* inside other expressions.  You'll practice that in these exercises.
+
+
+**Question 1.** The expression
+
+    (42**2 - 40**2 - 10**2)**0.5
+
+has value 8.  What is the value of this expression?
+
+    (.5 * (42**2 - 40**2 - 10**2)**0.5)**0.5
+
+Try to figure out the answer without running any code (then type it into a code cell afterward to confirm).  Write your answer in the next cell.
+
+```{python}
+...
+```
+
+**Question 2.** The following expression is pretty convoluted, and it uses some parts of the Python language you won't learn for awhile.  All we'll tell you is that its value is [roughly](http://mathfaculty.fullerton.edu/mathews/n2003/montecarlopimod.html) $\pi$.  That means you can use it in place of $\pi$ wherever you want a rough approximation to $\pi$.
+
+```{python}
+(4*sum(1 if __import__("numpy").random.random()**2 + __import__("numpy").random.random()**2 < 1 else 0 for i in range(100000)) / 100000)
+```
+
+In the next cell, compute (roughly) the circumference of a circle with diameter 5.  (The circumference of a circle is the length of its perimeter, and it's equal to $\pi \times \texttt{diameter}$.)  **Your answer should be a one-line expression including only numbers, arithmetic operations, and the expression you see above.**
+
+```{python}
+...
+```
+
+(Soon you'll learn a much better way to access $\pi$, so we wouldn't recommend using this anywhere important.)
+
+```{python}
+# Run this cell to submit your work *after* you have passed all of the test cells.
+# It's ok to run this cell multiple times. Only your final submission will be scored.
+
+# !TZ=America/Los_Angeles ipython nbconvert --output=".using_subexpressions_$(date +%m%d_%H%M)_submission.html" using_subexpressions.ipynb
+```

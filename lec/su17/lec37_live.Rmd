@@ -1,0 +1,244 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+from datascience import *
+import numpy as np
+
+# %matplotlib inline
+import matplotlib.pyplot as plt
+plt.style.use('fivethirtyeight')
+
+from ipywidgets import interact, interactive, fixed, interact_manual
+import ipywidgets as widgets
+
+from toolz import memoize
+```
+
+## Nearest Neighbor Classifier (Review)
+
+```{python}
+patients = Table.read_table('http://inferentialthinking.com/notebooks/breast-cancer.csv').drop('ID')
+patients.show(5)
+```
+
+```{python}
+def randomize_column(a):
+    return a + np.random.normal(0.0, 0.09, size=len(a))
+
+jittered = Table().with_columns([
+        'Bland Chromatin (jittered)', 
+        randomize_column(patients.column('Bland Chromatin')),
+        'Single Epithelial Cell Size (jittered)', 
+        randomize_column(patients.column('Single Epithelial Cell Size')),
+        'Class',
+        patients.column('Class')
+    ])
+
+jittered.scatter(0, 1, colors='Class')
+```
+
+```{python}
+def distance(pt1, pt2):
+    """The distance between two points, represented as arrays."""
+    return np.sqrt(sum((pt1 - pt2) ** 2))
+
+def row_distance(row1, row2):
+    """The distance between two rows of a table."""
+    return distance(np.array(row1), np.array(row2))
+```
+
+```{python}
+def distances(training, example):
+    """Compute the distance from example for each row in training."""
+    dists = []
+    attributes = training.drop('Class')
+    for row in attributes.rows:
+        dists.append(row_distance(row, example))
+    return training.with_column('Distance', dists)
+
+def closest(training, example, k):
+    """Return a table of the k closest neighbors to example."""
+    return distances(training, example).sort('Distance').take(np.arange(k))
+
+def majority_class(top_k):
+    """Return the class with the highest count."""
+    return top_k.group('Class').sort('count', descending=True).column(0).item(0)
+
+def classify(training, example, k):
+    """Return the majority class among the k nearest neighbors."""
+    return majority_class(closest(training, example, k))
+```
+
+```{python}
+patients.take(20)
+```
+
+```{python}
+example = patients.drop('Class').row(20)
+example
+```
+
+```{python}
+classify(patients.exclude(12), example, 5)
+```
+
+## Evaluation
+
+```{python}
+patients.num_rows
+```
+
+```{python}
+shuffled = patients.sample(with_replacement=False) # Randomly permute the rows
+trainset = shuffled.take(range(342))
+testset  = shuffled.take(range(342, 683))
+```
+
+```{python}
+def evaluate_accuracy(training, test, k):
+    test_attributes = test.drop('Class')
+    numcorrect = 0
+    for i in range(test.num_rows):
+        # Run the classifier on the ith patient in the test set
+        c = classify(training, test_attributes.row(i), k)
+        # Was the classifier's prediction correct?
+        if c == test.column('Class').item(i):
+            numcorrect = numcorrect + 1
+    return numcorrect / test.num_rows
+```
+
+```{python}
+def plot_test_point(n):
+    trainset.scatter(0, 1, colors='Class')
+    point = testset.row(n)
+    print('Original class:', point.item('Class'))
+    plt.scatter(point.item(0) + 0.2, point.item(1) + 0.2, c='red', s=100)
+    plt.show()
+    
+_ = interact(plot_test_point, n=101)
+```
+
+```{python}
+evaluate_accuracy(trainset, testset, 1)
+```
+
+```{python}
+evaluate_accuracy(trainset, testset, 9)
+```
+
+```{python}
+evaluate_accuracy(trainset, trainset, 1)
+```
+
+```{python}
+
+```
+
+## Decision boundaries
+
+```{python}
+ckd = Table.read_table('http://inferentialthinking.com/notebooks/ckd.csv').relabeled('Blood Glucose Random', 'Glucose')
+ckd.show(3)
+```
+
+```{python}
+kidney = ckd.select('Hemoglobin', 'Glucose', 'Class')
+kidney.scatter(0, 1, colors=2)
+plt.scatter(13, 250, color='red', s=30)
+```
+
+```{python}
+def show_closest(t, point):
+    """Show closest training example to a point."""
+    near = closest(t, point, 1).row(0)
+    t.scatter(0, 1, colors='Class')
+    plt.scatter(point.item(0), point.item(1), color='red', s=30)
+    plt.plot([point.item(0), near.item(0)], [point.item(1), near.item(1)], color='k', lw=2)
+
+show_closest(kidney, make_array(13, 250))
+```
+
+```{python}
+def standard_units(any_numbers):
+    "Convert any array of numbers to standard units."
+    return (any_numbers - np.mean(any_numbers)) / np.std(any_numbers)  
+
+def standardize(t):
+    """Return a table in which all columns of t are converted to standard units."""
+    t_su = Table()
+    for label in t.labels:
+        t_su = t_su.with_column(label + ' (su)', standard_units(t.column(label)))
+    return t_su
+```
+
+```{python}
+kidney_su = standardize(kidney.drop('Class')).with_column('Class', kidney.column('Class'))
+
+def show_closest_y(y=1.8):
+    show_closest(kidney_su, make_array(-0.2, y))
+    plt.show()
+
+_ = interact(show_closest_y, y=(0.9, 1.8, 0.05))
+```
+
+```{python}
+# Memoize this cause it takes a while.
+# With this, we can create an interactive demo. Make sure to run this cell
+# before lecture! It takes quite a while.
+@memoize(key=lambda args, kwargs: (id(args[0]), args[1]))
+def decisions(t, k):
+    t_su = standardize(t.drop('Class')).with_column('Class', t.column('Class'))
+    result = Table(t_su.labels)
+    for x in np.arange(-2, 2.1, 0.1):
+        for y in np.arange(-2, 2.1, 0.1):
+            predicted = classify(t_su, make_array(x, y), k)
+            result.append([x, y, predicted])
+    return result
+
+def decision_boundary(t, k=1):
+    """Decision boundary of a two-column + Class table."""
+    ds = decisions(t, k)
+    ds.scatter(0, 1, colors='Class', alpha=0.4)
+    plt.xlim(-2, 2)
+    plt.ylim(-2, 2)
+    t_su = standardize(t.drop('Class')).with_column('Class', t.column('Class'))
+    t_su_0 = t_su.where('Class', 0)
+    t_su_1 = t_su.where('Class', 1)
+    plt.scatter(t_su_0.column(0), t_su_0.column(1), c='darkblue', edgecolor='k')
+    plt.scatter(t_su_1.column(0), t_su_1.column(1), c='gold', edgecolor='k')
+    plt.show()
+    
+decisions(kidney, 1)
+decisions(kidney, 3)
+decisions(kidney, 5)
+decisions(kidney, 7)
+decisions(jittered, 1)
+decisions(jittered, 3)
+decisions(jittered, 5)
+decisions(jittered, 7)
+None
+```
+
+```{python}
+_ = interact(decision_boundary, t=fixed(kidney), k=(1, 7, 2))
+```
+
+```{python}
+_ = interact(decision_boundary, t=fixed(jittered), k=(1, 7, 2))
+```
+
+```{python}
+
+```

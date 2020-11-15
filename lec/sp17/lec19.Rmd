@@ -1,0 +1,189 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python deletable=TRUE, editable=TRUE}
+from datascience import *
+import numpy as np
+
+import matplotlib.pyplot as plots
+plots.style.use('fivethirtyeight')
+# %matplotlib inline
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Alameda County Juries
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+# Data from an ACLU 2010 report
+# Racial and Ethnic Disparities in Alameda County Jury Pools
+# https://www.aclunc.org/sites/default/files/racial_and_ethnic_disparities_in_alameda_county_jury_pools.pdf
+
+panels = Table().with_columns(
+    'Ethnicity', make_array('Asian', 'Black', 'Latino', 'White', 'Other'),
+    'Eligible', make_array(0.15, 0.18, 0.12, 0.54, 0.01),
+    'Panels', make_array(0.26, 0.08, 0.08, 0.54, 0.04)
+)
+
+panels.set_format([1, 2], PercentFormatter(0))
+```
+
+```{python deletable=TRUE, editable=TRUE}
+panels.barh(0)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+def total_variation_distance(distribution_1, distribution_2):
+    """Each distribution is an array of proportions that sums to 1."""
+    return np.abs(distribution_1 - distribution_2).sum()/2
+
+def table_tvd(table, label_1, label_2):
+    return total_variation_distance(table.column(label_1), table.column(label_2))
+
+table_tvd(panels, 'Eligible', 'Panels')
+```
+
+```{python}
+Table().with_columns('side', ['heads', 'tails']).sample(1000, weights=[.8, .2]).group(0)
+```
+
+```{python}
+def sample_from_distribution(t, category_label, distribution_label, sample_size):
+    categories = t.select(category_label)
+    distribution = t.column(distribution_label)
+    return categories.sample(sample_size, weights=distribution)
+
+sample_from_distribution(panels, 'Ethnicity', 'Eligible', 10)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+def with_random_sample(t, category_label, distribution_label, sample_size):
+    """Return t with a column that contains category proportions of a random sample."""
+    sample = sample_from_distribution(t, category_label, distribution_label, sample_size)
+    counts = sample.group(0)
+    sample_proportions = counts.select(0).with_column('Random', counts.column(1) / sample_size)
+    sample_proportions.set_format(1, PercentFormatter(0))
+    return t.join(category_label, sample_proportions)
+
+with_random_sample(panels, 'Ethnicity', 'Eligible', 1453)
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+### Repeated trials
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+# Compute the empirical distribution of TVDs
+
+tvds = make_array()
+
+for i in np.arange(1000): # Repetitions
+    new_sample = with_random_sample(panels, 'Ethnicity', 'Eligible', 1453)
+    tvds = np.append(tvds, table_tvd(new_sample, 'Eligible', 'Random'))
+
+results = Table().with_column('TVD between the population & a random sample', tvds)
+results
+```
+
+```{python deletable=TRUE, editable=TRUE}
+results.hist(bins=np.arange(0, 0.2, 0.01))
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+Discussion question: How do you think our analysis would change if the jury panels had only 50 people?
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+with_random_sample(panels, 'Ethnicity', 'Eligible', 50)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+tvds = make_array()
+
+for i in np.arange(1000): # Repetitions
+    new_sample = with_random_sample(panels, 'Ethnicity', 'Eligible', 50)
+    tvds = np.append(tvds, table_tvd(new_sample, 'Eligible', 'Random'))
+
+results = Table().with_column('TVD between the population & a random sample', tvds)
+results.hist(bins=np.arange(0, 0.2, 0.01))
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Addendum: Alameda County Race & Ethnicity Distribution
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+# According to the 2010 Census, https://www.census.gov/2010census/popmap/
+
+alameda_race = Table(['Race', 'Population']).with_rows([
+    ['White', 649122],
+    ['African American', 190451],
+    ['Asian', 394560],
+    ['AIAN', 9799],
+    ['NHPI', 12802],
+    ['Some Other Race', 162540],
+    ['Two or more Races', 90997],
+])
+
+alameda_race.set_format(1, DistributionFormatter).show()
+
+alameda_ethnicity = Table(['Ethnicity', 'Population']).with_rows([
+    ['Hispanic or Latino', 339889],
+    ['Not Hispanic or Latino', 1170382],
+])
+
+alameda_ethnicity.set_format(1, DistributionFormatter).show()
+```
+
+```{python deletable=TRUE, editable=TRUE}
+panels
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Chi-Squared (Optional)
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+def chi_squared(dist, other, sample_size):
+    return sum((dist - other) ** 2 / dist) * sample_size
+
+def table_xs(t, label, other, sample_size):
+    return chi_squared(t.column(label), t.column(other), sample_size)
+
+observed = table_xs(panels, 'Eligible', 'Panels', 1453)
+observed
+```
+
+```{python deletable=TRUE, editable=TRUE}
+table_xs(panels, 'Panels', 'Eligible', 1453)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+xs = make_array()
+
+for i in np.arange(1000): # Repetitions
+    new_sample = with_random_sample(panels, 'Ethnicity', 'Eligible', 1453)
+    xs = np.append(xs, table_xs(new_sample, 'Eligible', 'Random', 1453))
+
+results = Table().with_column('Chi-Squared between the population & a random sample', xs)
+results.hist()
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## P-Value
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+results.where(0, are.above_or_equal_to(observed)).num_rows / results.num_rows
+```

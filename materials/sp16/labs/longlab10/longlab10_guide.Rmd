@@ -1,0 +1,328 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+# A Guide to Lab 10
+
+This is a guide released to students to help them with the task we've given you in Lab 10.  It might be useful in working through the lab, or as a pedagogical example, illustrating some things students struggle with.
+
+For some questions we give hints, and for others we give fully-worked examples that are very similar to the original problems.
+
+
+Run the next cell to set up the guide.
+
+```{python}
+# Run this cell, but please don't change it.
+
+# These lines import the NumPy and datascience modules.
+import numpy as np
+# This way of importing the datascience module lets you write "Table" instead
+# of "datascience.Table".  The "*" means "import everything in the module."
+from datascience import *
+
+# These lines set up visualizations.
+import matplotlib
+# %matplotlib inline
+import matplotlib.pyplot as plots
+plots.style.use('fivethirtyeight')
+import warnings
+warnings.simplefilter('ignore', FutureWarning)
+```
+
+# 1. Climate and water
+If you skip ahead to question 1.13, you'll see that in the end we just want to take the `daily_temp` table and compare the readings from stations that are less than 50km from a coastline with the readings from stations that are more than 50km from a coastline.  To do that, we need to add a column to `daily_temp` with the distance-to-nearest-coast for each reading.  Everything before 1.13 is about putting together our three datasets so we can do that.
+
+The general flow of this question is:
+
+<img src="guide_q1_overview.jpg">
+
+(We've rearranged and omitted some columns and sorted the rows to make the diagram more clear, so your tables might not look exactly like ours.)
+
+**Question 1.2.** "Displaying the distribution" of a numerical array of data (or a numerical column of a table) just means displaying its histogram.  We did something very similar in [lecture](https://youtu.be/wU6eH4d-G_s?t=870).  The only difference is that the name of the table is `daily_temp` and the names of the columns are `"Tmax"` and `"Tmin"`.  Also, you should use the right units for the histogram by passing the *named argument* `unit="<whatever you want to call the units>"` to the `hist` method.
+
+
+**Question 1.3 [Min/Max Average].** Break this down into three steps.
+
+First, compute a new column (an array of numbers, one for each row in `daily_temp`) of the temperature spreads for each reading day.  Elementwise arithmetic operations (introduced in lab 3) are useful for this.
+
+Suppose that you wanted, rather than the spread, the average of the min and max temperature for each day.  To average two numbers, you add them together and then divide that by two.  So you could say:
+
+    min_max_average = (daily_temp.column("Tmin") + daily_temp.column("Tmax")) / 2
+Here's a picture:
+
+<img src="guide_maxminavg_apply.jpg">
+
+The temperature spread for each day is just computed in a slightly different way.
+
+Now, add that column to `daily_temp`, making a new table with that extra column, and give that new table a name.  We'll continue with our min-max average instead of spread.
+
+    daily_temp_with_minmaxave = daily_temp.with_column("minmaxave", min_max_average)
+
+Make a new code cell, write `daily_temp_with_minmaxave` (or whatever you called your table with the `"spread"` column), and run that cell.  You should see the new table with the extra column.  For your table, you can verify that the spread for each row is the max temperature for that row minus the min temperature.
+
+Finally, use that table to make a histogram of that column.
+
+    daily_temp_with_minmaxave.hist("minmaxave", unit = "degree Fahrenheit")
+
+
+**Question 1.4.** This question is about using Python to assist you in answering a question.  So you'll write some code to display some data, and you'll also look through that data yourself.
+
+To look at the first row of a table, you can just write the table's name in the last line of a code cell, run the cell, and look at the first row.  You could also write `stations.show(1)` to show just the first row.  Find the values in the `"Latitude"` and `"Longitude"` columns for that row.
+
+Now, we want to look through the `coast_distance` table to find the row that roughly matches that latitude and longitude.  In the `coast_distance` table, each row is a place on Earth with a latitude (in the `"latitude"` column) and a longitude (in the `"longitude"` column).  They form an even grid over the entire planet.
+
+Say we wanted to find the point at 37.87 degrees latitude and 122.27 degrees longitude.  (That's where Berkeley is; the actual point you want is different.)  You could write `coast_distance.show()` to show the entire `coast_distance` table and search it manually, but that would be very tedious.  Instead, try narrowing your search.
+
+If we call `coast_distance.where(x)`, and `x` is an array of boolean values (with length equal to the number of rows in `coast_distance`), then we'll get only the rows where the corresponding element of `x` is True.  So to narrow our search, let's construct an array of boolean values that are True if the corresponding row in `coast_distance` is close (in latitude and longitude) to what we want.  First we'll put down some conditions that (roughly) define a square on the Earth's surface:
+
+    similar_or_higher_latitude = coast_distance.column("latitude") >= 36
+    similar_or_lower_latitude = coast_distance.column("latitude") <= 40
+    similar_or_higher_longitude = coast_distance.column("latitude") >= 120
+    similar_or_lower_longitude = coast_distance.column("latitude") >= 124
+    
+Now we'll combine these conditions together.  First we'll make an array of boolean values that are True whereever the longitude arrays both have a True value (defining a narrow vertical slice of the Earth) and similarly for the latitude arrays (defining a narrow belt around the Earth):
+
+    similar_latitude = np.logical_and(similar_or_higher_latitude, similar_or_lower_latitude)
+    similar_longitude = np.logical_and(similar_or_higher_longitude, similar_or_lower_longitude)
+
+Now we'll combine those again to get an array of boolean values that are True wherever the corresponding array of `coast_distance` is inside the small square of Earth that we wanted:
+
+    similar_coordinates = np.logical_and(similar_latitude, similar_longitude)
+
+Now we just call `where` to look at those rows:
+
+    nearby_places = coast_distance.where(similar_coordinates)
+    nearby_places.show()
+
+
+**Questions 1.5-1.11 [Shoe store example #1].** This example will illustrate one limitation of `join`: It matches values exactly, without any wiggle room.  We'll also see how to get around that.
+
+Suppose we are an online shoe retailer, and we want to suggest shoe sizes to customers based on their height.  (People are more likely to know their height than their shoe size, and there's a pretty strong correlation between height and shoe size.)  We have the following two tables:
+
+```{python}
+# We ask each customer his/her height and weight, and record them in this table:
+customers = Table().with_columns([
+        "Name", ["Sue", "Aditya", "Maxime"],
+        "Height (cm)", [160, 152, 164]
+    ])
+
+# We figure out the typical shoe size for several heights.
+suggested_shoe_size = Table().with_columns([
+        "Height (cm)", [150, 160, 170, 180, 190],
+        "Suggested shoe size", [8, 9, 10, 11, 12]
+    ])
+customers.show()
+suggested_shoe_size.show()
+```
+
+Now we want to make a table with suggested shoe sizes for each customer.  That involves combining information from both of our tables, so we should probably use `join`.  We're trying to annotate the `customers` table with some extra information from `suggested_shoe_size`, so the call to `join` should look like `customers.join...` rather than `suggested_shoe_size.join`.
+
+What we try is this:
+
+```{python}
+# Trying to make a table with suggested shoe sizes for Sue,
+# Aditya, and Maxime:
+recommendations = customers.join("Height (cm)", suggested_shoe_size)
+# Note that we didn't write:
+#  recommendation = suggested_shoe_size.join("Height (cm)", customers)
+# That's what we'd do if we wanted to annotate each suggested shoe
+# size with one customer who has that suggested shoe size.
+recommendations
+```
+
+But we only get a recommendation for Sue, not for Aditya or Maxime!  What went wrong?
+
+When we say `customers.join("Height (cm)", suggested_shoe_size)`, Python builds the resulting joined table (which we named `recommendations`) one row at a time.
+
+First, it looks at the first row of `customers`, which is Sue.  It finds that her height (the value of `"Height (cm)"`) is 160.  Then it looks through `suggested_shoe_sizes` for a row where `"Height (cm)"` is 160.  It finds that in the 2nd row, which has suggested shoe size 9, so it makes a row in the joined table for Sue with `"Suggested shoe size"` 9.  So far, so good.
+
+<img src="guide_customer_join_1.jpg">
+
+Now, it looks at the second row of `customers`, which is Aditya.  His height is 152.  Looking through `suggested_shoe_size`, there's no row where the `"Height (cm)"` column is equal to 152!  So there's no match for Aditya.  His row gets discarded, and we move on to the next row in `customers`.  The same thing happens to Maxime -- no exact matching height.  So we only end up with a recommendation for Sue.
+
+<img src="guide_customer_join_2.jpg">
+
+What we probably wanted was to find a *reasonable* match for each customer, not an exact match.  We'd probably want to recommend a shoe size of 8 for Aditya and 9 for Maxime.  That wouldn't be perfect, but it's much better than nothing.  But the `join` method doesn't know how to do that without our help, because it always requires exact matches.
+
+Analogously, in the homework problem, many stations have latitudes like 1.234, but the `coast_distance` table only has latitudes like 1 or 1.5.  So there wouldn't be very many *exact* matches if we said something like
+
+    stations.join("Latitude", coast_distance, "latitude")
+You can try that for yourself and see what happens.
+
+How do we fix this?  
+
+We would get the behavior we wanted if the *customers'* heights were rounded in the same way as the heights in the suggested shoe size table.  Those are rounded to the nearest 10, so we'll have to do the same for the customers' heights.  Here's how we'd do that:
+
+```{python}
+def round_height(height):
+    # This rounds a number to the nearest 10.
+    return round(height / 10) * 10
+
+customers_rounded = customers.with_columns([
+        "Rounded Height (cm)",
+        customers.apply(round_height, "Height (cm)")
+    ])
+customers_rounded
+```
+
+Now, we can join our two tables and get the answers we wanted!
+
+```{python}
+# The arguments to join() here say: join with the suggested_shoe_size table,
+# matching the rounded heights of rows in customers_rounded to the
+# heights of rows in suggested_shoe_size.
+fixed_recommendations = customers_rounded.join("Rounded Height (cm)", suggested_shoe_size, "Height (cm)")
+fixed_recommendations
+```
+
+**Question 1.6-1.11 [Shoe store example #2].** This example will illustrate a second limitation of `join`: When we want to match things, we can only match on 1 column.  In the homework, we run into this problem when we want to match stations to locations with similar latitude *and* similar longitude.
+
+Going back to our shoe store, suppose that we discover that people who weigh more tend to have larger feet.  We want to give different recommendations for people with different weights.  So we extend both our `customers` table and our `suggested_shoe_size` table with a new column for weight.  (We've modified the data a bit to eliminate the problem we were thinking about in example #1.  Everyone has a clear match.)
+
+```{python}
+# We ask each customer his/her height and weight, and record
+# them in this table:
+customers_2 = Table().with_columns([
+        "Name", ["Sue", "Aditya", "Maxime"],
+        "Height (cm)", [160, 150, 160],
+        "Weight (kg)", [55, 55, 70]
+    ])
+
+# We figure out the typical shoe size for several heights.
+suggested_shoe_size_2 = Table().with_columns([
+        "Height (cm)", [150, 160, 170, 180, 190, 150, 160, 170, 180, 190],
+        "Weight (kg)", [55, 55, 55, 55, 55, 70, 70, 70, 70, 70],
+        "Suggested shoe size", [8, 9, 10, 11, 12, 9, 10, 11, 12, 13]
+    ])
+customers_2.show()
+suggested_shoe_size_2.show()
+```
+
+We'd like to match Sue to shoe size 9, Aditya to shoe size 8, and Maxime to shoe size 10.  But `join` simply doesn't let us match on two columns at once like that!
+
+```{python}
+# We want to do something like this...
+# customers_2.join(["Height (cm)", "Weight (kg)"], suggested_shoe_size_2)
+# ...but join just doesn't support that. :-(
+```
+
+If we just decide to just join on height, we don't get what we wanted.  Maxime gets matched to the suggestion for people who weigh 55 kilograms, but he weighs 70 kilograms.
+
+```{python}
+customers_2.join("Height (cm)", suggested_shoe_size_2)
+```
+
+Okay, let's fix that.  The idea is to combine the data in the two columns (height and weight) into a single column.  We'll do that for both `customers_2` and `suggested_shoe_size_2`, and then use that new column to join.
+
+First, we'll write a function that takes two numbers and puts them together into a single *string*.  (Sound familiar?)  Then we'll apply that function to the height/weight columns in both tables.
+
+```{python}
+def shoes_append_numbers(num1, num2):
+    # This function takes two arguments, both numbers, and returns
+    # the string "<num1> and <num2>".
+    # So we'd like to create a string that puts " and " in
+    # between the two given numbers.  Recall that adding two strings
+    # with + makes a new string with both strings smashed
+    # together.  But we can't add a string and a number, or
+    # Python will raise an error.  Instead, we first make string
+    # versions of our numbers.
+    string_num1 = str(num1)
+    string_num2 = str(num2)
+    return string_num1 + " and " + string_num2
+
+customers_heights_and_weights = customers_2.apply(shoes_append_numbers, ["Height (cm)", "Weight (kg)"])
+customers_2.append_column("height and weight", customers_heights_and_weights)
+customers_2
+```
+
+Here's a picture of how `customers_2.apply(shoes_append_numbers, ["Height (cm)", "Weight (kg)"])` works:
+
+<img src="guide_shoes_append_numbers.jpg">
+
+```{python}
+# Now we're just doing the same thing for suggested_shoe_size_2:
+suggestions_heights_and_weights = suggested_shoe_size_2.apply(shoes_append_numbers, ["Height (cm)", "Weight (kg)"])
+suggested_shoe_size_2.append_column("height and weight", suggestions_heights_and_weights)
+suggested_shoe_size_2
+```
+
+Now we can join using this new amalgamated column we've created.  Notice that Maxime's "height and weight" is "160 and 70", which matches the value of "height and weight" in the row of `suggested_shoe_size_2` with suggested shoe size 10.  That's what we wanted.
+
+```{python}
+# Now we can join using this new amalgamated column we created.
+# We can omit the third argument to join, which would ordinarily
+# be the name of the column in suggested_shoe_size_2 to match on,
+# because it's just "height and weight" again.
+recommendations_2 = customers_2.join("height and weight", suggested_shoe_size_2)
+# Get rid of some redundant columns to help you see what's going on...
+recommendations_2 = recommendations_2.select([0, 1, 2, 3, 6])
+recommendations_2
+```
+
+Now Maxime gets the right suggested shoe size for her height and weight (10), and our online shoe store will thrive.
+
+
+**Question 1.7.** Follow the suggestion in the problem and try examples:
+
+```{python}
+def mysterious_function(num):
+    return round(2 * num) / 2
+
+# Add some lines like this to see what mysterious_function returns for various inputs:
+print(mysterious_function(3.01))
+print(mysterious_function(3.99))
+# So far it looks like mysterious_function just rounds to the nearest integer.  Let's see...
+print(mysterious_function(3.49))
+print(mysterious_function(3.51))
+print(mysterious_function(3.24))
+print(mysterious_function(3.26))
+```
+
+**Question 1.13.** Let's look at a similar task.  We're going to put stations into three groups: close to coast (less than 50 km from a coast), sort of near a coast (50 to 250 km from a coast), and very far inland (\>250 km from a coast).  And we'll compute the average max temperature instead of the average spread.  This will let us see if coastal areas have lower average temperatures, in addition to smaller variation in temperature.
+
+First, we'll define a function that takes a single number (intended to be a distance from coast, in kilometers) and returns a different string depending on how big the distance is:
+
+    def coast_category(distance):
+        if distance < 50:
+            return "close to coast"
+        elif 50 <= distance < 250:
+            return "sort of near coast"
+        else:
+            return "very far from coast"
+
+To answer question 1.13, you'd make a slightly different categorization function.  Instead of the strings `"close to coast"`, `"sort of near coast"`, and `"very far from coast"`, you'd want to return the boolean value `True` if the distance is bigger than 50 and `False` otherwise.
+
+Now we'll use `apply` and our categorization function to categorize each reading in `daily_temp_with_distances`.  We'll also grab the max temperature for each day.
+
+    max_temp_and_category = Table().with_columns([
+            "max temp (°F)",
+            daily_temp_with_distances.column("Tmax"),
+            "coast category", 
+            daily_temp_with_distances.apply(coast_category, "distance to coast (km)")
+        ])
+
+Finally, we'll group by the categories we created:
+
+    max_by_category = max_temp_and_category.group("coast category", np.average)
+    print(max_by_category)
+    
+...which results in:
+
+    coast category      | max temp (°F) average
+    close to coast      | 68.9502
+    sort of near coast  | 71.6054
+    very far from coast | 65.3718
+    
+It looks like maximum temperature is lowest on average for places very far from the coast.  That probably reflects the large inland landmasses in North America and Asia, which are generally very cold.  But the relationship isn't simple -- the highest average temperature is in the middle category.
+
+**Discussion question**: Does our analysis suggest that being very far from a coast is associated with low temperatures?  Does it suggest that being very far from a coast *causes* low temperatures?

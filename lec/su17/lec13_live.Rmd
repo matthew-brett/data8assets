@@ -1,0 +1,322 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+from datascience import *
+import numpy as np
+
+# %matplotlib inline
+import matplotlib.pyplot as plt
+plots.style.use('fivethirtyeight')
+
+```
+
+How would you get all rows with long drink names? (longer than length 10)
+
+```{python}
+drinks = Table(['Drink', 'Cafe', 'Price']).with_rows([
+    ['Peach Orange Smoothie', 'Hummingbird', 4],
+    ['Mango Mania Smoothie', 'Hummingbird', 4],
+    ['Milk Tea', 'Tea One', 4],
+    ['Espresso', 'Nefeli',  2],
+    ['Latte',    'Nefeli',  3],
+    ['Espresso', "Abe's",   2],
+    ['Mocha Frappuccino', 'Starbucks', 5],
+])
+drinks
+```
+
+```{python}
+drinks.where('Drink', ????)
+```
+
+```{python}
+drinks.with_columns('Fanciness', drinks.apply(len, 'Drink'))
+```
+
+## Comparisons
+
+```{python}
+x = 3
+y = 4
+```
+
+```{python}
+x
+```
+
+```{python}
+y
+```
+
+```{python}
+x < y
+```
+
+```{python}
+type(x < y)
+```
+
+```{python}
+y <= y
+```
+
+```{python}
+x > 2
+```
+
+```{python}
+x == 3
+```
+
+```{python}
+y != 10/2
+```
+
+```{python}
+x < 3.5 < y
+```
+
+```{python}
+min(x, y) <= (x + y) / 2 <= max(x, y)
+```
+
+```{python}
+'Dog' > 'Cat'
+```
+
+```{python}
+'Canine' > 'Feline'
+```
+
+```{python}
+'Canine' > 'Can'
+```
+
+```{python}
+a = np.arange(11, 50)
+a
+```
+
+```{python}
+a > 30
+```
+
+```{python}
+a <= 15
+```
+
+```{python}
+13 <= a <= 19
+```
+
+```{python}
+def teen(n):
+    return 13 <= n <= 19
+
+teen(20)
+```
+
+```{python}
+ages = Table().with_column('Age', np.arange(11, 50))
+ages
+```
+
+```{python}
+ages.apply(teen, 'Age')
+```
+
+```{python}
+ages.with_column('Teen', ages.apply(teen, 'Age'))
+```
+
+```{python}
+x = 3
+y = 4
+x
+```
+
+```{python}
+y
+```
+
+```{python}
+x < 2 or y > 4
+```
+
+```{python}
+False or False
+```
+
+```{python}
+False or True
+```
+
+```{python}
+True or True
+```
+
+```{python}
+x > 2 and y < 5
+```
+
+```{python}
+True and True
+```
+
+```{python}
+True and False
+```
+
+```{python}
+not True
+```
+
+```{python}
+not (x > 2 and y < 5)
+```
+
+## Predicates
+
+```{python}
+ages
+```
+
+```{python}
+still_young = are.between(35, 40)
+ages.where('Age', still_young)
+```
+
+```{python}
+still_young(35)
+```
+
+```{python}
+drinks
+```
+
+```{python}
+def is_fancy(name):
+    return len(name) > 10
+```
+
+```{python}
+drinks.where('Drink', is_fancy)
+```
+
+```{python}
+fancy = drinks.with_column('Is Fancy', drinks.apply(is_fancy, 'Drink'))
+fancy
+```
+
+```{python}
+fancy.where('Is Fancy', True)
+```
+
+## Choice
+
+```{python}
+two_groups = make_array('treatment', 'control')
+np.random.choice(two_groups)
+```
+
+```{python}
+np.random.choice(two_groups, 10)
+```
+
+```{python}
+outcomes = np.random.choice(two_groups, 10)
+outcomes
+```
+
+```{python}
+outcomes
+```
+
+```{python}
+outcomes == 'control'
+```
+
+```{python}
+np.count_nonzero(outcomes == 'control')
+```
+
+```{python}
+np.count_nonzero(outcomes == 'treatment')
+```
+
+```{python}
+d = np.arange(6) + 1
+d
+```
+
+```{python}
+outcomes = np.random.choice(d, 1000) + np.random.choice(d, 1000)
+Table().with_column('Outcome', outcomes).hist('Outcome', bins=np.arange(2, 14))
+```
+
+```{python}
+outcomes = 2 * np.random.choice(d, 1000)
+Table().with_column('Outcome', outcomes).hist('Outcome', bins=np.arange(2, 14))
+```
+
+## Control Statements
+
+```{python}
+x = -3
+```
+
+```{python}
+if x > 0:
+    print('positive')
+```
+
+```{python}
+def sign(x):
+    print(x, 'is', end=' ')
+    if x > 0:
+        print('positive')
+    if x < 0:
+        print('negative')
+    if x == 0:
+        print('zero')
+```
+
+```{python}
+sign(3)
+sign(-3)
+sign(0)
+```
+
+```{python}
+def sign(x):
+    print(x, 'is', end=' ')
+    if x > 0:
+        print('positive')
+
+    if x < 0:
+        print('negative')
+    else:
+        print('zero')
+```
+
+```{python}
+sign(3)
+# sign(-3)
+# sign(0)
+```
+
+```{python}
+
+```

@@ -1,0 +1,281 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python deletable=TRUE, editable=TRUE}
+# HIDDEN
+import matplotlib
+#matplotlib.use('Agg')
+from datascience import *
+# %matplotlib inline
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+import numpy as np
+import math
+import scipy.stats as stats
+plt.style.use('fivethirtyeight')
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+# 1. Classifier
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+iris = Table.read_table('iris.csv')
+iris.show(10)
+
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+#### Question 1 
+
+List all the features and classes on the table above (you might use code to help you find all classes).
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+\# TODO: Your answer here.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+# Now we assign a color to each class
+
+color_table = Table().with_columns(
+    'species', make_array('setosa','versicolor','virginica'),
+    'Color', make_array('darkblue', 'gold', 'lightblue')
+)
+
+iris = iris.join('species', color_table).drop(6,7)
+
+iris
+
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+#### Question 2
+
+Create a scatter graph using only the first 2 features. Is it enough to distinguish the three species?
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+\# TODO: Your answer here.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+# TODO: Your solution here.
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+#### Question 3
+
+Now we have a unknown iris with sepal_length = 5.1 and  sepal_width= 4.2. Can you classify it? Also, what about an unknown iris with sepal_length = 6 and  sepal_width= 3?
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+\# TODO: Your answer here.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+#Here we make a 3d scatter graph adding one more feature - petal_length.
+
+ax = plt.figure(figsize=(8,8)).add_subplot(111, projection='3d')
+ax.scatter(iris.column('sepal_length'), 
+           iris.column('sepal_width'), 
+           iris.column('petal_length'), 
+           c=iris.column('Color'));
+
+# Can you see the light blue dots and gold dots are separted? What if we add more features?
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+#### Question 4 
+
+Now, can you classify an unknown iris with sepal_length = 6, sepal_width= 3, and petal_length = 5.7?
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+\# TODO: Your answer here.
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+#### Question 5
+
+Calculate the distance between iris.row(0) and iris.row(100), iris.row(0) and iris.row(1) using the distance formula.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+# TODO: Your solution here.
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+# 2. Comparing Two Samples
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+iris_petal_width = iris.select('species', 'petal_width')
+iris_petal_width
+```
+
+```{python deletable=TRUE, editable=TRUE}
+iris_petal_width_pivot = iris_petal_width.pivot('species', 'petal_width')
+iris_petal_width_pivot
+```
+
+```{python deletable=TRUE, editable=TRUE}
+def proportions(array):
+    return array/np.sum(array)
+
+iris_dists = iris_petal_width_pivot.select(0).with_columns(
+   'setosa', proportions(iris_petal_width_pivot.column('setosa')),
+    'versicolor', proportions(iris_petal_width_pivot.column('versicolor')),
+    'virginica', proportions(iris_petal_width_pivot.column('virginica'))
+)
+
+iris_dists.barh('petal_width')
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+#### Question 1 
+
+Do the 3 distributions look the same or very different? 
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+\# TODO: Your answer here.
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+#### Question 2
+
+Contruct a simple but accurate classifier based on the observation you have for these distinct distributions.
+
+**Describe how you would classify a data point given simple restraints on feature values.**
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+\# TODO: Your answer here.
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+# 3. A Potpourri of Tests
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+#### Question 1
+Many scientific disciplines use 5% as a standard cutoff for rejecting the null hypothesis when conducting hypothesis tests.  Suppose for sake of argument that every scientific paper hinges on exactly one hypothesis test with a 5% cutoff.  After learning about hypothesis testing, Thomas despairs about the state of scientific research, wondering:
+
+> "Doesn't this mean that 5% of all scientific papers are wrong?"
+
+Give one reason why Thomas's worry isn't quite accurate.
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+\# TODO: Your answer here.
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+#### Question 2
+Many scientists hope to make exciting and unintuitive discoveries.  Often the null hypothesis in an hypothesis test is something boring ("the sky is blue"), while the alternative is surprising ("the sky is not blue!").
+
+Suppose a scientist has an exciting but incorrect idea, so that their null hypothesis is *truly correct*.  When an hypothesis test is run on a sample of data, it fails to reject the null when using a 5% cutoff.  Disappointed but determined, the scientist gathers 10 more samples and runs the same test on each sample (running 10 separate hypothesis tests, each with a 5% cutoff).  If any of the tests rejects the null, the scientist publishes that one.  What is the chance that any of those tests rejects the null hypothesis?
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+\# TODO: Your answer here.
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+**Note:** The scientist in this scenario is acting very unethically, but (probably milder) forms of this [*publication bias*](https://en.wikipedia.org/wiki/Publication_bias) seem to be a real problem in science today.
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+#### Question 3
+Explain one advantage and one disadvantage of using a very high confidence level like 99.9999% when computing a confidence interval.  Describe a situation where you would advise using such a high confidence level.
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+\# TODO: Your answer here.
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+#### Question 4
+When completing a permutation test, what is TVD used for?
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+\# TODO: Your answer here.
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+# 4. Some general review
+**Please explain your answers fully.**
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+### Conceptual
+#### Question 1
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+For what types of situations/problems would we want to use a hypothesis test? For what situations/problems would we use a confidence interval? And for which would we do both?
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+\# TODO: Your answer here.
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+#### Question 2
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+Why do we need to construct a confidence interval for a population paramater in the first place? Why isn’t our sample statistic a good enough estimate?
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+\# TODO: Your answer here.
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+### Practice
+#### Question 3
+
+I have a standard 52 card deck. I draw two cards without replacement. What is the chance that I draw an ace and a jack of hearts?
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+\# TODO: Your answer here.
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+**Question 4:**
+
+I roll a fair six sided die. What’s the chance that I get the “1” face or the “2” face?
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+\# TODO: Your answer here.
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+#### Question 5
+
+Write the code that would evaluate to a 95% confidence interval for the average height of US adults. Assume you have a table $sample\_heights$  that contained the heights of a randomly drawn 1000-person sample, with one column “height” that describes each person’s height in inches.
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+**Note:** You will probably not be able to run your code, since $sample\_heights$ is not defined.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE, active="", eval=FALSE}
+# TODO: Your solution here.
+```

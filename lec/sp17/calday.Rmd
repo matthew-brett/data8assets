@@ -1,0 +1,131 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python deletable=TRUE, editable=TRUE}
+# Run this and then delete it
+
+from datascience import *
+import numpy as np
+
+import matplotlib.pyplot as plots
+plots.style.use('fivethirtyeight')
+# %matplotlib inline
+```
+
+```{python deletable=TRUE, editable=TRUE}
+2 + 3
+```
+
+```{python deletable=TRUE, editable=TRUE}
+2 * 3
+```
+
+```{python deletable=TRUE, editable=TRUE}
+1 + 2 * (3 * 4 * 5 // 6) ** 3 + 7 + 8 - 9 + 10
+```
+
+```{python deletable=TRUE, editable=TRUE}
+t = Table.read_table('little_women_chapters.csv')
+t
+```
+
+```{python deletable=TRUE, editable=TRUE}
+t.scatter(1, 2)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+def draw_line(a, b):
+    x = np.array([50, 450])
+    y = a * x + b
+    
+    t.scatter(1, 2)
+    plots.plot(x, y)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+draw_line(140, 0)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+def draw_line(a, b):
+    x = np.array([50, 450])
+    y = a * x + b
+    
+    t.scatter(1, 2)
+    plots.plot(x, y)
+    
+    # Add these two lines in your clipboard in advance!
+    for _, x, y in t.rows:
+        plots.plot([x, x], [y, a * x + b], color='r', lw=0.5)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+draw_line(140, 0)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+draw_line(80, 0)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+draw_line(80, 5000)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+def average_squared_distance(a, b):
+    x = t.column(1)
+    y = t.column(2)
+    fitted = a * x + b
+    return np.average((y - fitted) ** 2) / 1e6
+```
+
+```{python deletable=TRUE, editable=TRUE}
+average_squared_distance(140, 0)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+average_squared_distance(80, 0)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+average_squared_distance(80, 5000)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+minimize(average_squared_distance)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+draw_line(86.97784106,  4744.78483438)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+t
+```
+
+```{python}
+t.where('Periods', are.below(180))
+```
+
+```{python}
+are.below(180)(45)
+```
+
+```{python}
+t['Periods'] + 1
+```
+
+```{python}
+
+```

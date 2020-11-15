@@ -1,0 +1,156 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+from datascience import *
+import numpy as np
+
+import matplotlib.pyplot as plt
+plt.style.use('fivethirtyeight')
+# %matplotlib inline
+```
+
+## Confidence Intervals
+
+```{python}
+def bootstrap_mean(sample_from_population, label, repetitions):
+    resampled_means = []
+    for i in np.arange(repetitions):
+        resample = sample_from_population.sample()
+        mean = np.mean(resample.column(label))
+        resampled_means.append(mean)
+    return resampled_means
+```
+
+```{python}
+def bootstrap_ci_mean(sample_from_population, label, repetitions):
+    resampled_means = bootstrap_mean(sample_from_population, label, repetitions)
+    
+    interval_95 = make_array(
+    percentile(2.5, resampled_means),
+    percentile(97.5, resampled_means)
+    )
+    
+    Table().with_column('Resampled mean', resampled_means).hist(0)
+    plt.plot(interval_95, [0, 0], color='gold', lw=8)
+    print('Approximate 95% Bootstrap Confidence Interval for Population Mean:')
+    print(np.round(interval_95, 3))
+```
+
+```{python}
+flips = Table.read_table('http://inferentialthinking.com/notebooks/unfair_flips.csv')
+flips.show(3)
+```
+
+```{python}
+flips.group('Heads')
+```
+
+```{python}
+np.mean(make_array(0, 0, 1))
+```
+
+```{python}
+np.mean(flips.column('Heads'))
+```
+
+```{python}
+flips.num_rows
+```
+
+```{python}
+bootstrap_ci_mean(flips, 'Heads', 5000)
+```
+
+```{python}
+
+```
+
+## Means
+
+```{python}
+values = [3, 2, 9, 3]
+```
+
+```{python}
+np.average(values)
+```
+
+```{python}
+np.mean(values)
+```
+
+```{python}
+sum(values) / len(values)
+```
+
+```{python}
+(1/4) * 2 + (2/4) * 3 + (1/4) * 9
+```
+
+## Standard Deviation
+
+```{python}
+values = make_array(3, 2, 9, 3)
+values
+```
+
+```{python}
+average = np.average(values)
+average
+```
+
+```{python}
+deviations = values - average
+deviations
+```
+
+```{python}
+t = Table().with_columns(
+    'Value', values,
+    'Deviation from Average', deviations,
+)
+t
+```
+
+```{python}
+t.column(1).sum()
+```
+
+```{python}
+t.with_column('Squared Deviations', deviations ** 2)
+```
+
+```{python}
+squared_devs = deviations ** 2
+squared_devs
+```
+
+```{python}
+variance = np.mean(squared_devs)
+variance
+```
+
+```{python}
+sd = np.sqrt(variance)
+sd
+```
+
+```{python}
+np.std(values)
+```
+
+```{python}
+
+```

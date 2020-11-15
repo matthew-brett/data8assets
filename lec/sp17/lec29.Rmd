@@ -1,0 +1,301 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python deletable=TRUE, editable=TRUE}
+from datascience import *
+import numpy as np
+
+import matplotlib.pyplot as plots
+plots.style.use('fivethirtyeight')
+# %matplotlib inline
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Properties of correlation
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+hybrid = Table.read_table('http://inferentialthinking.com/notebooks/hybrid.csv')
+suv = hybrid.where('class', 'SUV')
+suv.show(3)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+def standard_units(any_numbers):
+    "Convert any array of numbers to standard units."
+    return (any_numbers - np.mean(any_numbers)) / np.std(any_numbers)  
+
+def standardize(t):
+    """Return a table in which all columns of t are converted to standard units."""
+    t_su = Table()
+    for label in t.labels:
+        t_su = t_su.with_column(label + ' (su)', standard_units(t.column(label)))
+    return t_su
+
+def correlation(t, x, y):
+    """Return the correlation coefficient (r) of two variables."""
+    return np.mean(standard_units(t.column(x)) * standard_units(t.column(y)))
+```
+
+```{python deletable=TRUE, editable=TRUE}
+correlation(suv, 'acceleration', 'msrp')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+suv_1k = suv.with_column('msrp ($k)', suv.column('msrp')/1000)
+suv_1k.scatter('acceleration', 'msrp ($k)')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+correlation(suv_1k, 'acceleration', 'msrp ($k)')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+suv_1k.scatter('msrp ($k)', 'acceleration')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+correlation(suv_1k, 'msrp ($k)', 'acceleration')
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Interpreting correlation
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+new_x = np.arange(-4, 4.1, 0.5)
+nonlinear = Table().with_columns(
+        'x', new_x,
+        'y', new_x**2
+    )
+nonlinear.scatter('x', 'y', s=30, color='r')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+correlation(nonlinear, 'x', 'y')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+line = Table().with_columns(
+        'x', [1, 2, 3, 4],
+        'y', [1, 2, 3, 4]
+    )
+line.scatter('x', 'y', s=30, color='r')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+correlation(line, 'x', 'y')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+outlier = Table().with_columns(
+        'x', [1, 2, 3, 4, 5],
+        'y', [1, 2, 3, 4, 0]
+    )
+outlier.scatter('x', 'y', s=30, color='r')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+correlation(outlier, 'x', 'y')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+sat2014 = Table.read_table('http://inferentialthinking.com/notebooks/sat2014.csv')
+sat2014.sort('State')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+sat2014.scatter('Critical Reading', 'Math')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+correlation(sat2014, 'Critical Reading', 'Math')
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Our First Prediction Example
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+galton = Table.read_table('galton.csv')
+heights = galton.select(3, 7).relabeled(0, 'MidParent').relabeled(1, 'Child')
+heights.show(3)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+heights.scatter(0)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+heights.scatter(0)
+_ = plots.plot([67.5, 67.5], [50, 85], color='red', lw=2)
+_ = plots.plot([68.5, 68.5], [50, 85], color='red', lw=2)
+_ = plots.scatter(68, 66.24, color='gold', s=40)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+close_to_68 = heights.where('MidParent', are.between(67.5, 68.5))
+close_to_68
+```
+
+```{python deletable=TRUE, editable=TRUE}
+close_to_68.column('Child').mean()
+```
+
+```{python deletable=TRUE, editable=TRUE}
+def predict_child(parent):
+    """Return a prediction of the height of a child 
+    whose parents have a midparent height of parent.
+    
+    The prediction is the average height of the children 
+    whose midparent height is in the range mpht plus or minus 0.5 inches.
+    """
+    close_points = heights.where('MidParent', are.between(parent - 0.5, parent + 0.5))
+    return close_points.column('Child').mean()                       
+```
+
+```{python deletable=TRUE, editable=TRUE}
+predict_child(68)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+predict_child(74)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+heights_and_predict = heights.with_column(
+    'Prediction', heights.apply(predict_child, 'MidParent')
+)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+heights_and_predict.scatter(0)
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Linear Regression
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+standardize(heights).scatter(0)
+plots.xlim(-4, 4)
+plots.ylim(-4, 4)
+plots.plot([-4, 4], [-4, 4], color='r', lw=2)
+plots.plot([2.5, 2.5], [-4, 4], color='g', lw=2)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+standardize(heights).scatter(0)
+plots.xlim(-4, 4)
+plots.ylim(-4, 4)
+plots.plot([-4, 4], [-4, 4], color='r', lw=2)
+plots.plot([2.5, 2.5], [-4, 4], color='g', lw=2)
+
+r = correlation(heights, 0, 1)
+plots.plot([-4, 4], [-4*r, 4*r], color='dodgerblue', lw=2)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+parent_mean = np.mean(heights.column('MidParent'))
+parent_sd = np.std(heights.column('MidParent'))
+child_mean = np.mean(heights.column('Child'))
+child_sd = np.std(heights.column('Child'))
+print('Parent: mean =', parent_mean, '; SD =', parent_sd)
+print(' Child: mean =', child_mean, '; SD =', child_sd)
+print('     r:', r)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+def predict_with_r(parent):
+    """Return a prediction of the height of a child 
+    whose parents have a midparent height of mp, 
+    using linear regression.
+    """
+    parent_su = (parent - parent_mean) / parent_sd
+    child_su = r * parent_su
+    return child_su * child_sd + child_mean
+```
+
+```{python deletable=TRUE, editable=TRUE}
+predict_with_r(68)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+predict_with_r(74)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+heights_and_predict.scatter(0)
+plots.plot([64, 76], [predict_with_r(64), predict_with_r(76)], color='dodgerblue', lw=2)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+heights_and_predict.with_column(
+    'Prediction with r', 
+    heights_and_predict.apply(predict_with_r, 'MidParent')).scatter(0)
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Slope & Intercept
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+def slope(t, x, y):
+    """The slope of ther regression line (original units)."""
+    r = correlation(t, x, y)
+    return r * np.std(t.column(y)) / np.std(t.column(x))
+
+def intercept(t, x, y):
+    """The intercept of the regression line (original units)."""
+    return np.mean(t.column(y)) - slope(t, x, y) * np.mean(t.column(x))
+```
+
+```{python deletable=TRUE, editable=TRUE}
+heights.show(3)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+predict_with_r(74)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+slope(heights, 0, 1) * 74 + intercept(heights, 0, 1)
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Discussion
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+x_mean = 70
+x_sd = 10
+y_mean = 50
+y_sd = 12
+r = 0.75
+((90-x_mean)/x_sd) * r * y_sd + y_mean
+```
+
+```{python deletable=TRUE, editable=TRUE}
+((60-x_mean)/x_sd) * r * y_sd + y_mean
+```
+
+```{python deletable=TRUE, editable=TRUE}
+a = r * y_sd / x_sd
+b = y_mean - a * x_mean
+a * 90 + b
+```
+
+```{python deletable=TRUE, editable=TRUE}
+print(a, '* x +', b)
+```

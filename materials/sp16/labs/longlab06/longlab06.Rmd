@@ -1,0 +1,307 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+# Lab 6
+
+Welcome to lab 6!  In lab 5, we used simulation to investigate the random variation in an estimate that was based on a random sample.  Now we'll flip that idea on its head to make it useful for *statistical inference*.
+
+
+As usual, **run the cell below** to prepare the lab and the automatic tests.
+
+```{python}
+# Run this cell, but please don't change it.
+
+# These lines import the NumPy and datascience modules.
+import numpy as np
+# This way of importing the datascience module lets you write "Table" instead
+# of "datascience.Table".  The "*" means "import everything in the module."
+from datascience import *
+# Some extra utility functions for this lab:
+from lab_utils import *
+
+# These lines set up visualizations.
+import matplotlib
+# %matplotlib inline
+import matplotlib.pyplot as plt
+plt.style.use('fivethirtyeight')
+import warnings
+warnings.simplefilter('ignore', FutureWarning)
+
+# These lines load the tests.
+from client.api.assignment import load_assignment 
+lab06 = load_assignment('longlab06.ok')
+```
+
+# 1. Warplanes again
+
+
+Last time, we saw how various estimates of the number of warplanes would typically vary.  Now let's make that more useful by producing *confidence intervals* to quantify our uncertainty in a *given estimate*.
+
+Remember the setup: We (the RAF in World War II) want to know the number of warplanes fielded by the Germans.  That's equal to the largest serial number on any of the warplanes.  We only see a small number of serial numbers (assumed to be a random sample from among all the serial numbers), so we have to use estimation.
+
+To simulate this, we're going to hide the true number of warplanes from you, which we'll call `N`.  You'll have access only to this random sample:
+
+```{python}
+observations = Table.read_table("serial_numbers.csv")
+num_observations = observations.num_rows
+
+# Let's use a histogram to plot the serial numbers we've observed.
+# This function takes an table of serial numbers and produces a
+# histogram of them.  It's a useful visualization that we'll
+# use several times.
+def plot_serial_numbers(numbers):
+    numbers.hist(bins=np.arange(1, 200))
+    plt.ylim(0, .25)
+
+plot_serial_numbers(observations)
+```
+
+Your job is to estimate `N`.  You'll see that a confidence interval will help you understand how sure you should be about your answer.
+
+We saw that one way to estimate `N` was to take twice the mean of the serial numbers we see.
+
+```{python}
+# Returns twice the mean of the argument nums, which should
+# be an array of serial numbers.  This is one way of estimating
+# N.
+def mean_based_estimator(nums):
+    return 2*np.average(nums)
+
+mean_based_estimate = mean_based_estimator(observations.column("serial number"))
+mean_based_estimate
+```
+
+**Question 1.1.** In this particular sample, what's the biggest number?  Compute it, giving it the name `max_estimate`. The value of this number actually implies something about how accurate `mean_based_estimate` is; what is that implication?
+
+```{python}
+max_estimate = ...
+max_estimate
+```
+
+```{python}
+_ = lab06.grade("q11")
+```
+
+`N` is surely at least as big as the biggest serial number in our sample.  So in this case, we can tell that the mean-based estimate is off.
+
+If we knew the sampling distribution of the mean-based estimate, we'd know how far off it typically is.  Unfortunately, since we don't know `N`, we can't just simulate to compute that sampling distribution.  Remember, our `simulate_observations` function in lab 5 looked like this:
+
+```{python}
+# Infeasible: We can't write this part, because we don't know N!
+N = ...
+
+# Attempts to simulate one sample from the population of all serial
+# numbers, returning an array of the sampled serial numbers.
+def simulate_observations():
+    # You'll get an error message if you try to call this
+    # function, because we didn't define N properly!
+    return np.random.randint(1, N+1, num_observations)
+```
+
+Here's a picture of how we computed the *sampling distribution* of an estimator of `N` using this kind of simulation:
+
+<img src="sampling_distribution.jpg">
+
+
+## 1.1. Resampling
+Instead, we'll use resampling.  That is, we won't exactly simulate the observations the RAF would have really seen.  Rather we sample from our sample.
+
+Why does that make any sense?  Here's an analogy.  It seems pretty intuitive to estimate the proportion of Democrats in a population using the proportion of Democrats in a random sample from that population.  We'd like to compute something from the population, and the closest thing we have to the population is the sample, so we just "plug in" the sample.
+
+Similarly, we'd like to simulate sampling from the population, but we can't, so we simulate sampling from the data we actually have.  We call that resampling.
+
+```{python}
+# Simulates one sample from our observations (a resample),
+# returning an array of the sampled serial numbers.
+def simulate_resample():
+    return observations.sample(num_observations, with_replacement=True).column("serial number")
+```
+
+Let's do that once.
+
+```{python}
+# This is a little magic to make sure that you see the same results
+# we did, just to make the exposition easier.
+np.random.seed(123)
+one_resample = simulate_resample()
+one_resample
+```
+
+**Question 1.1.1.** Make a histogram to display the distribution of serial numbers in `one_resample`.  Use the function `plot_serial_numbers`, which was defined and used a few screens above.
+
+*Hint:* `plot_serial_numbers` expects a table as its argument, but `one_resample` is an array.  You can make a table with `one_resample` as its only column by writing:
+    
+    Table().with_column("serial number", one_resample)
+
+```{python}
+...
+```
+
+To compare, here's the actual observations again:
+
+```{python}
+plot_serial_numbers(observations)
+```
+
+You should see that the little sticks in the first histogram, the resample, only appear at the same places as little sticks in the second histogram, the sample.  The resample has only the elements of the sample.  Some are repeated several times, and some don't get into the resample at all.
+
+The mean of the resample is:
+
+```{python}
+mean_based_estimator(one_resample)
+```
+
+Let's repeat this many times and see what we get.  Here's a picture of the whole resampling process (except we repeat things 20000 times, not 3 times.  Remember, it's an *approximation* to the earlier picture, where we computed the actual sampling distribution of our estimates.  It may be useful to refer to that previous picture now.
+
+<img src="resampling_distribution.jpg">
+
+```{python}
+num_simulations = 20000
+
+# Returns an array of many estimates, based on simulating samples
+# many times by calling simulator (a function) and calling estimator
+# (another function) on each sample.  So the returned array is an
+# array of estimates produced by the given estimator.
+def simulate_estimates(estimator, simulator):
+    simulations = Table().with_column("resample", repeat(simulator, num_simulations))
+    return simulations.apply(estimator, "resample")
+
+bins = np.arange(50, 250, 1)
+
+# Simulate samples many times by calling simulator, compute the
+# estimator on each one, and draw a histogram of the estimates.
+# That's an empirical histogram of estimates based on sampling
+# or resampling, depending on what the provided simulator function
+# does.
+def draw_simulated_distribution(estimator, simulator):
+    Table().with_column("estimates", simulate_estimates(estimator, simulator)).hist("estimates", bins=bins)
+
+# draw_simulated_distribution is a "higher-order function" that takes
+# 2 functions as its arguments!  In English, we're telling it a way to
+# generate samples (viz. by resampling from our observations) and a
+# way to estimate N from each of those samples (by taking twice their
+# mean).
+# 
+draw_simulated_distribution(mean_based_estimator, simulate_resample)
+```
+
+We call this a "resampling" or "bootstrap" distribution of our twice-the-mean estimate.
+
+Its interpretation is: If the population looked like our sample, then we'd expect our estimator usually to produce estimates between around 80 and 170, and often between around 100 and 140.  We just looked at the histogram to come up with those numbers.
+
+We can be more quantitative about this by computing intervals that cover different proportions of the resampling distribution.  We call these coverage intervals, though soon you'll see that we compute confidence intervals in exactly the same way.
+
+```{python}
+resample_estimates = simulate_estimates(mean_based_estimator, simulate_resample)
+
+# numbers should be an array of numbers, and coverage should be
+# a percentage (like 95 or 99.9).
+# Returns a 2-element array with the lower and upper limits of
+# an interval.  That interval covers a percentage of the given
+# numbers equal to the second argument, coverage.
+def coverage_interval(numbers, coverage):
+    return np.percentile(numbers, [(100-coverage)/2, (100+coverage)/2])
+
+# Computes and prints out a coverage interval for the given
+# numbers.
+# The first argument, numbers, should be an array of numbers,
+# and the second argument, coverage, should be a percentage
+# (like 95 or 99.9).
+def print_coverage_interval(numbers, coverage):
+    interval = coverage_interval(numbers, coverage)
+    pattern = "If the population looked like our sample, our sample-based estimates of N would be between {:.2f} and {:.2f} {:.1f}% of the time."
+    message = pattern.format(interval.item(0), interval.item(1), coverage)
+    print(message)
+
+print_coverage_interval(resample_estimates, 80)
+print_coverage_interval(resample_estimates, 95)
+print_coverage_interval(resample_estimates, 99.9)
+```
+
+Below we've written some code to display a resampling distribution with these percentiles overlaid.
+
+```{python}
+def draw_distribution_and_interval(estimator, simulator, coverage):
+    estimates = simulate_estimates(estimator, simulator)
+    interval = coverage_interval(estimates, coverage)
+    estimates_table = Table().with_column("estimates", estimates)
+    estimates_table.hist("estimates", bins=bins)
+    biggest_bin_height = max(estimates_table.bin("estimates", bins=bins).column("estimates count")) / estimates_table.num_rows
+    def draw_bar(x):
+        plt.plot([x, x], [0, biggest_bin_height], color="red", alpha=.5)
+    
+    draw_bar(interval.item(0))
+    draw_bar(interval.item(1))
+    plt.title("{:.2f}% coverage interval".format(coverage))
+
+draw_distribution_and_interval(mean_based_estimator, simulate_resample, 80)
+draw_distribution_and_interval(mean_based_estimator, simulate_resample, 95)
+draw_distribution_and_interval(mean_based_estimator, simulate_resample, 99.9)
+```
+
+## 1.2. Confidence Intervals
+Now comes the tricky part.  We'd like to move from a statement like this:
+
+> "If the population looked like this, then we'd usually get estimates for `N` between A and B."
+
+...to what we really want:
+
+> "We claim `N` is actually between X and Y, and usually our claims are right."
+
+The first claim seems much weaker.  For example, notice that the resampling distribution is centered around 122, but that can't be where the sampling distribution is centered, because we know `N` is at least 135!  So we know the resampling distribution isn't centered in the right place.
+
+We can't cover the intricacies of the idea in full here.  But the idea is to flip our thinking around.  Assume that the *shape* of our resampling distribution is roughly similar to the *shape* of the sampling distribution.  Then if we put an interval around our estimate of `N` that covers 95% of the resamples, it's also true that 95% of the time our estimate will be close enough to `N` that our interval will cover `N`.
+
+Anyway, the basic bootstrap method turns out to be very simple: We just use the coverage intervals we were just computing!  So those were in fact 80%, 95%, and 99.9% confidence intervals, respectively.
+
+**Question 1.2.1.** The true value of `N` was 150.  Go back and look at the intervals we computed.  Do they cover `N`?  If they don't, does that mean the method is wrong?
+
+
+*Use this space to write an answer, or just discuss with a neighbor.*
+
+
+**Question 1.2.2.** If you've seen confidence intervals before, you probably saw a method that can compute confidence intervals for means.  That method is based on approximating the sampling and resampling distributions by Normal curves, though it may not have been taught that way.  Could you have used that method here?
+
+
+*Use this space to write an answer, or just discuss with a neighbor.*
+
+
+## 1.3. A different estimator
+Suppose we didn't think about using twice the mean, but we had a similar idea instead: 
+
+> "The *middle* serial number in our sample should be close to `N`/2, so twice the middle serial number should be a decent estimate of `N`!
+
+Now we're not dealing with a mean any more, so the standard methods for computing confidence intervals don't work at all.  But the bootstrap works just fine.
+
+Here is a function that computes twice the middle number of a sample of serial numbers:
+
+```{python}
+def median_based_estimator(nums):
+    return 2*np.median(nums)
+```
+
+**Question 1.3.1.** Use the function `draw_distribution_and_interval` to plot a confidence interval for `N` using this estimator instead of `mean_based_estimator`.  You can choose the coverage levels (like 95% or 98%), or try several coverage levels.
+
+*Hint:* The code should be very short, and it should look very similar to our code at the end of section 1.1.  That's the power of abstraction!
+
+```{python}
+...
+```
+
+**Question 1.3.2.** Why is the resampling distribution so spiky?
+
+*Hint:* Go back to a histogram of the sample.  The spikes in the resampling distribution occur at serial numbers in our sample!
+
+
+*Use this space to write an answer, or just discuss with a neighbor.*

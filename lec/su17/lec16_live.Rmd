@@ -1,0 +1,196 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+from datascience import *
+import numpy as np
+
+import matplotlib.pyplot as plt
+plt.style.use('fivethirtyeight')
+# %matplotlib inline
+
+from ipywidgets import interact, interactive, fixed, interact_manual
+import ipywidgets as widgets
+```
+
+## Flights
+
+```{python}
+united = Table.read_table('http://inferentialthinking.com/notebooks/united_summer2015.csv')
+united
+```
+
+```{python}
+united.hist('Delay')
+```
+
+```{python}
+united.hist('Delay', bins=np.arange(-20, 301, 10), unit='minute')
+```
+
+```{python}
+(united
+ .where('Delay', are.between(10, 20))
+ .num_rows
+ / united.num_rows
+)
+```
+
+```{python}
+united.sample(1000).hist('Delay', bins=np.arange(-20, 301, 10), unit='minute')
+```
+
+```{python}
+def united_sample_and_hist(n):
+    united.sample(n).hist('Delay', bins=np.arange(-20, 301, 10), unit='minute')
+    plt.show()
+```
+
+```{python}
+_ = interact(united_sample_and_hist, n=make_array(100, 1000, 10000))
+```
+
+## At Least One 6
+
+
+Roll a die 4 times. What's P(at least one 6).
+
+```{python}
+1 - (5/6) * (5/6) * (5/6) * (5/6)
+```
+
+```{python}
+rolls = np.arange(1, 51)
+at_least_one = Table().with_columns(
+    'Roll', rolls,
+    'Chance of getting at least one 6', 1 - (5/6) ** rolls
+)
+at_least_one
+```
+
+```{python}
+at_least_one.scatter('Roll')
+```
+
+```{python}
+at_least_one.where('Roll', 20)
+```
+
+```{python}
+faces = np.arange(1, 7) 
+outcomes = np.random.choice(faces, 20)
+outcomes
+```
+
+```{python}
+np.count_nonzero(outcomes == 6)
+```
+
+```{python}
+trials = 1000
+success = 0
+
+for i in np.arange(trials):
+    outcomes = np.random.choice(faces, 20)
+    if np.count_nonzero(outcomes == 6) >= 1:
+        success = success + 1
+
+success / trials
+```
+
+## Estimation
+
+```{python}
+def roll_20(trials):
+    success = 0
+
+    for i in np.arange(trials):
+        outcomes = np.random.choice(faces, 20)
+        if np.count_nonzero(outcomes == 6) >= 1:
+            success = success + 1
+
+    return success / trials
+
+estimates = Table(['estimate'])
+for i in np.arange(200):
+    estimates.append([roll_20(1000)])
+estimates
+```
+
+```{python}
+estimates.group(0).barh(0)
+```
+
+```{python}
+estimates.hist(0)
+```
+
+## Planes
+
+```{python}
+N = 300
+serialno = Table().with_column('Serial number', np.arange(N)+1)
+serialno
+```
+
+```{python}
+serialno.sample(30).column(0).max()
+```
+
+```{python}
+sample_size = 30
+repetitions = 1000
+
+maxes = make_array()
+
+for i in np.arange(repetitions):
+    sampled_N = serialno.sample(sample_size).column(0).max()
+    maxes = np.append(maxes, sampled_N)
+
+estimates = Table().with_columns(
+    'Max serial number', maxes,
+)
+estimates
+```
+
+```{python}
+estimates.hist(0, bins=np.arange(1, 400, 10))
+```
+
+```{python}
+sample_size = 30
+repetitions = 1000
+
+maxes = make_array()
+doubles = make_array()
+
+for i in np.arange(repetitions):
+    sample = serialno.sample(sample_size).column(0)
+    maxes = np.append(maxes, np.max(sample))
+    doubles = np.append(doubles, np.average(sample) * 2)
+
+estimates = Table().with_columns(
+    'Max serial number', maxes,
+    '2 * average', doubles,
+)
+estimates
+```
+
+```{python}
+estimates.hist(bins=np.arange(1, 400, 10))
+```
+
+```{python}
+
+```

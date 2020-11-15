@@ -1,0 +1,322 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+import numpy as np
+from datascience import *
+
+# Configure notebook (happens automatically on data8.berkeley.edu)
+# %matplotlib inline
+import matplotlib.pyplot as plt
+plt.style.use('fivethirtyeight')
+
+# Configure for presentation
+np.set_printoptions(threshold=50, linewidth=50)
+import matplotlib as mpl
+mpl.rc('font', size=16)
+```
+
+```{python}
+def standard_units(any_numbers):
+    "Convert any array of numbers to standard units."
+    return (any_numbers - np.mean(any_numbers))/np.std(any_numbers)  
+
+def correlation(t, x, y):
+    "Compute r."
+    return np.mean(standard_units(t.column(x))*standard_units(t.column(y)))
+
+def slope(table, x, y):
+    "The slope of the regression line (original units)"
+    r = correlation(table, x, y)
+    return r * np.std(table.column(y))/np.std(table.column(x))
+
+def intercept(table, x, y):
+    "The intercept of the regression line (original units)"
+    a = slope(table, x, y)
+    return np.mean(table.column(y)) - a * np.mean(table.column(x))
+
+def fit(table, x, y):
+    """Return the height of the regression line at each x value."""
+    a = slope(table, x, y)
+    b = intercept(table, x, y)
+    return a * table.column(x) + b
+```
+
+## Errors
+
+```{python}
+lw = Table.read_table('little_women.csv')
+lw.show(3)
+```
+
+```{python}
+lw.scatter('Periods', 'Characters', s=500)
+```
+
+```{python}
+correlation(lw, 'Periods', 'Characters')
+```
+
+```{python}
+sample = [[131, 14431], [231, 20558], [392, 40935], [157, 23524]]
+def lw_errors(a, b):
+    lw.scatter('Periods', 'Characters')
+    xlims = np.array([50, 450])
+    plt.plot(xlims, a * xlims + b, lw=2)
+    for x, y in sample:
+        plt.plot([x, x], [y, a * x + b], color='r', lw=2)
+```
+
+```{python}
+lw_errors(0, 20000)
+```
+
+```{python}
+lw_errors(100, 20000)
+```
+
+```{python}
+lw_errors(100, 4000)
+```
+
+```{python}
+lw_errors(-100, 50000)
+```
+
+```{python}
+a = slope(lw, 1, 0)
+b = intercept(lw, 1, 0)
+lw_errors(a, b)
+```
+
+```{python}
+def lw_mse(a, b):
+    lw_errors(a, b)
+    x = lw.column('Periods')
+    y = lw.column('Characters')
+    estimate = a * x + b
+    return np.average((y - estimate) ** 2)
+```
+
+```{python}
+lw_mse(100, 4000) ** 0.5
+```
+
+```{python}
+lw_mse(100, 3000) ** 0.5
+```
+
+```{python}
+lw_mse(100, 2500) ** 0.5
+```
+
+```{python}
+char = lw.column('Characters')
+char_avg = np.average(char)
+lw_mse(0, char_avg) ** 0.5
+```
+
+```{python}
+np.std(char)
+```
+
+```{python}
+np.average((char - np.average(char)) ** 2) ** 0.5
+```
+
+```{python}
+lw_mse(a, b) ** 0.5
+```
+
+```{python}
+a
+```
+
+```{python}
+b
+```
+
+## Numerical optimization
+
+```{python}
+def double(x):
+    return 2 * x
+
+def triple(x):
+    return 3 * x
+
+[double(4), triple(4), double(5), triple(5)]
+```
+
+```{python}
+def multiply(a, x):
+    return a * x
+
+[multiply(2, 4), multiply(3, 4), multiply(2, 5), multiply(3, 5)]
+```
+
+```{python}
+def scale_by(a):
+    def scale(x):
+        return a * x
+    return scale
+
+double = scale_by(2)
+triple = scale_by(3)
+        
+[double(4), triple(4), double(5), triple(5)]
+```
+
+```{python}
+decimate = scale_by(1/10)
+lw.apply(decimate, 'Periods')
+```
+
+```{python}
+def mean_squared_error(table, x, y):
+    def for_line(a, b):
+        estimate = (a * table.column(x) + b)
+        return np.average((table.column(y) - estimate) ** 2)
+    return for_line
+```
+
+```{python}
+faithful = Table.read_table('faithful.csv')
+faithful.scatter(1, 0)
+```
+
+```{python}
+long = faithful.where(faithful.column('eruptions') > 3)
+long.scatter(1, 0, fit_line=True)
+```
+
+```{python}
+mse_long = mean_squared_error(long, 1, 0)
+```
+
+```{python}
+mse_long(0, 4) ** 0.5
+```
+
+```{python}
+a, b = minimize(mse_long)
+```
+
+```{python}
+mse_long(a, b) ** 0.5
+```
+
+```{python}
+a, slope(long, 1, 0)
+```
+
+```{python}
+b, intercept(long, 1, 0)
+```
+
+## Residuals
+
+```{python}
+long.scatter(1, 0, fit_line=True)
+correlation(long, 1, 0)
+```
+
+```{python}
+def residual_plot(table, x, y):
+    fitted = fit(table, x, y)
+    residuals = table.column(y) - fitted
+    res_table = Table().with_columns([
+            'fitted', fitted, 
+            'residuals', residuals])
+    res_table.scatter(0, 1, fit_line=True)
+```
+
+```{python}
+residual_plot(long, 1, 0)
+```
+
+```{python}
+faithful.scatter(1, 0, fit_line=True)
+```
+
+```{python}
+residual_plot(faithful, 1, 0)
+```
+
+## Multiple Regression
+
+```{python}
+grades = Table.read_table('grades_and_piazza.csv')
+grades
+```
+
+```{python}
+grades.to_df().corr()
+```
+
+```{python}
+grades.scatter('days online', 'GPA', fit_line=True)
+```
+
+```{python}
+residual_plot(grades, 'days online', 'GPA')
+```
+
+```{python}
+grades_days_mse = mean_squared_error(grades, 'days online', 'GPA')
+a, b = minimize(grades_days_mse)
+grades_days_mse(a, b) ** 0.5
+```
+
+```{python}
+grades_cont_mse = mean_squared_error(grades, 'contributions', 'GPA')
+a, b = minimize(grades_cont_mse)
+grades_cont_mse(a, b) ** 0.5
+```
+
+```{python}
+def fit_both(a_days, a_cont, b):
+    days = grades.column('days online')
+    cont = grades.column('contributions')
+    return a_days * days + a_cont * cont + b
+
+def grades_both_mse(a_days, a_cont, b):
+    fitted = fit_both(a_days, a_cont, b)
+    y = grades.column('GPA')
+    return np.average((y - fitted) ** 2)
+
+minimize(grades_both_mse)
+```
+
+```{python}
+0.0156871 * 50 + 0.0054008 * 5 + 2.5725924
+```
+
+```{python}
+a_days, a_contributions, b = minimize(grades_both_mse)
+grades_both_mse(a_days, a_contributions, b) ** 0.5
+```
+
+```{python}
+fitted = fit_both(a_days, a_contributions, b)
+residuals = grades.column('GPA') - fitted
+Table().with_columns([
+        'fitted', fitted, 
+        'residuals', residuals
+    ]).scatter(0, 1, fit_line=True)
+```
+
+```{python}
+
+```

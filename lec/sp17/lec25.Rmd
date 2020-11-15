@@ -1,0 +1,147 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python deletable=TRUE, editable=TRUE}
+from datascience import *
+import numpy as np
+
+import matplotlib.pyplot as plots
+plots.style.use('fivethirtyeight')
+# %matplotlib inline
+```
+
+```{python}
+births = Table.read_table('http://inferentialthinking.com/notebooks/baby.csv')
+births
+```
+
+## Center
+
+```{python}
+births.hist(2)
+```
+
+```{python}
+values = births.column(2)
+```
+
+```{python}
+np.average(values)
+```
+
+```{python}
+np.median(values)
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Standard Deviation
+<!-- #endregion -->
+
+```{python}
+avg = np.average(values)
+
+def squared(x):
+    return x ** 2
+
+def deviation(x, y):
+    return x - y
+
+np.sqrt(np.mean(squared(deviation(avg, values))))
+```
+
+```{python}
+sd = np.std(values)
+sd
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Chebyshev
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+births.where(2, are.between(avg-2*sd, avg+2*sd)).num_rows / births.num_rows
+```
+
+```{python deletable=TRUE, editable=TRUE}
+births.where(2, are.between(avg-3*sd, avg+3*sd)).num_rows / births.num_rows
+```
+
+```{python deletable=TRUE, editable=TRUE}
+births.hist(bins=10, overlay=False)
+```
+
+```{python}
+for k in np.arange(6):
+    values = births.column(k)
+    avg = np.average(values)
+    sd = np.std(values)
+    print('Column', k)
+    for n in np.arange(1, 6):
+        within = births.where(k, are.between(avg-n*sd, avg+n*sd))
+        print('Average +/-', n, 'SD:',  within.num_rows / births.num_rows)
+    print()
+```
+
+## Standard Units
+
+```{python}
+births.show(3)
+```
+
+```{python}
+k = 2
+values = births.column(k)
+avg = np.average(values)
+sd = np.std(values)
+z = (values-avg) / sd
+t = Table().with_column('Values', values, 'Z', z)
+t.hist(1, bins=np.arange(-5.25, 5.5, 0.5))
+```
+
+## The Normal Distribution
+
+```{python}
+births.hist(3, bins=np.arange(57.5, 72, 1), unit='inch')
+avg = np.average(births.column(3))
+sd = np.std(births.column(3))
+_ = plots.xticks(avg + np.arange(-3, 4, 1) * sd)
+```
+
+```{python}
+samples = []
+for i in np.arange(1e6):
+    samples.append(np.random.normal())
+Table().with_column('Sample', samples).hist(bins=np.arange(-4.5, 4.6, .1))
+```
+
+## Central Limit Theorem
+
+```{python}
+births.hist(2)
+```
+
+```{python}
+births.column(2).mean()
+```
+
+```{python}
+births.sample().column(2).mean()
+```
+
+```{python}
+means = []
+for i in np.arange(1e4):
+    means.append(births.sample().column(4).mean())
+Table().with_column('Mean', means).hist(bins=50)
+```

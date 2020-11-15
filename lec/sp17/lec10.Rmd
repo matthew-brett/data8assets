@@ -1,0 +1,223 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+from datascience import *
+import numpy as np
+
+# %matplotlib inline
+import matplotlib.pyplot as plots
+plots.style.use('fivethirtyeight')
+```
+
+## Functions
+
+```{python}
+def double(x):
+    """ Double x """
+    return 2*x
+```
+
+```{python}
+double(5)
+```
+
+```{python}
+double(5/4)
+```
+
+```{python}
+y = 5
+double(y/4)
+```
+
+```{python}
+x
+```
+
+```{python}
+x = 1.5
+double(x)
+```
+
+```{python}
+x
+```
+
+```{python}
+counts = make_array(1, 2, 3)
+total = counts.sum()
+np.round((counts/total)*100, 2)
+```
+
+```{python}
+def percents(counts):
+    """Convert the counts to percents out of the total."""
+    total = counts.sum()
+    return np.round((counts/total)*100, 2)
+```
+
+```{python}
+percents(make_array(2, 4, 8, 6))
+```
+
+```{python}
+# percents(2)
+```
+
+```{python}
+def percents(counts, decimal_places=2):
+    """Convert the values in array_x to percents out of the total of array_x."""
+    total = counts.sum()
+    return np.round((counts/total)*100, decimal_places)
+
+parts = make_array(2, 1, 4)
+print("Rounded to 1 decimal place:", percents(parts, 1))
+print("Rounded to the default number of decimal places:", percents(parts))
+```
+
+## Apply
+
+```{python}
+def cut_off_at_a_billion(x):
+    """The smaller of x and 1,000,000,000"""
+    return min(x, 1e9)
+```
+
+```{python}
+cut_off_at_a_billion(123)
+```
+
+```{python}
+cut_off_at_a_billion(123456789)
+```
+
+```{python}
+cut_off_at_a_billion(1234567890)
+```
+
+```{python}
+top = Table.read_table('http://inferentialthinking.com/notebooks/top_movies.csv').where('Studio', 'Fox')
+top
+```
+
+```{python}
+cut_off = top.apply(cut_off_at_a_billion, 'Gross (Adjusted)')
+cut_off
+```
+
+```{python}
+cut_off_at_a_billion
+```
+
+```{python}
+type(cut_off_at_a_billion)
+```
+
+```{python}
+help(cut_off_at_a_billion)
+```
+
+## Prediction
+
+```{python}
+galton = Table.read_table('http://inferentialthinking.com/notebooks/galton.csv')
+galton
+```
+
+```{python}
+heights = galton.select(3, 7).relabeled(0, 'MidParent').relabeled(1, 'Child')
+heights
+```
+
+```{python}
+heights.scatter(0)
+```
+
+```{python}
+heights.scatter('MidParent')
+_ = plots.plot([67.5, 67.5], [50, 85], color='red', lw=2)
+_ = plots.plot([68.5, 68.5], [50, 85], color='red', lw=2)
+_ = plots.scatter(68, 66.24, color='gold', s=40)
+```
+
+```{python}
+close_to_68 = heights.where('MidParent', are.between(67.5, 68.5))
+close_to_68
+```
+
+```{python}
+close_to_68.column('Child').mean()
+```
+
+```{python}
+def predict_child(mp):
+    close_points = heights.where('MidParent', are.between(mp - 0.5, mp + 0.5))
+    return close_points.column('Child').mean()                       
+```
+
+```{python}
+predict_child(68)
+```
+
+```{python}
+predict_child(74)
+```
+
+```{python}
+# Apply predict_child to all the midparent heights
+
+heights_with_predictions = heights.with_column(
+    'Prediction', heights.apply(predict_child, 'MidParent')
+)
+```
+
+```{python}
+heights_with_predictions
+```
+
+```{python}
+heights_with_predictions.scatter('MidParent')
+```
+
+## Apply with two arguments
+
+```{python}
+first = galton.row(0)
+first
+```
+
+```{python}
+father = first.item('father')
+mother = first.item('mother')
+(father + 1.08 * mother) / 2
+```
+
+```{python}
+def mid_parent(father, mother):
+    return (father + 1.08 * mother) / 2
+```
+
+```{python}
+galton.take(np.arange(10)).apply(mid_parent, 'father', 'mother')
+```
+
+```{python}
+def mid_parent_from_row(row):
+    return (row.item('father') + 1.08 * row.item('mother')) / 2
+```
+
+```{python}
+galton.take(np.arange(10)).apply(mid_parent_from_row)
+```

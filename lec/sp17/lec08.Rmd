@@ -1,0 +1,115 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+from datascience import *
+import numpy as np
+
+# %matplotlib inline
+import matplotlib.pyplot as plots
+plots.style.use('fivethirtyeight')
+```
+
+```{python}
+actors = Table.read_table('http://inferentialthinking.com/notebooks/actors.csv')
+actors
+```
+
+```{python}
+actors.scatter('Number of Movies', 'Total Gross')
+```
+
+```{python}
+actors.scatter('Number of Movies', 'Average per Movie')
+```
+
+```{python}
+no_outlier = actors.where('Number of Movies', are.above(10))
+no_outlier.scatter('Number of Movies', 'Average per Movie')
+```
+
+```{python}
+actors.where('Number of Movies', are.above(60))
+```
+
+```{python}
+actors.where('Number of Movies', are.below(10))
+```
+
+```{python}
+movies = Table.read_table('http://inferentialthinking.com/notebooks/movies_by_year.csv')
+movies
+```
+
+```{python}
+movies.plot('Year', 'Number of Movies')
+```
+
+```{python}
+century_21 = movies.where('Year', are.above(1999))
+century_21.plot('Year', 'Number of Movies')
+```
+
+```{python}
+century_21.plot('Year', 'Total Gross')
+```
+
+```{python}
+century_21.where('Year', are.equal_to(2009))
+```
+
+## Categorical Distributions
+
+```{python}
+top = Table.read_table('http://inferentialthinking.com/notebooks/top_movies.csv')
+top
+```
+
+```{python}
+top5 = top.take(np.arange(5))
+top5.barh(0, 2)
+```
+
+```{python}
+top5.barh(0, 3)
+```
+
+```{python}
+top5.sort(3, descending=True).barh(0, 3)
+```
+
+```{python}
+top5.select(0, 2).barh('Title')
+```
+
+```{python}
+top5.select(0, 2, 3).barh('Title')
+```
+
+```{python}
+# top5.barh('Title')
+```
+
+```{python}
+studios = top.group('Studio')
+studios
+```
+
+```{python}
+studios.sort('count', descending=True).barh('Studio')
+```
+
+```{python}
+top.group('Year').barh('Year')
+```

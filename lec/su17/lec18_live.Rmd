@@ -1,0 +1,250 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+from datascience import *
+import numpy as np
+
+import matplotlib.pyplot as plt
+plt.style.use('fivethirtyeight')
+# %matplotlib inline
+
+from ipywidgets import interact, interactive, fixed, interact_manual
+import ipywidgets as widgets
+```
+
+## Swain v Alabama
+
+
+What is the probability of getting the actual panel with 8/100 black jurors?
+
+1. Start with the distributions of eligible jurors and the actual panel.
+2. Draw panels at random from the eligible jurors.
+3. See if my actual panel is likely.
+
+
+### Step 1: Distributions of population and sample
+
+```{python}
+swain = Table().with_columns(
+    'Ethnicity', make_array('Black', 'Other'),
+    'Eligible', make_array(0.26, 0.74),
+    'Panel', make_array(0.08, 0.92)
+)
+
+swain.set_format([1, 2], PercentFormatter(0))
+```
+
+### Step 2: Draw panels at random from population
+
+```{python}
+population_distribution = swain.column('Eligible')
+panel_size = 100
+
+def random_jury_panel():
+    panel = swain.select(0).sample(panel_size, weights=swain.column('Eligible'))
+    counts = panel.group(0)
+    sample_proportions = counts.select(0).with_column('Random', counts.column(1) / panel_size)
+    sample_proportions.set_format(1, PercentFormatter(0))
+    return swain.join('Ethnicity', sample_proportions)
+
+random_jury_panel()
+```
+
+### Step 3: See if sample panel is unlikely
+
+```{python}
+def total_variation_distance(distribution_1, distribution_2):
+    """Each distribution is an array of proportions that sums to 1."""
+    return np.abs(distribution_1 - distribution_2).sum()/2
+
+def table_tvd(table, label_1, label_2):
+    return total_variation_distance(table.column(label_1), table.column(label_2))
+
+table_tvd(swain, 'Eligible', 'Panel')
+```
+
+```{python}
+# Compute the empirical distribution of TVDs
+
+tvds = make_array()
+
+for i in np.arange(1000): # Repetitions
+    new_sample = random_jury_panel()
+    tvds = np.append(tvds, table_tvd(new_sample, 'Eligible', 'Random'))
+
+results = Table().with_column('TVD between the population & a random sample', tvds)
+results
+```
+
+```{python}
+results.hist(bins=np.arange(0, 0.2, 0.01))
+```
+
+```{python}
+table_tvd(swain, 'Eligible', 'Panel')
+```
+
+## Alameda County Juries
+
+
+### Step 1: Distributions of population and sample
+
+```{python}
+# Data from an ACLU 2010 report
+# Racial and Ethnic Disparities in Alameda County Jury Pools
+# https://www.aclunc.org/sites/default/files/racial_and_ethnic_disparities_in_alameda_county_jury_pools.pdf
+
+panels = Table().with_columns(
+    'Ethnicity', make_array('Asian', 'Black', 'Latino', 'White', 'Other'),
+    'Eligible', make_array(0.15, 0.18, 0.12, 0.54, 0.01),
+    'Panels', make_array(0.26, 0.08, 0.08, 0.54, 0.04)
+)
+
+panels.set_format([1, 2], PercentFormatter(0))
+```
+
+```{python}
+panels.barh(0)
+```
+
+### Step 2: Draw panels at random from population
+
+```{python}
+panel_size = 1453
+```
+
+```{python}
+panels
+```
+
+```{python}
+panels.select('Ethnicity').sample(10000).group('Ethnicity')
+```
+
+```{python}
+panels.column('Eligible')
+```
+
+```{python}
+panels.select('Ethnicity').sample(panel_size, weights=panels.column('Eligible')).group('Ethnicity')
+```
+
+```{python}
+sample_1 = proportions_from_distribution(panels, 'Eligible', panel_size)
+sample_1.set_format([1, 2, 3], PercentFormatter(0))
+```
+
+```{python}
+sample_1.barh(0)
+```
+
+### Step 3: See if sample panel is unlikely
+
+```{python}
+table_tvd(sample_1, 'Eligible', 'Random Sample')
+```
+
+```{python}
+panel_size = 1453
+repetitions = 1000
+tvds = make_array()
+
+for i in np.arange(repetitions):
+    sample = proportions_from_distribution(panels, 'Eligible', panel_size)
+    tvds = np.append(tvds, table_tvd(sample, 'Eligible', 'Random Sample'))
+
+results = Table().with_columns('TVD between population and random sample', tvds)
+results
+```
+
+```{python}
+results.hist(0, bins=np.arange(0, 0.2, 0.01))
+```
+
+```{python}
+def hist_n_samples(tbl, n, bins=None):
+    '''Draws histogram of first n rows of first column in tbl.'''
+    tbl.take(np.arange(n)).hist(bins=bins)
+    plt.ylim(0, 50)
+    plt.show()
+```
+
+```{python}
+_ = interact(hist_n_samples, tbl=fixed(results), n=(1, 1000, 10), bins=fixed(np.arange(0, 0.2, 0.01)))
+```
+
+```{python}
+table_tvd(panels, 'Eligible', 'Panels')
+```
+
+```{python}
+panels
+```
+
+Discussion question: How do you think our analysis would change if the jury panels had only 50 people?
+
+```{python}
+panel_size = 50
+repetitions = 1000
+tvds = make_array()
+
+for i in np.arange(repetitions):
+    sample = proportions_from_distribution(panels, 'Eligible', panel_size)
+    tvds = np.append(tvds, table_tvd(sample, 'Eligible', 'Random Sample'))
+
+results_50 = Table().with_columns('TVD between population and random sample', tvds)
+results_50
+```
+
+```{python}
+results.hist(0, bins=np.arange(0, 0.2, 0.01))
+```
+
+```{python}
+_ = interact(hist_n_samples, tbl=fixed(results_50), n=(1, 1000, 10), bins=fixed(np.arange(0, 0.2, 0.01)))
+```
+
+## Addendum: Alameda County Race & Ethnicity Distribution
+
+```{python}
+# According to the 2010 Census, https://www.census.gov/2010census/popmap/
+
+alameda_race = Table(['Race', 'Population']).with_rows([
+    ['White', 649122],
+    ['African American', 190451],
+    ['Asian', 394560],
+    ['AIAN', 9799],
+    ['NHPI', 12802],
+    ['Some Other Race', 162540],
+    ['Two or more Races', 90997],
+])
+
+alameda_race.set_format(1, DistributionFormatter).show()
+
+alameda_ethnicity = Table(['Ethnicity', 'Population']).with_rows([
+    ['Hispanic or Latino', 339889],
+    ['Not Hispanic or Latino', 1170382],
+])
+
+alameda_ethnicity.set_format(1, DistributionFormatter).show()
+```
+
+```{python}
+panels
+```
+
+```{python}
+
+```

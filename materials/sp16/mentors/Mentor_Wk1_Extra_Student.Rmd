@@ -1,0 +1,123 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+DS8 Tutoring Wk1
+
+```{python}
+# HIDDEN
+
+from datascience import *
+# %matplotlib inline
+import matplotlib.pyplot as plots
+plots.style.use('fivethirtyeight')
+import numpy as np
+```
+
+Welcome to week one!
+
+Let's start by loading the file top250_movies.txt into the table movies.
+
+```{python}
+#Answer here
+```
+
+Since 250 rows is a lot, we want to look just at 100 rows from this table. 
+We'll write code to randomly select 100 different rows from this table.
+
+Start by creating an empty list `rowNums`.
+
+
+```{python}
+#Answer here
+```
+
+Then generate 100 random integers (from 0 to 249) to put inside `rowNums`, making sure that there are no repeats. Do this in two ways (if short on time, do just one).
+
+*Hint for Method 1:* Use for loops and np.random.randint. How many times do you need to iterate?
+To account for the fact that you might have generated a repeat, use a nested while loop. What do you need to keep track of whether or not there has been a repeat?
+
+*Hint for Method 2:* Use np.random.choice(). Read the doc:http://docs.scipy.org/doc/numpy-1.10.0/reference/generated/numpy.random.choice.html
+How does it work? What are its inputs and outputs? Remember if you're doing both, you want to reset `rowNums` beforehand so you don't end up with 200 numbers!
+
+```{python}
+#Answer here
+```
+
+Excellent. Now we have a list of row numbers. We'll use it to sample from the table. Was this a deterministic or probability sample?
+
+If your answer was deterministic, how might we have chosen a probability sample?
+If your answer was probability, how might we have chosen a deterministic sample?
+
+
+
+*#Answer here, no code, just text.*
+
+
+
+
+
+Use `rowNums` to select 100 rows from the table, save it in the variable `shortMov`.
+
+#sampling
+
+```{python}
+#Answer here
+```
+
+Now we want to draw some histograms based on the ratings for these movies.
+Let's pivot the table by ratings (pivot column) and then year (pivot row), and have the pivot values be the sum of the votes.
+Save this pivoted table in `ratingYear`.
+
+```{python}
+#Answer here
+```
+
+Take a look at this pivoted table. What does it tell us? 
+What does it mean for a cell to be 0?
+
+
+*#Answer here, no code, just text.*
+
+
+
+
+
+
+The table `ratingYear` is useful, but it doesn't help us visualize how many movies were in each rating. 
+Using `shortMov`, create a table `ratings` that contains *only* the column of ratings.
+
+```{python}
+#Answer here
+```
+
+Make a histogram with ratings. Have bins that go in increments of .1 starting from the lowest value in ratings all the way to 10.
+
+```{python}
+#Answer here
+```
+
+Let's see how our histogram compares to the entire 250 movies dataset.
+Draw another histogram using the exact same bins as you did above, but this time use the table `fullRatings` that contains a column of all 250 ratings.
+
+```{python}
+#Answer here
+```
+
+Do the two histograms look similar? How might we produce a more similar looking histogram without increasing the number of rows selected (100)?
+
+
+*#Answer here, no code, just text.*
+
+
+Congratulations! You've finished your first tutoring exercise. Be sure to give your tutor feedback on what you liked, didn't like, and would like to cover in the coming weeks!

@@ -1,0 +1,250 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python deletable=TRUE, editable=TRUE}
+from datascience import *
+import numpy as np
+
+import matplotlib.pyplot as plots
+plots.style.use('fivethirtyeight')
+# %matplotlib inline
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Categorical Association
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+patients = Table.read_table('breast-cancer.csv').drop('ID')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+shuffled = patients.sample(with_replacement=False) 
+training = shuffled.take(np.arange(341))
+test  = shuffled.take(np.arange(341, 683))
+```
+
+```{python deletable=TRUE, editable=TRUE}
+training
+```
+
+```{python deletable=TRUE, editable=TRUE}
+training_uniformity = training_set.select('Class', 'Uniformity of Cell Size').relabel(1, 'Uniformity')
+training_uniformity
+```
+
+```{python deletable=TRUE, editable=TRUE}
+training_counts = training_uniformity.pivot('Class', 'Uniformity')
+training_counts
+```
+
+```{python deletable=TRUE, editable=TRUE}
+def proportions(array):
+    """Return an array of proportions."""
+    return array/np.sum(array)
+
+def compare(t):
+    return t.select(0).with_columns(
+        'Benign',    proportions(t.column(1)),
+        'Malignant', proportions(t.column(2))    
+    ).set_format([1, 2], PercentFormatter)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+compare(training_counts)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+compare(training_counts).barh(0)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+test_set.take(np.arange(4)).column('Uniformity of Cell Size') > 3
+```
+
+```{python deletable=TRUE, editable=TRUE}
+classification = test_set.column('Uniformity of Cell Size') > 3
+
+np.count_nonzero(classification == test_set.column('Class'))/test_set.num_rows
+```
+
+```{python}
+False == 0
+```
+
+```{python}
+True == 1
+```
+
+```{python deletable=TRUE, editable=TRUE}
+classification = test_set.column('Uniformity of Cell Size') > 0
+
+np.count_nonzero(classification == test_set.column('Class'))/test_set.num_rows
+```
+
+```{python deletable=TRUE, editable=TRUE}
+classification = test_set.column('Uniformity of Cell Size') > 10
+
+np.count_nonzero(classification == test_set.column('Class'))/test_set.num_rows
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Comparing two samples
+<!-- #endregion -->
+
+```{python}
+patients.show(3)
+```
+
+```{python}
+mitoses = patients.select('Class', 'Mitoses')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+counts = patients.pivot('Class', 'Mitoses')
+counts
+```
+
+```{python deletable=TRUE, editable=TRUE}
+compare(counts)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+compare(counts).barh(0)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+def total_variation_distance(distribution_1, distribution_2):
+    """Each distribution is an array of proportions that sums to 1."""
+    return np.abs(distribution_1 - distribution_2).sum()/2
+
+def table_tvd(table, label_1, label_2):
+    return total_variation_distance(table.column(label_1), table.column(label_2))
+```
+
+```{python deletable=TRUE, editable=TRUE}
+table_tvd(compare(counts), 1, 2)
+```
+
+```{python}
+mitoses
+```
+
+```{python deletable=TRUE, editable=TRUE}
+shuffled_mitoses = mitoses.sample(with_replacement=False).column(1) # Permuted
+```
+
+```{python deletable=TRUE, editable=TRUE}
+mitoses.select(0).with_column('Shuffled', shuffled_mitoses) # Paired class with permuted values
+```
+
+```{python deletable=TRUE, editable=TRUE}
+shuffled_counts = mitoses.select(0).with_column('Shuffled', shuffled_mitoses).pivot(0, 1)
+shuffled_counts
+```
+
+```{python deletable=TRUE, editable=TRUE}
+compare(shuffled_counts).barh(0)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+table_tvd(compare(shuffled_counts), 1, 2)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+repetitions = 5000
+tvds = []
+for i in np.arange(repetitions):
+    shuffled_mitoses = mitoses.sample(with_replacement=False).column(1)
+    shuffled_counts = mitoses.select(0).with_column('Shuffled', shuffled_mitoses).pivot(0, 1)
+    shuffled_tvd = table_tvd(compare(shuffled_counts), 1, 2)
+    tvds.append(shuffled_tvd)
+
+Table().with_column('TVD', tvds).hist(bins=20)
+plots.title('Empirical Distribution Under the Null')
+print('Observed TVD:', table_tvd(compare(counts), 1, 2))
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Deflategate
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+football = Table.read_table('football.csv')
+football = football.drop('Team')
+football.show()
+```
+
+```{python deletable=TRUE, editable=TRUE}
+football = football.with_column(
+    'Combined', (football.column(1)+football.column(2))/2
+    )
+football.show()
+```
+
+```{python deletable=TRUE, editable=TRUE}
+patriots = football.where('Ball', are.containing('Patriots'))
+patriots = patriots.with_column('Drop', 12.5-patriots.column('Combined'))
+patriots.show()
+```
+
+```{python deletable=TRUE, editable=TRUE}
+colts = football.where('Ball', are.containing('Colts'))
+colts = colts.with_column('Drop', 13.0-colts.column('Combined'))
+colts
+```
+
+```{python deletable=TRUE, editable=TRUE}
+patriots_mean = patriots.column('Drop').mean()
+colts_mean = colts.column('Drop').mean()
+
+observed_statistic = patriots_mean - colts_mean
+observed_statistic
+```
+
+```{python deletable=TRUE, editable=TRUE}
+drops = Table().with_column(
+    'Drop', np.append(patriots.column('Drop'), colts.column('Drop'))
+)
+drops.show()
+```
+
+```{python deletable=TRUE, editable=TRUE}
+drops.sample(with_replacement=False).show()
+```
+
+```{python deletable=TRUE, editable=TRUE}
+simulated_statistics = []
+repetitions = 10000
+
+for i in np.arange(repetitions):
+    shuffled = drops.sample(with_replacement=False)
+    new_patriots_mean = shuffled.take(np.arange(11)).column(0).mean()
+    new_colts_mean = shuffled.take(np.arange(11, drops.num_rows)).column(0).mean()
+    new_statistic = new_patriots_mean - new_colts_mean
+    simulated_statistics.append(new_statistic)
+    
+empirical_P = np.count_nonzero(simulated_statistics >= observed_statistic)/repetitions
+empirical_P
+
+print('Observed Statistic:', observed_statistic)
+print('Empirical P:', empirical_P)
+results = Table().with_column('Simulated Statistic', simulated_statistics)
+results.hist()
+plots.scatter(observed_statistic, 0, color='red', s=30);
+```
+
+```{python}
+
+```

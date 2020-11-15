@@ -1,0 +1,198 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+import numpy as np
+from datascience import *
+
+# Configure notebook (happens automatically on data8.berkeley.edu)
+# %matplotlib inline
+import matplotlib.pyplot as plt
+plt.style.use('fivethirtyeight')
+
+# Configure for presentation
+np.set_printoptions(threshold=50, linewidth=50)
+import matplotlib as mpl
+mpl.rc('font', size=16)
+```
+
+```{python}
+trips = Table.read_table('trip.csv')
+commute = trips.where(trips.column('Duration') < 1800)
+```
+
+```{python}
+half_hour = 30 * 60
+np.arange(0, half_hour+1, 60)
+```
+
+```{python}
+def every(k):
+    commute.hist('Duration', bins=np.arange(0, half_hour+1, k))
+every(60)
+```
+
+```{python}
+every(180)
+```
+
+```{python}
+every(10)
+```
+
+```{python}
+every(1)
+```
+
+```{python}
+weather = Table.read_table('weather.csv')
+sf = weather.where('Zip', 94107).select([0, 1, 3]).relabeled(1, 'High').relabeled(2, 'Low')
+sf
+```
+
+```{python}
+sf.hist([1, 2], bins=np.arange(30, 101, 5))
+```
+
+#### Discussion question
+
+```{python}
+sf.where(sf.column('Min') >= 45).num_rows / 365
+```
+
+```{python}
+sf.where(np.logical_and(sf.column('Max') >= 60,
+                        sf.column('Max') < 70)).num_rows / 365
+```
+
+```{python}
+sf.with_column('Diff', sf.column('Max') - sf.column('Min')).hist('Diff')
+```
+
+## Deterministic Samples
+
+```{python}
+top = Table.read_table('top_movies.csv')
+top.set_format([2, 3], NumberFormatter)
+```
+
+```{python}
+top.take([3, 18, 100]) 
+```
+
+```{python}
+top.take(np.arange(0, top.num_rows, 40))
+```
+
+## Probability sample
+
+```{python}
+np.random.randint(3, 8)  # select once at random from 3, 4, 5, 6, 7
+```
+
+```{python}
+start = np.random.randint(0, 10)
+top.take(np.arange(start, top.num_rows, 10))
+```
+
+## Uniform random sample
+
+```{python}
+top.sample(20)
+```
+
+```{python}
+die = Table().with_column('Face', [1, 2, 3, 4, 5, 6])
+die
+```
+
+```{python}
+die.hist()
+```
+
+```{python}
+dice_bins = np.arange(0.5, 7, 1)
+die.hist(bins=dice_bins)
+```
+
+```{python}
+die.sample(10, with_replacement=True)
+```
+
+```{python}
+def dice_hist(n):
+    rolls = die.sample(n, with_replacement=True)
+    rolls.hist(bins=dice_bins)
+    
+dice_hist(20)
+```
+
+```{python}
+dice_hist(10000)
+```
+
+## Iteration
+
+```{python}
+for i in np.arange(5):
+    print(i)
+```
+
+```{python}
+for i in np.arange(5):
+    dice_hist(10000)
+```
+
+```{python}
+def roll_once(n):
+    return np.random.randint(1, n+1)
+```
+
+```{python}
+roll_once(6)
+```
+
+```{python}
+rolls = Table(['First roll', 'Second roll'])
+for i in np.arange(100):
+    row = [roll_once(6), roll_once(6)]
+    rolls.append(row)
+rolls.hist(bins=dice_bins)
+```
+
+## Randomized response
+
+```{python}
+def respond(true_answer):
+    if roll_once(6) >= 5:
+        return not true_answer
+    else:
+        return true_answer
+```
+
+```{python}
+respond(False)
+```
+
+```{python}
+responses = Table(['Truth', 'Response'])
+for i in np.arange(1000):
+    responses.append([False, respond(False)])
+
+responses
+```
+
+```{python}
+responses.group('Response').barh('Response')
+```

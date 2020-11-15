@@ -1,0 +1,240 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python deletable=TRUE, editable=TRUE}
+from datascience import *
+import numpy as np
+
+import matplotlib.pyplot as plots
+plots.style.use('fivethirtyeight')
+# %matplotlib inline
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Linear regression
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+def standard_units(any_numbers):
+    "Convert any array of numbers to standard units."
+    return (any_numbers - np.mean(any_numbers)) / np.std(any_numbers)  
+
+def correlation(t, x, y):
+    """Return the correlation coefficient (r) of two variables."""
+    return np.mean(standard_units(t.column(x)) * standard_units(t.column(y)))
+
+def slope(t, x, y):
+    """The slope of ther regression line (original units)."""
+    r = correlation(t, x, y)
+    return r * np.std(t.column(y)) / np.std(t.column(x))
+
+def intercept(t, x, y):
+    """The intercept of the regression line (original units)."""
+    return np.mean(t.column(y)) - slope(t, x, y) * np.mean(t.column(x))
+
+def fit(table, x, y):
+    """Return the height of the regression line at each x value."""
+    a = slope(table, x, y)
+    b = intercept(table, x, y)
+    return a * table.column(x) + b
+
+def plot_residuals(t, x, y):
+    """Plot a scatter diagram and residuals."""
+    t.scatter(x, y, fit_line=True)
+    actual = t.column(y)
+    fitted = fit(t, x, y)
+    residuals = actual - fitted
+    print('r:', correlation(t, x, y))
+    print('RMSE:', np.mean(residuals**2)**0.5)
+    t.select(x).with_column('Residual', residuals).scatter(0, 1)
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Regression Model
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+def draw_and_compare(true_slope, true_int, sample_size):
+    x = np.random.normal(50, 5, sample_size)
+    xlims = np.array([np.min(x), np.max(x)])
+    errors = np.random.normal(0, 6, sample_size)
+    y = (true_slope * x + true_int) + errors
+    sample = Table().with_columns('x', x, 'y', y)
+
+    sample.scatter(0, 1)
+    plots.plot(xlims, true_slope*xlims + true_int, lw=2, color='green')
+    plots.title('True Line, and Points Created')
+
+    sample.scatter(0, 1)
+    plots.title('What We Get to See')
+
+    sample.scatter(0, 1, fit_line=True)
+    plots.title('Regression Line: Estimate of True Line')
+
+    sample.scatter(0, 1, fit_line=True)
+    plots.plot(xlims, true_slope*xlims + true_int, lw=2, color='green')
+    plots.title("Regression Line and True Line")
+    
+draw_and_compare(2, -5, 10)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+draw_and_compare(2, -5, 100)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+draw_and_compare(2, -5, 1000)
+```
+
+## Slope Inference
+
+```{python}
+baby = Table.read_table('baby.csv')
+baby.show(3)
+```
+
+```{python}
+plot_residuals(baby, 1, 0)
+```
+
+```{python}
+slope(baby, 1, 0)
+```
+
+```{python}
+for i in np.arange(4):
+    baby.sample().scatter(1, 0, fit_line=True)
+```
+
+```{python}
+baby.num_rows
+```
+
+```{python}
+baby.sample().num_rows
+```
+
+```{python}
+slopes = []
+for i in np.arange(5000):
+    resample = baby.sample()
+    resample_slope = slope(resample, 1, 0)
+    slopes.append(resample_slope)
+Table().with_column('Bootstrap Slopes', slopes).hist(bins=20)
+```
+
+```{python}
+left = percentile(2.5, slopes)
+right = percentile(97.5, slopes)
+[left, right]
+```
+
+```{python}
+def bootstrap_slope(table, x, y, repetitions=5000):
+
+    # Bootstrap resampling
+    slopes = []
+    for i in np.arange(5000):
+        resample = table.sample()
+        resample_slope = slope(resample, x, y)
+        slopes.append(resample_slope)
+
+    # Find the endpoints of the 95% confidence interval for the true slope
+    left = percentile(2.5, slopes)
+    right = percentile(97.5, slopes)
+
+    # Slope of the regression line from the original sample
+    observed_slope = slope(table, x, y)
+
+    # Display results
+    Table().with_column('Bootstrap Slopes', slopes).hist(bins=20)
+    plots.plot([left, right], [0, 0], color='yellow', lw=8);
+    print('Slope of regression line:', observed_slope)
+    print('Approximate 95%-confidence interval for the true slope:')
+    print(left, right)
+    
+bootstrap_slope(baby, 1, 0)
+```
+
+```{python}
+plot_residuals(baby, 2, 1)
+```
+
+```{python}
+bootstrap_slope(baby, 2, 1)
+```
+
+## Prediction Inference
+
+```{python}
+x = 300
+a = slope(baby, 1, 0)
+b = intercept(baby, 1, 0)
+fitted_y = a * x + b
+baby.scatter(1, 0, fit_line=True)
+plots.plot([x, x], [40, fitted_y], color='gold');
+```
+
+```{python}
+fitted_y
+```
+
+```{python}
+lines = Table(['slope','intercept', 'at 291', 'at 300', 'at 309'])
+
+for i in range(10):
+    resample = baby.sample()
+    a = slope(resample, 1, 0)
+    b = intercept(resample, 1, 0)
+    lines.append([a, b, a * 291 + b, a * 300 + b, a * 309 + b])
+
+for i in np.arange(lines.num_rows):
+    line = lines.row(i)
+    plots.plot([291, 309], [line.item('at 291'), line.item('at 309')], lw=1)
+    plots.scatter(300, line.item('at 300'), s=30)
+```
+
+```{python}
+def bootstrap_prediction(table, x, y, new_x, repetitions=5000):
+
+    # Bootstrap resampling
+    predictions = []
+    for i in np.arange(repetitions):
+        resample = table.sample()
+        a = slope(resample, x, y)
+        b = intercept(resample, x, y)
+        fitted_y = a * new_x + b
+        predictions.append(fitted_y)
+
+    # Find the ends of the approximate 95% prediction interval
+    left = percentile(2.5, predictions)
+    right = percentile(97.5, predictions)
+
+    # Display results
+    Table().with_column('Prediction', predictions).hist(bins=20)
+    plots.xlabel('predictions at x='+str(new_x))
+    plots.plot([left, right], [0, 0], color='yellow', lw=8);
+    print('Approximate 95%-confidence interval of regression height:')
+    print(left, right, '(width =', right - left, ')')
+    
+bootstrap_prediction(baby, 'Gestational Days', 'Birth Weight', 300)
+```
+
+```{python}
+bootstrap_prediction(baby, 'Gestational Days', 'Birth Weight', 330)
+```
+
+```{python}
+bootstrap_prediction(baby, 'Gestational Days', 'Birth Weight', 280)
+```

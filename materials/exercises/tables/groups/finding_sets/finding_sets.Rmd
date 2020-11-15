@@ -1,0 +1,171 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+## Finding Sets in Poker Hands
+
+```{python}
+# Run this cell to set up the notebook, but please don't change it.
+
+# These lines import the Numpy and Datascience modules.
+import numpy as np
+from datascience import *
+
+# These lines load the tests.
+from client.api.assignment import load_assignment 
+tests = load_assignment('finding_sets.ok')
+```
+
+`group` and `groups` are useful any time you want to aggregate information about groups of rows.  The way in which the information is "aggregated" is entirely up to you, since you can specify any function you want.
+
+In this exercise, you'll work with tables of playing cards, and you'll have to think about how to aggregate cards together to figure out whether groups of them satisfy certain properties.
+
+Run the cell below to load the card data.  It's a table with 52 rows, one for each type of card in a deck of playing cards.  A playing card has a "suit" ("♠︎", "♣︎", "♥︎", or "♦︎") and a "rank" (2 through 10, J, Q, K, or A).  There are 4 suits and 13 ranks, so there are $4 \times 13 = 52$ different cards.
+
+```{python}
+deck = Table.read_table("deck.csv")
+deck
+```
+
+Since there are 4 suits, there are 4 cards of each rank.  For example, there is a 2 of spades (rank 2, suit ♠︎), a 2 of clubs (rank 2, suit ♣︎), a 2 of diamonds (rank 2, suit ♦︎), and 2 of hearts (rank 2, suit ♥︎).
+
+Suppose you draw 5 cards randomly from the deck.  This is called your *hand*.  If you have all 4 cards of any one rank, that's called "four-of-a-kind".  For example, a hand of [2♠︎, 2♣︎, 2♦︎, 2♥︎, K♣︎] has a four-of-a-kind.  (The last card, the king of clubs in this case, doesn't matter.)  There are also names for hands that contain sets of 3 or 2 same-ranked cards.
+
+Write a function called `biggest_set`.  It should take as its argument a table representing a hand of cards, which will look like `deck` but with only 5 rows.  It should return the size of the biggest set of same-ranked cards in that hand.  For example, for the hand
+    
+    [2♠︎, 2♣︎, 2♦︎, 2♥︎, K♣︎],
+
+it should return 4.  For the hand
+    
+    [5♠︎, 3♦︎, 4♥︎, 5♣︎, K♣︎],
+    
+it should return 2, since that hand contains two 5s.  It should also return 2 for the hand
+    
+    [5♠︎, 5♣︎, 4♦︎, 4♥︎, K♣︎].
+
+```{python}
+def biggest_set(hand):
+    ...
+
+# Here we're calling your function with an example of a
+# hand with 1 four-of-a-kind:
+biggest_set(deck.take(np.arange(5)))
+```
+
+```{python}
+_ = tests.grade('q1')
+```
+
+Now suppose instead of just 1 hand, there are several players playing a game, and each player has their own hand of 5.  We put all their cards in a single table with an extra column called "Player" for the name of the player.  Here's an example with 3 players:
+
+```{python}
+hands = Table.read_table("hands.csv")
+hands.show()
+```
+
+**Question 2.** Write a function called `biggest_sets`.  It should take one argument that's a table like `hands`.  (The table will have 5 rows per player, but not necessarily 3 players.)  It should return a table with 1 row per player, a column for the player's name ("Player"), and a column for the size of the biggest set in that player's hand ("Biggest set").
+
+*Hint:* It's probably not useful to reuse your `biggest_set` function for this, but the idea is somewhat similar.
+
+```{python}
+def biggest_sets(hands_table):
+    # First we count the number of cards of each rank for
+    # each player.  Then we find the max of those for each
+    # player, which is the size of their biggest set.
+    return hands_table.groups(make_array('Player', 'Rank'))\
+                      .drop('Rank')\
+                      .group('Player', max)\
+                      .relabeled('count max', 'Biggest set')
+
+biggest_sets(hands)
+```
+
+```{python for_assignment_type=student}
+# Write your function here:
+...
+
+# Example call to your function:
+biggest_sets(hands)
+```
+
+```{python}
+_ = tests.grade('q2')
+```
+
+**Question 3.** Write a function called `winner`.  It should take one argument that's a table like `hands`.  It should return the name of the player with the biggest set in their hand.
+
+```{python for_assignment_type=student}
+# Write your function here:
+...
+
+# Example call to your function:
+winner(hands)
+```
+
+```{python}
+_ = tests.grade('q3')
+```
+
+Now suppose our players played 3 games and we recorded their hands in each game.  The table `games`, loaded below, has one row for each card in a player's hand in one game.  It's like `hands`, except with an extra column that tells us which game the card appeared in.  Load the table and make sure you understand its format before you move on.
+
+```{python}
+games = Table.read_table('games.csv')
+games
+```
+
+**Question 4.** Write a function called `best_hands`.  It should take one argument that's a table like `games`.  It should return a table with one row per *game*, a column for the game number ("Game"), and a column for the size of the biggest set among all the players in that game ("Biggest set in game").  (In other words, we're computing the size of the biggest set in the winning player's hand for each game.)
+
+*Hint:* There are many possible solutions, but the staff solution uses 2 calls to `groups` and 1 call to `group`, plus some dropping and relabeling of columns.  Think about the steps you went through in the previous questions and how you might extend them for this new situation.
+
+```{python}
+def best_hands(games_table):
+    # First we count the number of cards of each rank for
+    # each hand.  Each player has one hand for each game.
+    # Then we find the max of those for each hand.  Then
+    # we find the max of those for each game, and that's.
+    # the size of the biggest set among all hands in that
+    # game.
+    return games_table.groups(make_array('Player', 'Game', 'Rank'))\
+                      .drop('Rank')\
+                      .groups(make_array('Player', 'Game'), max)\
+                      .drop('Player')\
+                      .group('Game', max)\
+                      .relabeled('count max max', "Biggest set in game")
+
+best_hands(games)
+```
+
+```{python}
+# Write your function here.
+...
+
+# Example call to your function:
+best_hands(games)
+```
+
+```{python}
+_ = tests.grade('q4')
+```
+
+```{python}
+# For your convenience, you can run this cell to run all the tests at once!
+import os
+_ = [tests.grade(q[:-3]) for q in os.listdir("tests") if q.startswith('q')]
+```
+
+```{python}
+# Run this cell to submit your work *after* you have passed all of the test cells.
+# It's ok to run this cell multiple times. Only your final submission will be scored.
+
+# !TZ=America/Los_Angeles ipython nbconvert --output=".finding_sets_$(date +%m%d_%H%M)_submission.html" finding_sets.ipynb
+```

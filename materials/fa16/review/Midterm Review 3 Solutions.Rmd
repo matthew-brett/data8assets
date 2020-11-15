@@ -1,0 +1,155 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+# Midterm Review 3
+The inhabitants of the planet Zoogon have a simplified version of Earth genetics.  For each genetically-determined numerical trait, each Zoogonian has its own single-column table of numbers for that trait, and its value for that trait is the *average* of the numbers in that table.
+
+For example, a Zoogonian’s bone density is the average value of the numbers in its bone density table.  Here is Zolga's bone density table, and her actual bone density.
+
+```{python}
+zolga_bone_density_table.show()
+print("Zolga's bone density is", np.mean(zolga_bone_density_table.column("bone density (g/cm^3)")), "grams per cubic centimeter.")
+```
+
+Like humans, Zoogonians inherit their genes.  However, Zoogonians are all spawned from a single mother named Mother Zoog.  For each trait, a newborn Zoogonian’s table for that trait is a *simple random sample with replacement* from Mother Zoog’s table for that trait.  Each trait has its own sample size. 
+
+For example, Mother Zoog has a table called `bone_densities`.  For bone density the sample is 5 rows, so every Zoogonian’s bone density table looks like `bone_densities.sample(5, with_replacement=True)`.  Zolga's bone density table was one such sample.
+
+
+## The third eye stalk
+Zoogonians have three eye stalks.  Suppose that the height of the third eye stalk is determined genetically by a random sample of **two** rows from `third_eye_stalk_heights`, Mother Zoog’s table for third-eye-stalk height.  1 row in `third_eye_stalk_heights` has the value 4cm, and the other row has the value 6cm.
+
+**Question 1.**
+Which of the following is a probability histogram of the height of a newborn Zoogonian’s third eye stalk?
+
+```{python}
+a
+```
+
+```{python}
+b
+```
+
+```{python}
+c
+```
+
+```{python}
+d
+```
+
+```{python}
+e
+```
+
+```{python}
+f
+```
+
+```{python}
+g
+```
+
+**Answer:** `a`.
+
+When we draw a table to figure out an individual's height, we draw uniformly at random from a table like this:
+
+|height|
+|-|
+|4|
+|6||
+
+There are 4 possible tables we can get:
+
+|height|
+|-|
+|4|
+|4||
+
+|height|
+|-|
+|4|
+|6||
+
+|height|
+|-|
+|6|
+|4||
+
+|height|
+|-|
+|6|
+|6||
+
+Each table is equally likely.  The first table gets us a Zoogonian with height 4, the second and third height 5, and the fourth height 6.  So there's a 25% chance the Zoogonian has height 4, a 50% it has height 5, and a 25% chance it has height 6.  Histogram `a` is just displaying that probability distribution, which is what we wanted.
+
+
+**Question 2.**
+Eliminate the histogram you chose.  Which of the remaining histograms above is the most plausible **empirical** histogram of the heights of **20** newborn Zoogonians’ third eye stalks?
+
+
+**Answer:** `e`.
+
+When we sample from a distribution many times and plot a histogram of those samples, we expect that *empirical histogram* to look similar to the *probability histogram* of the distribution.  `e` is the most similar to `a` among all the histograms displayed, so it's the most likely.  (If `a` were an option, that would be even more likely.)
+
+Note that histograms `a`, `b`, `c`, `d`, and `e` are all *possible* empirical histograms; `e` is just the most likely.
+
+`b` is the probability histogram of Mother Zoog's table for third eye stalk height.  If Zoogonians' heights were based on the average of 1 row instead of 2, the answer would be `b`.  Since they instead sample 2 rows and average them, we get heights that are typically closer to the average of 4 and 6.
+
+
+## The omnipresent green orb
+Each Zoogonian has a glowing green orb that floats above it at all times.  The brightness of each individual's omnipresent orb (which is measured in lumens) is determined genetically by a random sample of **150** rows from Mother Zoog’s table for orb-brightness, `orb_brightnesses`.  In `orb_brightnesses`, one row has the value 400 lumens, and the other row has the value 500 lumens.
+
+**Question 3.**
+Which of the following is the **probability** histogram of the brightness of a newborn Zoogonian’s orb?
+
+```{python}
+a
+```
+
+```{python}
+b
+```
+
+```{python}
+c
+```
+
+```{python}
+d
+```
+
+```{python}
+e
+```
+
+```{python}
+f
+```
+
+```{python}
+g
+```
+
+```{python}
+h
+```
+
+**Answer:** `c`.
+
+The histogram in question 1 already looked a little more bell-shaped than the probability distribution of the rows, even though the Zoogonians sampled only twice.  Intuitively, sampling 150 times and averaging those numbers is even more likely to get us something close to the average of the rows in Mother Zoog's table for orb brightness, which is 450.
+
+Formally, the central limit theorem tells us that if we repeatedly sample `N` numbers with replacement from a table and compute their average, then the averages will follow a normal distribution if `N` is fairly big.  150 is fairly big.  So the distribution of orb brightnesses should look bell-shaped.  That leaves `c`, `d`, and `e`.
+
+The mean of a bunch of numbers that are each equal to 400 or 500 must be between 400 and 500.  (You can't average together a bunch of 400s and get 350!)  `d` and `e` both claim that there's some positive chance of getting an orb brightness of 350, so they can't be the right histograms.  That leaves only `c`.

@@ -1,0 +1,101 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Playground
+
+This is a notebook containing some interesting datasets that you can use to sharpen your table skills, apply statistical analysis or just have fun. We have included some analysis on one of the datasets just to give you some ideas to get started.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+import numpy as np
+from datascience import *
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## The Data
+
+We have imported the data for you in datascience tables however, you can also download the data and gain a better understanding of the datasets by following the links below.
+
+1. <a href="https://www.kaggle.com/c/titanic">Survival on the Titanic</a>
+2. <a href ="https://www.kaggle.com/ikalats/TechnologyPriceIndex">Technology Price Index</a>
+3. <a href="https://www.kaggle.com/usgs/earthquake-database">Significant Earthquakes, 1965-2016</a>
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+### Survival on the Titanic
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+#reading a dataset from a csv
+titanic_data = Table.read_table("https://raw.githubusercontent.com/oikobill/Kaggle/master/Titanic/data/train.csv")
+titanic_data.show(5) #to show only the 5 first rows of the dataset
+```
+
+```{python deletable=TRUE, editable=TRUE}
+#what are the dimensions of my data?
+print("Number of people: ", titanic_data.num_rows)
+print("Number of columns/features: ", titanic_data.num_columns)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+#always rename your column names to something that is more human readable
+titanic_data.relabel("Embarked", "port")
+titanic_data.relabel("PassengerId", "id")
+titanic_data.relabel("Survived", "survived") #I like every column name to be in lowercase
+titanic_data.relabel("Pclass", "passenger_class")
+titanic_data.relabel("Name", "name")
+titanic_data.relabel("Sex", "sex")
+titanic_data.relabel("Fare", "fare")
+titanic_data.relabel("Cabin", "cabin")
+titanic_data.relabel("Ticket", "ticket")
+titanic_data.relabel("Age", "age")
+```
+
+```{python deletable=TRUE, editable=TRUE}
+#how about creating a new variable?
+siblings_spouses = titanic_data.column("SibSp")
+children_parents = titanic_data.column("Parch")
+titanic_data = titanic_data.with_column("family_size", siblings_spouses+children_parents)
+titanic_data
+```
+
+```{python deletable=TRUE, editable=TRUE}
+#survival by passenger class 
+pclass = titanic_data.select(["survived", "passenger_class"]) #select only some columns from the table
+pclass.group("passenger_class", np.mean) 
+```
+
+```{python deletable=TRUE, editable=TRUE}
+# Now you have enough ideas to get started on your own analysis!
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+### Technology Price Index
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+tpi = Table().read_table("https://raw.githubusercontent.com/oikobill/data8_resources/master/notes/datasets/tech_price_index.csv")
+tpi.show(5)
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+### Significant Earthquakes, 1965-2016
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+#Be careful! This one has a lot of missing data but it is good to get you to think about how to handle them in the real world
+earthquakes = Table().read_table("https://raw.githubusercontent.com/oikobill/data8_resources/master/notes/datasets/earthquake.csv")
+earthquakes.show(5)
+```

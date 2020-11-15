@@ -1,0 +1,154 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+<div class="hide">\pagebreak</div>
+## Evaluating NBA Game Predictions
+
+```{python}
+# Run this cell to set up the notebook, but please don't change it.
+
+# These lines import the Numpy and Datascience modules.
+import numpy as np
+from datascience import *
+
+# These lines do some fancy plotting magic.
+import matplotlib
+# %matplotlib inline
+import matplotlib.pyplot as plt
+plt.style.use('fivethirtyeight')
+import warnings
+warnings.simplefilter('ignore', FutureWarning)
+```
+
+#### A brief introduction to sports betting
+In a basketball game, each team scores some number of points.  Conventionally, the team playing at its own arena is called the "home team," and the other team is called the "away team."  The winner, of course, is the team with the most points.  So we could summarize what happened in a game by the following number:
+
+$$\text{outcome} = \text{points scored by the away team} - \text{points scored by the home team}$$
+
+If this number is positive, the away team won.  If it's negative, the home team won.  For brevity, we'll use the shorthand **"outcome"** for **the away team's score minus the home team's score**.
+
+Casinos in Las Vegas offer bets on the outcomes of NBA games.  One kind of bet works like this:
+
+1. The casino decides on a "spread."
+2. You can bet \$11 that the outcome will be above the spread, or \$11 that the outcome will be below the spread.
+3. After the game, you end up with \$21 if you guessed correctly, and \$0 if you guessed incorrectly.
+
+The analysts at the casino try to choose the spread so that (according to their analysis of the teams) there is a 50% chance that the outcome will be below that amount, and a 50% chance that the outcome will be above that amount.
+
+**[tl;dr](https://en.wikipedia.org/wiki/Wikipedia:Too_long;_didn%27t_read): The spread is the casino's best guess at the outcome (the away team's score minus the home team's score).**
+
+The table `spreads` contains spreads from the betting website [Covers](http://www.covers.com) from every game in the 2014 NBA season, plus actual game outcomes.  
+
+```{python}
+spreads = Table.read_table("spreads.csv")
+spreads
+```
+
+<div class="hide">\pagebreak</div>
+#### Question 1
+Make a scatter plot of the outcomes and spreads, with the spreads on the horizontal axis.
+
+```{python}
+...
+```
+
+<div class="hide">\pagebreak</div>
+You might notice that spreads and outcomes are (almost) never 0.  It's because a game of basketball never ends in a tie; one team has to win.
+
+Let's investigate how well the casinos are predicting game outcomes.
+
+One question we can ask is: Is the casino's prediction correct on average? In other words, for every value of the spread, is the average outcome of games assigned that spread equal to the spread? If not, the casino would apparently be making a systematic error in its predictions.
+
+#### Question 2
+Among games with a spread around 5 (concretely: in the range $[3.5, 6.5]$), what was the average outcome?
+
+```{python}
+spreads_around_5 = ...
+spread_5_outcome_average = ...
+print("Average outcome:", spread_5_outcome_average)
+```
+
+Instead of doing that for each possible spread, we can use linear regression to predict an outcome for any spread.
+
+
+<div class="hide">\pagebreak</div>
+#### Question 3
+If the average outcome for games with each spread is roughly equal to that spread, what would you expect the slope and intercept of the linear regression line to be?  Or is it impossible to say?  If it's impossible, use the cell below to write a comment explaining why.  Otherwise, write the expected slope and intercept.
+
+```{python}
+expected_slope = ...
+expected_intercept = ...
+```
+
+Let's compute the regression line and find out if that's the case.  This takes a few steps.
+
+
+<div class="hide">\pagebreak</div>
+#### Question 4
+Define a function called `standard_units`.  It should take an array of numbers as its argument and return an array of those numbers in standard units.
+
+```{python}
+def standard_units(nums):
+    """Converts an array of numbers to standard units."""
+    ...
+```
+
+<div class="hide">\pagebreak</div>
+#### Question 5
+Compute the correlation between outcomes and spreads.
+
+```{python}
+spread_r = ...
+spread_r
+```
+
+<div class="hide">\pagebreak</div>
+#### Question 6
+Compute the slope and intercept of the least-squares linear regression line that predicts outcomes from spreads.
+
+```{python}
+spread_slope = ...
+spread_intercept = ...
+print("predicted outcome = {:f}*spread + {:f}".format(spread_slope, spread_intercept))
+```
+
+<div class="hide">\pagebreak</div>
+#### Question 7
+For each game in `spreads`, compute the predicted outcome using your regression line.  Add these to `spreads` as a column called `"Predicted outcome"`, naming the resulting table `with_predictions`.
+
+```{python}
+with_predictions = ...
+with_predictions
+```
+
+Here's a plot of the predictions.
+
+```{python}
+with_predictions.scatter("Spread", make_array("Outcome", "Predicted outcome"))
+```
+
+<div class="hide">\pagebreak</div>
+#### Question 8
+Is it true that the average outcome for games with each spread is around that spread?
+
+
+*Write your answer here, replacing this text.*
+
+
+<div class="hide">\pagebreak</div>
+#### Question 9
+Do you think the casino predicted game outcomes *accurately*?  What number would you use to quantify that?
+
+
+*Write your answer here, replacing this text.*

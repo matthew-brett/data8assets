@@ -1,0 +1,180 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python deletable=TRUE, editable=TRUE}
+from datascience import *
+import numpy as np
+
+import matplotlib.pyplot as plots
+plots.style.use('fivethirtyeight')
+# %matplotlib inline
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Confidence Intervals
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+def bootstrap_mean(sample_from_population, label, repetitions):
+    resampled_means = []
+    for i in np.arange(repetitions):
+        resample = sample_from_population.sample()
+        mean = np.mean(resample.column(label))
+        resampled_means.append(mean)
+    return resampled_means
+```
+
+```{python deletable=TRUE, editable=TRUE}
+def bootstrap_ci_mean(sample_from_population, label, repetitions):
+    resampled_means = bootstrap_mean(sample_from_population, label, repetitions)
+    
+    interval_95 = make_array(
+    percentile(2.5, resampled_means),
+    percentile(97.5, resampled_means)
+    )
+    
+    Table().with_column('Resampled mean', resampled_means).hist(0)
+    plots.plot(interval_95, [0, 0], color='gold', lw=8)
+    print('Approximate 95% Bootstrap Confidence Interval for Population Mean:')
+    print(np.round(interval_95, 3))
+```
+
+```{python deletable=TRUE, editable=TRUE}
+births = Table.read_table('baby.csv')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+births
+```
+
+```{python deletable=TRUE, editable=TRUE}
+bootstrap_ci_mean(births, 'Maternal Age', 5000)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+births.hist('Maternal Age')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+bootstrap_ci_mean(births, 'Birth Weight', 5000)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+119.5/16
+```
+
+```{python deletable=TRUE, editable=TRUE}
+np.mean([0, 0, 1, 1])
+```
+
+```{python deletable=TRUE, editable=TRUE}
+bootstrap_ci_mean(births, 'Maternal Smoker', 5000)
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Means
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+values = [3, 2, 9, 3]
+```
+
+```{python deletable=TRUE, editable=TRUE}
+np.average(values)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+sum(values) / len(values)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+(1/4) * 2 + (2/4) * 3 + (1/4) * 9
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Bool Values
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+trials = [True, False, True, True, False]
+```
+
+```{python deletable=TRUE, editable=TRUE}
+np.count_nonzero(trials)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+sum(trials)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+sum(trials) / len(trials)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+np.mean(trials)
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Standard Deviation
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+average = np.average(values)
+average
+```
+
+```{python deletable=TRUE, editable=TRUE}
+deviations = values - average
+t = Table().with_columns(
+    'Value', values,
+    'Deviation from average', deviations
+)
+t
+```
+
+```{python deletable=TRUE, editable=TRUE}
+sum(deviations)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+sum(values)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+len(values) * average
+```
+
+```{python deletable=TRUE, editable=TRUE}
+deviations ** 2
+```
+
+```{python deletable=TRUE, editable=TRUE}
+squared_deviations = deviations ** 2
+t.with_column('Squared deviation', squared_deviations)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+variance = np.mean(squared_deviations)
+variance
+```
+
+```{python deletable=TRUE, editable=TRUE}
+sd = variance ** 0.5
+sd
+```
+
+```{python deletable=TRUE, editable=TRUE}
+np.std(values)
+```

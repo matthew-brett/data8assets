@@ -1,0 +1,81 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+import numpy as np
+from datascience import *
+
+# Configure notebook (happens automatically on data8.berkeley.edu)
+# %matplotlib inline
+import matplotlib.pyplot as plt
+plt.style.use('fivethirtyeight')
+
+# Configure for presentation
+np.set_printoptions(threshold=50, linewidth=50)
+import matplotlib as mpl
+mpl.rc('font', size=16)
+```
+
+```{python}
+def standard_units(any_numbers):
+    "Convert any array of numbers to standard units."
+    return (any_numbers - np.mean(any_numbers))/np.std(any_numbers)  
+
+def correlation(t, x, y):
+    "Compute r."
+    return np.mean(standard_units(t.column(x))*standard_units(t.column(y)))
+
+def slope(table, x, y):
+    "The slope of the regression line (original units)"
+    r = correlation(table, x, y)
+    return r * np.std(table.column(y))/np.std(table.column(x))
+
+def intercept(table, x, y):
+    "The intercept of the regression line (original units)"
+    a = slope(table, x, y)
+    return np.mean(table.column(y)) - a * np.mean(table.column(x))
+
+def fit(table, x, y):
+    """Return the height of the regression line at each x value."""
+    a = slope(table, x, y)
+    b = intercept(table, x, y)
+    return a * table.column(x) + b
+```
+
+## Errors
+
+```{python}
+little_women = Table.read_table('little_women.csv')
+little_women.show(3)
+```
+
+```{python}
+little_women.scatter('Periods', 'Characters')
+```
+
+```{python}
+correlation(little_women, 'Periods', 'Characters')
+```
+
+```{python}
+sample = [[131, 14431], [231, 20558], [392, 40935], [157, 23524]]
+def lw_errors(a, b):
+    little_women.scatter('Periods', 'Characters')
+    xlims = np.array([50, 450])
+    plt.plot(xlims, a * xlims + b, lw=2)
+    for x, y in sample:
+        plt.plot([x, x], [y, a * x + b], color='r', lw=2)
+```
+
+## Numerical optimization

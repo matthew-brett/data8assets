@@ -1,0 +1,299 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+# Homework 3: Tables and Charts
+Reading: Textbook chapters [5](http://www.inferentialthinking.com/chapters/05/tables.html) and [6](https://www.inferentialthinking.com/chapters/06/visualization.html).
+
+Please complete this notebook by filling in the cells provided. Before you begin, execute the following cell to load the provided tests. Each time you start your server, you will need to execute this cell again to load the tests.
+
+```{python}
+# Don't change this cell; just run it. 
+
+import numpy as np
+from datascience import *
+
+# %matplotlib inline
+import matplotlib.pyplot as plots
+plots.style.use('fivethirtyeight')
+
+from client.api.notebook import Notebook
+ok = Notebook('hw03.ok')
+_ = ok.auth(inline=True)
+```
+
+**Important**: The `ok` tests don't usually tell you that your answer is correct. More often, they help catch careless mistakes. It's up to you to ensure that your answer is correct. If you're not sure, ask someone (not for the answer, but for some guidance about your approach).
+
+
+Once you're finished, select "Save and Checkpoint" in the File menu and then execute the `submit` cell below. Check your OkPy account to see if your backup has saved successfully. Don't worry about the submission part - OkPy automatically converts your most recent backup to your final submission. Just make sure that's the one you want to submit!
+
+```{python}
+_ = ok.submit()
+```
+
+## 1. Unemployment
+
+
+
+The Federal Reserve Bank of St. Louis publishes data about jobs in the US.  Below we've loaded data on unemployment in the United States.  There are many ways of defining unemployment, and our dataset includes two notions of the unemployment rate:
+
+1. Among people who are able to work and are looking for a full-time job, the percentage who can't find a job.  This is called the Non-Employment Index, or NEI.
+2. Among people who are able to work and are looking for a full-time job, the percentage who can't find any job *or* are only working at a part-time job.  The latter group is called "Part-Time for Economic Reasons", so the acronym for this index is NEI-PTER.  (Economists are great at marketing.)
+
+The source of the data is [here](https://fred.stlouisfed.org/categories/33509).
+
+
+**Question 1.** The data are in a CSV file called `unemployment.csv`.  Load that file into a table called `unemployment`.
+
+```{python}
+unemployment = ...
+unemployment
+```
+
+```{python}
+_ = ok.grade('q1_1')
+```
+
+**Question 2.** Sort the data in decreasing order by NEI, naming the sorted table `by_nei`.  Create another table called `by_nei_pter` that's sorted in decreasing order by NEI-PTER instead.
+
+```{python}
+by_nei = ...
+by_nei_pter = ...
+```
+
+```{python}
+_ = ok.grade('q1_2')
+```
+
+**Question 3.** Use `take` to make a table containing the data for the 10 quarters when NEI was greatest.  Call that table `greatest_nei`.
+
+```{python}
+greatest_nei = ...
+greatest_nei
+```
+
+```{python}
+_ = ok.grade('q1_3')
+```
+
+**Question 4.** It's believed that many people became PTER (recall: "Part-Time for Economic Reasons") in the "Great Recession" of 2008-2009.  NEI-PTER is the percentage of people who are unemployed (and counted in the NEI) plus the percentage of people who are PTER.  Compute an array containing the percentage of people who were PTER in each quarter.  (The first element of the array should correspond to the first row of `unemployment`, and so on.)
+
+*Note:* Use the original `unemployment` table for this.
+
+```{python}
+pter = ...
+pter
+```
+
+```{python}
+_ = ok.grade('q1_4')
+```
+
+**Question 5.** Add `pter` as a column to `unemployment` (named "PTER") and sort the resulting table by that column in decreasing order.  Call the table `by_pter`.
+
+Try to do this with a single line of code, if you can.
+
+```{python}
+by_pter = ...
+by_pter
+```
+
+```{python}
+_ = ok.grade('q1_5')
+```
+
+**Question 6.** Does it seem true that the PTER rate was very high during the Great Recession, compared to other periods in the dataset? Justify your answer by referring to specific values in the table or by generating a chart.
+
+<!-- #region {"manual_grade": true, "manual_problem_id": "basic_sorting_6"} -->
+*Write your answer here, replacing this text.*
+<!-- #endregion -->
+
+## 2. Birth Rates
+
+
+
+The following table gives census-based population estimates for each state on July 1, 2015 and July 1, 2016. The last four columns describe the components of the estimated change in population during this time interval. *For all questions below, assume that the word "states" refers to all 52 rows including Puerto Rico & the District of Columbia.*
+
+```{python}
+# Don't change this cell; just run it.
+# From http://www2.census.gov/programs-surveys/popest/datasets/2010-2016/national/totals/nst-est2016-alldata.csv
+# See http://www2.census.gov/programs-surveys/popest/datasets/2010-2015/national/totals/nst-est2015-alldata.pdf
+#     for column descriptions. (As of Feb 2017, no descriptions were posted for 2010-2016.)
+pop = Table.read_table('nst-est2016-alldata.csv').where('SUMLEV', 40).select([1, 4, 12, 13, 27, 34, 62, 69])
+pop = pop.relabeled(2, '2015').relabeled(3, '2016')
+pop = pop.relabeled(4, 'BIRTHS').relabeled(5, 'DEATHS')
+pop = pop.relabeled(6, 'MIGRATION').relabeled(7, 'OTHER')
+pop.set_format([2, 3, 4, 5, 6, 7], NumberFormatter(decimals=0)).show(5)
+```
+
+**Question 1.** Assign `us_birth_rate` to the total US annual birth rate during this time interval. The annual birth rate for a year-long period is the number of births in that period as a proportion of the population at the start of the period.
+
+```{python}
+us_birth_rate = ...
+us_birth_rate
+```
+
+```{python}
+_ = ok.grade('q2_1')
+```
+
+**Question 2.** Assign `fastest_growth` to an array of the names of the five states with the fastest population growth rates in *descending order of growth rate*.
+
+```{python}
+fastest_growth = ...
+fastest_growth
+```
+
+```{python}
+_ = ok.grade('q2_2')
+```
+
+**Question 3.** Assign `movers` to the number of states for which the absolute annual rate of migration was higher than 1%. The annual rate of migration for a year-long period is the net number of migrations (in and out) as a proportion of the population at the start of the period. The `MIGRATION` column contains estimated annual net migration counts by state.
+
+```{python}
+movers = ...
+movers
+```
+
+```{python}
+_ = ok.grade('q2_3')
+```
+
+**Question 4.** Assign `west_births` to the total number of births that occurred in region 4 (the Western US).
+
+```{python}
+west_births = ...
+west_births
+```
+
+```{python}
+_ = ok.grade('q2_4')
+```
+
+**Question 5.** Assign `less_than_west_births` to the number of states that had a total population in 2016 that was smaller than the *number of babies born in region 4 (the Western US)* during this time interval.
+
+```{python}
+less_than_west_births = ...
+less_than_west_births
+```
+
+```{python}
+_ = ok.grade('q2_5')
+```
+
+**Question 6.** Was there an association between birth rate and death rate during this time interval? Use the code cell below to support your conclusion with a chart. If an association exists, what might explain it?
+
+<!-- #region {"manual_grade": true, "manual_problem_id": "births_6"} -->
+*Write your answer here, replacing this text.*
+<!-- #endregion -->
+
+```{python}
+# Generate a chart here to support your conclusion
+...
+```
+
+## 3. Consumer Financial Protection Bureau Complaints
+
+
+
+The Consumer Financial Protection Bureau has collected and published consumer complaints against financial companies since 2011.  The data are available [here](https://dev.socrata.com/foundry/data.consumerfinance.gov/jhzv-w97w) (or at this [direct link](https://data.consumerfinance.gov/resource/jhzv-w97w.csv)).  For this exercise, to make your code run faster, we've selected only the data from May 2016.
+
+Run the next cell to load the data.  Each row represents one consumer's complaint.
+
+```{python}
+# Just run this cell.
+complaints = Table.read_table("complaints.csv")
+complaints
+```
+
+**Question 1.** Financial companies offer a variety of products.  How many complaints were made against each kind of product?  Make a table called `complaints_per_product` with one row per product category and 2 columns: "product" (the name of the product) and "number of complaints" (the number of complaints made against that kind of product).
+
+```{python}
+complaints_per_product = ...
+complaints_per_product
+```
+
+```{python}
+_ = ok.grade('q3_1')
+```
+
+**Question 2.** Make a bar chart showing how many complaints were made about each product category. Sort the bars from shortest to longest.
+
+```{python}
+...
+```
+
+**Question 3.** Make a table of the number of complaints made against each *company*.  Call it `complaints_per_company`.  It should have one row per company and 2 columns: "company" (the name of the company) and "number of complaints" (the number of complaints made against that company).
+
+```{python}
+complaints_per_company = ...
+complaints_per_company
+```
+
+```{python}
+_ = ok.grade('q3_3')
+```
+
+**Question 4.** It wouldn't be a good idea to make a bar chart of that data.  (Don't try it!)  Why not?
+
+<!-- #region {"manual_grade": true, "manual_problem_id": "cfpb_complaints_4"} -->
+*Write your answer here, replacing this text.*
+<!-- #endregion -->
+
+**Question 5.** Make a bar chart of just the 10 companies with the most complaints. 
+
+```{python}
+...
+```
+
+**Question 6.** Make a bar chart like the one above, with one difference: The size of each company's bar should be the *proportion* (among *all complaints* made against any company in `complaints`) that were made against that company.
+
+**Note:** Graphs aren't very useful without accurate labels.  Make sure that the text on the horizontal axis of the graph makes sense.
+
+
+## 4. Marginal Histograms
+
+
+
+Consider the following scatter plot: ![](scatter.png)
+
+The axes of the plot represent values of two variables: $x$ and $y$. 
+
+
+Suppose we have a table called `t` that has two columns in it:
+
+- `x`: a column containing the x-values of the points in the scatter plot
+- `y`: a column containing the y-values of the points in the scatter plot
+
+
+**Question 1:** Match each of the following histograms to the code that produced them. Explain your reasoning.
+
+
+**Histogram A:** ![](var1.png)
+**Histogram B:** ![](var2.png)
+
+<!-- #region {"for_assignment_type": "student"} -->
+**Line 1:** `t.hist('x')`
+
+**Histogram for Line 1:**
+
+**Explanation:**
+<!-- #endregion -->
+
+<!-- #region {"for_assignment_type": "student"} -->
+**Line 2:** `t.hist('y')`
+
+**Histogram for Line 2:**
+
+**Explanation:**
+<!-- #endregion -->

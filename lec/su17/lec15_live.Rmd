@@ -1,0 +1,259 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+from datascience import *
+import numpy as np
+
+import matplotlib.pyplot as plt
+plt.style.use('fivethirtyeight')
+# %matplotlib inline
+```
+
+## Monty Hall
+
+
+1. Put prizes behind doors randomly
+2. I pick a door
+3. Monty opens a door
+4. Reveal what was behind each door
+
+
+### Step 1: Set up game
+
+```{python}
+doors = make_array(1, 2, 3)
+doors
+```
+
+```{python}
+prizes = make_array('car', 'first goat', 'second goat')
+prizes
+```
+
+```{python}
+def setup():
+    """Return a random game of Let's Make a Deal."""
+    return Table().with_columns(
+        'Door', doors,
+        'Prize', np.random.choice(prizes, 3, replace=False)
+    )
+
+a_game = setup()
+a_game
+```
+
+### Step 2: Pick a door
+
+```{python}
+a_guess = np.random.choice(doors)
+a_guess
+```
+
+### Step 3: Monty opens a door
+
+```{python}
+def behind(game, door):
+    """Return the prize behind a door."""
+    return game.where('Door', door).column('Prize').item(0)
+
+for door in doors:
+    print('Behind door number', door, 'is the', behind(a_game, door))
+```
+
+```{python}
+def location(game, prize):
+    """Return the door that hides a prize."""
+    return game.where('Prize', prize).column('Door').item(0)
+
+for prize in prizes:
+    print('The', prize, 'is behind door number', location(a_game, prize))
+```
+
+```{python}
+def expose(game, guess):
+    """Return the door that Monty Hall opens to expose a goat."""
+    guessed_prize = behind(game, guess)
+    if guessed_prize == 'first goat':
+        reveal = 'second goat'
+    elif guessed_prize == 'second goat':
+        reveal = 'first goat'
+    else:
+        reveal = np.random.choice(['first goat', 'second goat'])
+    return location(game, reveal)
+
+an_exposed_door = expose(a_game, a_guess)
+print('The contestant picked door', a_guess, 'which hides the', behind(a_game, a_guess))
+print('Monty Hall opens door', an_exposed_door, 'to expose the', behind(a_game, an_exposed_door))
+```
+
+```{python}
+def other(game, guess, exposed):
+    """Return the door that is not the guess or the exposed."""
+    return (1 + 2 + 3) - guess - exposed
+
+the_remaining_door = other(a_game, a_guess, an_exposed_door)
+print('The remaining door', the_remaining_door, 'hides the', behind(a_game, the_remaining_door))
+```
+
+### Step 4: Reveal all doors, Repeat
+
+
+**Let's simulate one game of the Monty Hall Problem. Create a list where the first element is the prize behind the first guess, the second is the prize behind Monty's exposed door, and the third is the prize behind the remaining door.**
+
+```{python}
+game
+```
+
+```{python}
+game = setup()
+guess = np.random.choice(doors)
+exposed = expose(game, guess)
+remaining = other(game, guess, exposed)
+[behind(game, guess), behind(game, exposed), behind(game, remaining)]
+```
+
+```{python}
+trials = Table(['trial', 'guess', 'exposed', 'remaining'])
+for i in np.arange(10000):
+    game = setup()
+    guess = np.random.choice(doors)
+    exposed = expose(game, guess)
+    remaining = other(game, guess, exposed)
+    trials.append([i, behind(game, guess), behind(game, exposed), behind(game, remaining)])
+```
+
+```{python}
+trials
+```
+
+```{python}
+trials.group('guess')
+```
+
+```{python}
+trials.group('remaining')
+```
+
+```{python}
+trials.group('guess').barh('guess')
+plt.xlim(0, 6000)
+```
+
+```{python}
+trials.group('remaining').barh('remaining')
+plt.xlim(0, 6000)
+```
+
+## Probability
+
+
+
+GR
+
+GB
+
+RG
+
+RB
+
+BG
+
+BR
+
+
+1/3 * 1/2 = 1/6
+
+```{python}
+
+```
+
+P(one R and one G) ?
+
+
+1/6 + 1/6 = 1/3
+
+
+## Sampling
+
+```{python}
+top = Table.read_table('http://inferentialthinking.com/notebooks/top_movies.csv')
+top = top.with_column('Row Index', np.arange(top.num_rows)).move_to_start('Row Index')
+top
+```
+
+```{python}
+top.take(make_array(3, 5, 8))
+```
+
+```{python}
+top.where('Title', are.containing('and the'))
+```
+
+```{python}
+start = np.random.choice(np.arange(10))
+top.take(np.arange(start, 200, 10))
+```
+
+```{python}
+top.sample(5)
+```
+
+```{python}
+top.sample(5, with_replacement=False)
+```
+
+## Dice 
+
+```{python}
+die = Table().with_column('face', np.arange(1, 7))
+die
+```
+
+```{python}
+die.sample(1)
+```
+
+```{python}
+die.hist('face', bins=np.arange(0.5, 7, 1))
+```
+
+```{python}
+die.sample(1000000).hist('face', bins=np.arange(0.5, 7, 1))
+```
+
+```{python}
+
+```
+
+```{python}
+
+```
+
+```{python}
+
+```
+
+## Flights
+
+This is tomorrow's material but just in case we finish early:
+
+```{python}
+united = Table.read_table('http://inferentialthinking.com/notebooks/united_summer2015.csv')
+united
+```
+
+```{python}
+
+```

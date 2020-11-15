@@ -1,0 +1,584 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+# Homework 7: Correlation, Regression, and Least Squares
+
+This assignment is due Tuesday, August 1 at 11:59PM. Directly sharing answers is not okay, but discussing problems with course staff or with other students is encouraged.
+
+Reading:
+- Textbook chapter [12](https://www.inferentialthinking.com/chapters/12/why-the-mean-matters.html) (for review)
+- Textbook chapter [13](https://www.inferentialthinking.com/chapters/13/prediction.html)
+
+
+Run the cell below to prepare the notebook.
+
+```{python}
+# Run this cell to set up the notebook, but please don't change it.
+import numpy as np
+from datascience import *
+
+# These lines do some fancy plotting magic.
+import matplotlib
+# %matplotlib inline
+import matplotlib.pyplot as plt
+plt.style.use('fivethirtyeight')
+import warnings
+warnings.simplefilter('ignore', FutureWarning)
+from matplotlib import patches
+from ipywidgets import interact, interactive, fixed
+import ipywidgets as widgets
+
+# Don't change this cell; just run it. 
+from client.api.notebook import Notebook
+ok = Notebook('hw07.ok')
+ok.auth(inline=True);
+```
+
+When you are finished, run the following cell to submit your work.
+
+```{python}
+ok.submit();
+```
+
+## 1. Evaluating NBA Game Predictions
+
+
+
+#### A brief introduction to sports betting
+In a basketball game, each team scores some number of points.  Conventionally, the team playing at its own arena is called the "home team," and the other team is called the "away team."  The winner is the team with the most points.
+
+We can summarize what happened in a game by the "**outcome**", defined as the **the away team's score minus the home team's score**:
+
+$$\text{outcome} = \text{points scored by the away team} - \text{points scored by the home team}$$
+
+If this number is positive, the away team won.  If it's negative, the home team won. 
+
+Casinos in Las Vegas offer bets on the outcomes of NBA games.  One kind of bet works like this:
+
+1. The casino decides on a "spread."
+2. You can bet \$11 that the outcome will be above the spread, or \$11 that the outcome will be below the spread.
+3. After the game, you end up with \$21 if you guessed correctly, and \$0 if you guessed incorrectly.
+
+The analysts at the casino try to choose the spread so that (according to their analysis of the teams) there is a 50% chance that the outcome will be below that amount, and a 50% chance that the outcome will be above that amount.
+
+**[tl;dr](https://en.wikipedia.org/wiki/Wikipedia:Too_long;_didn%27t_read): The spread is the casino's best guess at the outcome (the away team's score minus the home team's score).**
+
+The table `spreads` contains spreads from the betting website [Covers](http://www.covers.com) from every game in the 2014 NBA season, plus actual game outcomes.  
+
+```{python}
+spreads = Table.read_table("spreads.csv")
+spreads
+```
+
+Here's a scatter plot of the outcomes and spreads, with the spreads on the horizontal axis.
+
+```{python}
+spreads.scatter("Spread", "Outcome")
+```
+
+#### Question 1
+Why do you think that the spread and outcome are never 0 (aside from 1 case of the spread being 0)? 
+
+<!-- #region {"manual_problem_id": "nba_1"} -->
+*Write your answer here, replacing this text.*
+<!-- #endregion -->
+
+Let's investigate how well the casinos are predicting game outcomes.
+
+One question we can ask is: Is the casino's prediction correct on average? In other words, for every value of the spread, is the average outcome of games assigned that spread equal to the spread? If not, the casino would apparently be making a systematic error in its predictions.
+
+
+#### Question 2
+Among games with a spread around 5, from 3.5 to 6.5 (including both 3.5 and 6.5), what was the average outcome? 
+
+*Hint:* Read the [documentation for the predicate `are.between_or_equal_to`](http://data8.org/datascience/predicates.html#datascience.predicates.are.between_or_equal_to).
+
+```{python}
+spreads_around_5 = ...
+spread_5_outcome_average = ...
+print("Average outcome for spreads around 5:", spread_5_outcome_average)
+```
+
+```{python}
+_ = ok.grade('q1_2')
+```
+
+#### Question 3
+If the average outcome for games with any given spread turned out to be exactly equal to that spread, what would the slope and intercept of the linear regression line be, in original units?
+
+```{python}
+expected_slope_for_equal_spread = ...
+expected_intercept_for_equal_spread = ...
+```
+
+```{python}
+_ = ok.grade('q1_3')
+```
+
+#### Question 4
+Fix the `standard_units` function below.  It should take an array of numbers as its argument and return an array of those numbers in standard units.
+
+```{python for_assignment_type=student}
+def standard_units(nums):
+    """Return an array where every value in nums is converted to standard units."""
+    return nums/np.std(nums) - np.mean(nums)
+```
+
+```{python}
+_ = ok.grade('q1_4')
+```
+
+#### Question 5
+Compute the correlation between outcomes and spreads using the `standard_units` function.
+
+```{python}
+spread_r = ...
+spread_r
+```
+
+```{python}
+_ = ok.grade('q1_5')
+```
+
+#### Question 6
+Compute the slope of the least-squares linear regression line that predicts outcomes from spreads, in original units.
+
+```{python}
+spread_slope = ...
+spread_slope
+```
+
+```{python}
+_ = ok.grade('q1_6')
+```
+
+#### Question 7
+For the "best fit" line that estimates the average outcome from the spread, the slope is less than 1. Does knowing the slope alone tell you whether the average spread was higher than the average outcome? If so, set the variable name below to `True`. If you think you need more information than just the slope of the regression line to answer that question, then respond `False`. Briefly justify your answer below.
+
+```{python}
+slope_implies_average_spread_above_average_outcome = ...
+```
+
+<!-- #region {"manual_problem_id": "nba_7"} -->
+*Write your answer here, replacing this text.*
+<!-- #endregion -->
+
+```{python}
+_ = ok.grade('q1_7')
+```
+
+## 2. Finding the Least Squares Regression Line
+
+
+
+In this exercise, you'll work with a small invented data set.  Run the next cell to generate the dataset `d` and see a scatter plot.
+
+```{python}
+d = Table().with_columns(
+    'x', make_array(0,  1,  2,  3,  4),
+    'y', make_array(1, .5, -1,  2, -3))
+d.scatter('x')
+```
+
+
+#### Question 1 (Ungraded, but you'll need the result later)
+Running the cell below will generate sliders that control the slope and intercept of a line through the scatter plot.  When you adjust a slider, the line will move.
+
+By moving the line around, make your best guess at the least-squares regression line.  (It's okay if your line isn't exactly right, as long as it's reasonable.)
+
+**Note:** Python will probably take about a second to redraw the plot each time you adjust the slider.  We suggest clicking the place on the slider you want to try and waiting for the plot to be drawn; dragging the slider handle around will cause a long lag.
+
+```{python}
+def plot_line(slope, intercept):
+    plt.figure(figsize=(5,5))
+    
+    endpoints = make_array(-2, 7)
+    p = plt.plot(endpoints, slope*endpoints + intercept, color='orange', label='Proposed line')
+    
+    plt.scatter(d.column('x'), d.column('y'), color='blue', label='Points')
+    
+    plt.xlim(-4, 8)
+    plt.ylim(-6, 6)
+    plt.gca().set_aspect('equal', adjustable='box')
+    
+    plt.legend(bbox_to_anchor=(1.8, .8))
+    plt.show()
+
+interact(plot_line, slope=widgets.FloatSlider(min=-4, max=4, step=.1), intercept=widgets.FloatSlider(min=-4, max=4, step=.1));
+```
+
+<div class="hide">\pagebreak</div>
+
+You can probably find a reasonable-looking line by just eyeballing it.  But remember: the least-squares regression line minimizes the mean of the squared errors made by the line for each point.  Your eye might not be able to judge squared errors very well.
+
+#### A note on mean and total squared error
+
+It is common to think of the least-squares line as the line with the least *mean* squared error (or the square root of the mean squared error), as the textbook does.
+
+But it turns out that it doesn't matter whether you minimize the mean squared error or the *total* squared error.  You'll get the same best line in either case.
+
+That's because the total squared error is just the mean squared error multipled by the number of points (`d.num_rows`).  So if one line gets a better total squared error than another line, then it also gets a better mean squared error.  In particular, the line with the smallest total squared error is also better than every other line in terms of mean squared error.  That makes it the least squares line.
+
+**tl; dr:** Minimizing the mean squared error minimizes the total squared error as well.
+
+
+#### Question 2 (Ungraded, but you'll need the result later)
+The next cell produces a more useful plot.  Use it to find a line that's closer to the least-squares regression line, keeping the above note in mind.
+
+```{python}
+def plot_line_and_errors(slope, intercept):
+    plt.figure(figsize=(5,5))
+    points = make_array(-2, 7)
+    p = plt.plot(points, slope*points + intercept, color='orange', label='Proposed line')
+    ax = p[0].axes
+    
+    predicted_ys = slope*d.column('x') + intercept
+    diffs = predicted_ys - d.column('y')
+    for i in np.arange(d.num_rows):
+        x = d.column('x').item(i)
+        y = d.column('y').item(i)
+        diff = diffs.item(i)
+        
+        if diff > 0:
+            bottom_left_x = x
+            bottom_left_y = y
+        else:
+            bottom_left_x = x + diff
+            bottom_left_y = y + diff
+        
+        ax.add_patch(patches.Rectangle(make_array(bottom_left_x, bottom_left_y), abs(diff), abs(diff), color='red', alpha=.3, label=('Squared error' if i == 0 else None)))
+        plt.plot(make_array(x, x), make_array(y, y + diff), color='red', alpha=.6, label=('Error' if i == 0 else None))
+    
+    plt.scatter(d.column('x'), d.column('y'), color='blue', label='Points')
+    
+    plt.xlim(-4, 8)
+    plt.ylim(-6, 6)
+    plt.gca().set_aspect('equal', adjustable='box')
+    
+    plt.legend(bbox_to_anchor=(1.8, .8))
+    plt.show()
+
+interact(plot_line_and_errors, slope=widgets.FloatSlider(min=-4, max=4, step=.1), intercept=widgets.FloatSlider(min=-4, max=4, step=.1));
+```
+
+#### Question 3
+Describe the visual criterion you used to find a line in question 2.  (For example, a possible (but incorrect) answer is, "I tried to make the red line for the bottom-right point as small as possible.")
+
+<!-- #region {"manual_problem_id": "least_squares_3"} -->
+*Write your answer here, replacing this text.*
+<!-- #endregion -->
+
+#### Question 4
+We can say that a point influences the line by how much the line would move if the point were removed from the data set. Does the point at (3, 2) have more or less influence than any other point on the location of the line? 
+
+<!-- #region {"manual_problem_id": "least_squares_4"} -->
+*Write your answer here, replacing this text.*
+<!-- #endregion -->
+
+Now, let's have Python find this line for us.  When we use `minimize`, Python goes through a process similar to the one you might have used in question 2.
+
+But Python can't look at a plot that displays errors!  Instead, we tell it how to find the total squared error for a line with a given slope and intercept.
+
+
+#### Question 5
+Define a function called `total_squared_error`.  It should take two numbers as arguments:
+
+1. the slope of some potential line
+2. the intercept of some potential line
+
+It should return the total squared error when we use that line to make predictions for the dataset `d`.
+
+```{python}
+def total_squared_error(slope, intercept):
+    # Hint: The staff answer computed an array called predictions
+    # and an array called errors first.
+    predictions = ...
+    errors = ...
+    ...
+```
+
+```{python}
+_ = ok.grade('q2_5')
+```
+
+#### Question 6
+What is the total squared error for the line you found by "eyeballing" the errors in Question 1?  What about Question 2, where you made a guess that was "aided" by a visualization of the squared error?  (It's okay if the error went up, but for many students, the error will go down when using the visual aid.)
+
+```{python for_assignment_type=student, manual_problem_id=least_squares_6}
+eyeballed_error = ...
+aided_error = ...
+print("Eyeballed error:", eyeballed_error, "\nAided error:", aided_error)
+```
+
+```{python}
+_ = ok.grade('q2_6')
+```
+
+#### Question 7
+Use `minimize` to find the actual slope and intercept of the least-squares regression line.
+
+**Note:** `minimize` will return a single array containing the slope as the first element and intercept as the second. Read more of its documentation [here](http://data8.org/datascience/util.html?highlight=minimize#datascience.util.minimize).
+
+```{python for_assignment_type=student}
+# The staff solution used 1 line of code above here.
+slope_from_minimize = ...
+intercept_from_minimize = ...
+print("Least-squares regression line: predicted_y =",
+      slope_from_minimize,
+      "* x + ",
+      intercept_from_minimize)
+```
+
+```{python}
+_ = ok.grade('q2_7')
+```
+
+#### Question 8
+What was the total squared error for that line?
+
+```{python}
+best_total_squared_error = ...
+best_total_squared_error
+```
+
+```{python}
+_ = ok.grade('q2_8')
+```
+
+Finally, run the following cell to plot this "best fit" line and its errors:
+
+```{python}
+plot_line_and_errors(slope_from_minimize, intercept_from_minimize)
+```
+
+## 3. Triple Jump Distances vs. Vertical Jump Heights
+
+
+
+Does skill in one sport imply skill in a related sport?  The answer might be different for different activities.  Let us find out whether it's true for the [triple jump](https://en.wikipedia.org/wiki/Triple_jump) (an horizontal jump similar to a long jump) and the vertical jump.  Since we're learning about linear regression, we will look specifically for a *linear* association between skill in the two sports.
+
+The following data was collected by observing 40 collegiate level soccer players.  Each athlete's distance in both jump activities was measured in centimeters. Run the cell below to load the data.
+
+```{python}
+# Run this cell to load the data
+jumps = Table.read_table('triple_vertical.csv')
+jumps
+```
+
+#### Question 1
+Before running a regression, it's important to see what the data look like, because our eyes are good at picking out unusual patterns in data.  Draw a scatter plot with the triple jump distances on the horizontal axis and the vertical jump heights on vertical axis **that also shows the regression line**. 
+
+See the [documentation for `scatter`](http://data8.org/datascience/_autosummary/datascience.tables.Table.scatter.html#datascience.tables.Table.scatter) for instructions on how to have Python draw the regression line automatically.
+
+```{python manual_problem_id=jumping_1}
+...
+```
+
+**Question 2** Does the correlation coefficient `r` look closer to 0, .5, or -.5? Explain. 
+
+<!-- #region {"manual_problem_id": "jumping_2"} -->
+*Write your answer here, replacing this text.*
+<!-- #endregion -->
+
+#### Question 3
+Create a function called `regression_parameters`. It takes as its argument a table with two columns.  The first column is the x-axis, and the second column is the y-axis.  It should compute the correlation between the two columns, then compute the slope and intercept of the regression line that predicts the second column from the first, in original units (centimeters).  It should return an array with three elements: the correlation coefficient of the two columns, the slope of the regression line, and the intercept of the regression line.
+
+```{python for_assignment_type=student}
+def regression_parameters(t):
+    ...
+    # Our solution had 4 lines above this one
+    r = ...
+    slope = ...
+    intercept = ...
+    return make_array(r, slope, intercept)
+
+# When your function is finished, the next lines should
+# compute the regression line predicting vertical jump 
+# distances from triple jump distances.
+parameters = regression_parameters(jumps)
+print('r:', parameters.item(0), '; slope:', parameters.item(1), '; intercept:', parameters.item(2))
+```
+
+```{python}
+_ = ok.grade('q3_3')
+```
+
+#### Question 4
+Let's use `regression_parameters` to predict what certain athletes' vertical jump heights would be given their triple jump distances.
+
+The world record for the triple jump distance is 18.29 *meters* by Johnathan Edwards. What's our prediction for what Edwards' vertical jump would be?
+
+```{python}
+triple_record_vert_est = ...
+print("Predicted vertical jump distance: {:f} centimeters".format(triple_record_vert_est))
+```
+
+```{python}
+_ = ok.grade('q3_4')
+```
+
+#### Question 5
+Do you expect this estimate to be accurate within a few centimeters? Why or why not?
+
+<!-- #region {"manual_problem_id": "jumping_5"} -->
+*Write your answer here, replacing this text.*
+<!-- #endregion -->
+
+## 4. Testing Relationship Ratings
+
+
+
+Throughout this part of the homework, we will be interested in learning how different factors can contribute to the rating couples give their relationship, on a scale of 1-5 (1 being most satisfied, and 5 being the least). 
+
+To do this, we will be looking at the table that is loaded below. 
+
+**Note:** The data in this table is quite dated. It only includes heterosexual relationships. A better dataset would contain a more accurate sample of couples. When drawing conclusions from data, it is important to be aware of biases that exist in the dataset.
+
+```{python}
+couples = Table.read_table('couples.csv')
+couples 
+```
+
+Looking at the table above, we note that we should be able to test whether different factors can affect the relationship rating, from age to education. To begin, we are first going to investigate whether marital status has an effect on relationship rating. In order to accomplish this, we are going to do a permutation test! 
+
+
+<div class="hide">\pagebreak</div>
+**Question 1** 
+
+State the null and alternative hypothesis for such a test (assume we aren't trying to figure out ***how*** marital status affects relationship rating, just whether or not it does). 
+
+<!-- #region {"for_assignment_type": "student"} -->
+**Answer:**
+
+Null hypothesis:
+
+Alternate hypothesis:
+<!-- #endregion -->
+
+<div class="hide">\pagebreak</div>
+**Question 2** 
+
+Before we continue, we will have to talk about the notion of a contingency table. 
+
+Define `contingency` to be a table where the rows represent unique values of the relationship ratings, the columns represent the unique values of marital status present in the table, and the values in each cell represent the number of individuals with a given marital status and relationship rating.
+
+*Hint:* Use `pivot`.
+
+```{python}
+contingency = ...
+contingency
+```
+
+```{python}
+_ = ok.grade('q4_2')
+```
+
+<div class="hide">\pagebreak</div>
+**Question 3** 
+
+It is difficult to identify a pattern in the above table, since our table has so many more married people than it does unmarried. To rectify this, we will instead compute proportions. 
+
+Assign `contingency_prop` to a table with the same columns and rows, but the values are instead in proportions, i.e. the value in the cell corresponding to a relationship rating of 1 and marital status of "married" should be the proportion of married people who gave their relationship a 1. 
+
+```{python for_assignment_type=student}
+#The staff solution took 5 lines
+contingency_prop = ...
+```
+
+<div class="hide">\pagebreak</div>
+**Question 4** 
+
+Assign `tvd_marriages` to the total variational distance between the distributions of married people's relationship ratings and unmarried people's relationship ratings. 
+
+```{python}
+tvd_marriages = ...
+tvd_marriages
+```
+
+```{python}
+_ = ok.grade('q4_4')
+```
+
+<div class="hide">\pagebreak</div>
+**Question 5** 
+
+Let's get more general now. Define `tvd` which takes in 
+
+- any table like `couples`
+- `conditions`: the name of a column like Relationship Rating
+- `values`: the name of a column like Marital Status
+
+The function should return the total variation distance between the distribution of conditions in the first unique value of `values` and the distribution of conditions in the second unique value of `values` (assume there are only two unique values)
+
+***Hint***: This looks daunting, but you are just generalizing your code from above. 
+
+```{python for_assignment_type=student}
+def tvd(t, conditions, values):
+    return ...
+
+tvd(couples, 'Relationship Rating', 'Marital Status')
+```
+
+<div class="hide">\pagebreak</div>
+**Question 6** 
+
+Now that we have a valid test statistic, fill in the implementation of `permutation_test` below. It should run a permutation test to check whether conditions and values are related, where conditions and values are defined as above. See section [16.1](https://www.inferentialthinking.com/chapters/16/1/two-categorical-distributions.html) for details about the permutation test.
+
+The inputs to the function are:
+
+- `t`: a table containing our data
+- `conditions`: the name of the column in `t` representing our conditions
+- `values`: the name of the column in `t` representing our values
+- `repetitions`: the number of permutations we'd like to test
+- `statistic`: a test statistic function (such as `tvd`). 
+
+The return value should be the p-value of seeing the observed value assuming the null hypothesis. Fill in the implementation as necessary; we have also provided code which allows you to see an empirical histogram of the distribution under the null. 
+
+```{python}
+def permutation_test(t, conditions, values, repetitions , statistic):
+    stats = ...
+
+    for i in np.arange(repetitions):
+        shuffled = ...
+        shuffled_table = Table().with_columns(conditions, t.column(conditions), values, shuffled.column(values))
+        stats = ...    
+
+    observation = ...
+    p_value = ...
+    
+    Table().with_column('Empirical distribution of TVD', stats).hist(bins=np.arange(-.02, .12, .02))
+    return p_value 
+
+permutation_test(couples, 'Relationship Rating', 'Marital Status', 200, tvd)
+```
+
+<div class="hide">\pagebreak</div>
+**Question 7** 
+
+Based on the above method, should we reject the null hypothesis that the relationship ratings and marital status are uncorrelated, or should we fail to reject? Why?
+
+
+
+*Write your answer here, replacing this text.*
+
+
+<div class="hide">\pagebreak</div>
+
+```{python}
+# For your convenience, you can run this cell to run all the tests at once!
+import os
+print("Running all tests...")
+_ = [ok.grade(q[:-3]) for q in os.listdir("tests") if q.startswith('q')]
+print("Finished running all tests.")
+```

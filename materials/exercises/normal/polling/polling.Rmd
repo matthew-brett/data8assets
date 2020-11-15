@@ -1,0 +1,122 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+## Polling and the Normal Distribution
+
+```{python}
+# Run this cell to set up the notebook, but please don't change it.
+# These lines import the Numpy and Datascience modules.
+import numpy as np
+from datascience import *
+
+# These lines do some fancy plotting magic.
+import matplotlib
+# %matplotlib inline
+import matplotlib.pyplot as plt
+plt.style.use('fivethirtyeight')
+import warnings
+warnings.simplefilter('ignore', FutureWarning)
+```
+
+Michelle is a statistical consultant, and she works for a group that supports Proposition 68 (which would mandate labeling of all horizontal or vertical axes), called Yes on 68.  They want to know how many Californians will vote for the proposition.
+
+Michelle polls a uniform random sample of all California voters, and she finds that 210 of the 400 sampled voters will vote in favor of the proposition.
+
+```{python}
+sample = Table().with_columns(
+    "Vote",  make_array("Yes", "No"),
+    "Count", make_array(210,   190))
+sample_size = sum(sample.column("Count"))
+sample_proportions = sample.with_column(
+    "Proportion", sample.column("Count") / sample_size)
+sample_proportions
+```
+
+She uses 10,000 bootstrap resamples to compute a confidence interval for the proportion of all California voters who will vote Yes.  Run the next cell to see the empirical distribution of Yes proportions in the 10,000 resamples.
+
+```{python}
+resample_yes_proportions = make_array()
+for i in np.arange(10000):
+    resample = proportions_from_distribution(sample_proportions, "Proportion", sample_size)
+    resample_yes_proportions = np.append(resample_yes_proportions, resample.column("Random Sample").item(0))
+Table().with_column("Resample Yes proportion", resample_yes_proportions).hist(bins=np.arange(.2, .8, .01))
+```
+
+<div class="hide">\pagebreak</div>
+#### Question 1
+Explain how the Central Limit Theorem applies to any distribution in this story.
+
+
+*Write your answer here, replacing this text.*
+
+
+<div class="hide">\pagebreak</div>
+In a population whose members are 0 and 1, there is a simple formula for the standard deviation of that population:
+
+$$\texttt{standard deviation} = \sqrt{(\text{proportion of 0s}) \times (\text{proportion of 1s})}$$
+
+(Figuring out this formula, starting from the definition of the standard deviation, is an fun exercise for those who enjoy algebra.)
+
+
+<div class="hide">\pagebreak</div>
+#### Question 2
+**Without accessing the data in `resample_yes_proportions` in any way**, and instead using only the Central Limit Theorem and the numbers of Yes and No voters in our sample of 400, compute a number that's approximately the standard deviation of the array `resample_yes_proportions`.
+
+```{python for_assignment_type=student}
+approximate_std = ...
+approximate_std
+```
+
+<div class="hide">\pagebreak</div>
+#### Question 3
+Compute the standard deviation of the array `resample_yes_proportions` to verify that your answer to question 2 is approximately right.
+
+```{python}
+exact_std = ...
+exact_std
+```
+
+<div class="hide">\pagebreak</div>
+#### Question 4
+**Still without accessing `resample_yes_proportions` in any way**, compute an approximate 95% confidence interval for the proportion of Yes voters in California.  The cell below draws your interval as a red bar below the histogram of `resample_yes_proportions`; use that to verify that your answer looks right.
+
+```{python}
+lower_limit = ...
+upper_limit = ...
+```
+
+```{python}
+# Run this cell to plot your confidence interval.
+Table().with_column("Resample Yes proportion", resample_yes_proportions).hist(bins=np.arange(.2, .8, .01))
+plt.plot(make_array(lower_limit, upper_limit), make_array(0, 0), c='r', lw=10);
+```
+
+<div class="hide">\pagebreak</div>
+Your confidence interval should overlap the number 0.5.  That means we can't be very sure whether Proposition 68 is winning, even though the sample Yes proportion is a bit above 0.5.
+
+The Yes on 68 campaign really needs to know whether they're winning.  It's impossible to be absolutely sure without polling the whole population, but they'd be okay if the standard deviation of the sample mean were only 0.005.  They ask Michelle to run a new poll with a sample size that's large enough to achieve that.  (Polling is expensive, so the sample also shouldn't be bigger than necessary.)
+
+Michelle consults Chapter 12 of your textbook.  Instead of making the conservative assumption that the population standard deviation is 0.5 (coding Yes voters as 1 and No voters as 0), she decides to assume that it's equal to the standard deviation of the sample,
+
+$$\sqrt{(\text{Yes proportion in the sample}) \times (\text{No proportion in the sample})}.$$
+
+Under that assumption, Michelle decides that a sample of 9,975 would suffice.
+
+
+<div class="hide">\pagebreak</div>
+#### Question 5
+How did Michelle arrive at that answer?
+
+
+*Write your answer here, replacing this text.*

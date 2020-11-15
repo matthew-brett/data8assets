@@ -1,0 +1,163 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+from datascience import *
+import numpy as np
+
+# %matplotlib inline
+import matplotlib.pyplot as plt
+plt.style.use('fivethirtyeight')
+```
+
+## Continuing from Yesterday
+
+```{python}
+# As of Jan 2017, this census file is online here: 
+data = 'http://www2.census.gov/programs-surveys/popest/datasets/2010-2015/national/asrh/nc-est2015-agesex-res.csv'
+
+# A copy can be accessed here in case census.gov moves the file:
+# data = 'http://inferentialthinking.com/notebooks/nc-est2015-agesex-res.csv'
+
+full_census_table = Table.read_table(data)
+us_pop = (full_census_table
+          .select('SEX', 'AGE', 'POPESTIMATE2010', 'POPESTIMATE2015')
+          .relabeled(2, '2010').relabeled(3, '2015'))
+us_pop_2015 = us_pop.drop('2010')
+us_pop_2015
+```
+
+```{python}
+females = us_pop_2015.where('SEX', 2).where('AGE', are.not_equal_to(999))
+females
+```
+
+```{python}
+males = us_pop_2015.where('SEX', 1).where('AGE', are.not_equal_to(999))
+males
+```
+
+```{python}
+females.column('AGE')
+```
+
+```{python}
+ratios = Table().with_columns(
+    'AGE', females.column('AGE'),
+    '2015 F:M RATIO', females.column('2015') / males.column('2015'),
+)
+ratios
+```
+
+```{python}
+ratios.where('AGE', are.above(75))
+```
+
+```{python}
+ratios.plot('AGE')
+```
+
+## Visualization
+
+```{python}
+actors = Table.read_table('http://inferentialthinking.com/notebooks/actors.csv')
+actors
+```
+
+```{python}
+actors.scatter('Number of Movies', 'Total Gross')
+```
+
+```{python}
+actors.scatter('Number of Movies', 'Average per Movie')
+```
+
+```{python}
+actors.where('Number of Movies', are.below(10))
+```
+
+```{python}
+actors.where('Number of Movies', are.above(60))
+```
+
+```{python}
+movies = Table.read_table('http://inferentialthinking.com/notebooks/movies_by_year.csv')
+movies
+```
+
+```{python}
+movies.plot('Year', 'Number of Movies')
+```
+
+```{python}
+century_21 = movies.where('Year', are.above(1999))
+century_21.plot('Year', 'Number of Movies')
+```
+
+```{python}
+century_21.plot('Year', 'Total Gross')
+```
+
+```{python}
+century_21.where('Year', are.equal_to(2009))
+```
+
+## Categorical Data
+
+```{python}
+top = Table.read_table('http://inferentialthinking.com/notebooks/top_movies.csv')
+top
+```
+
+```{python}
+top5 = top.take(np.arange(5))
+top5.barh('Title', 'Gross')
+```
+
+```{python}
+top5.barh('Title', 'Gross (Adjusted)')
+```
+
+```{python}
+top5.sort(3, descending=True).barh('Title', 'Gross (Adjusted)')
+```
+
+```{python}
+top.sort(3, descending=True).take(np.arange(5))
+```
+
+```{python}
+top.sort(3, descending=True).take(np.arange(5)).barh('Title', 3)
+```
+
+```{python}
+top5
+```
+
+```{python}
+top5.select(0, 2, 3).barh('Title')
+```
+
+```{python}
+studios = top.group('Studio')
+studios
+```
+
+```{python}
+studios.sort('count', descending=True).barh('Studio')
+```
+
+```{python}
+
+```

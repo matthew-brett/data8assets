@@ -1,0 +1,101 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python deletable=TRUE, editable=TRUE}
+from datascience import *
+import numpy as np
+
+import matplotlib.pyplot as plots
+plots.style.use('fivethirtyeight')
+# %matplotlib inline
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Pea Flowers
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+null = make_array('Purple', 'Purple', 'Purple', 'White')
+
+def test_stat(sample):
+    proportion_purple = np.count_nonzero(sample == 'Purple') / len(sample)
+    return abs(proportion_purple - 0.75)
+
+total_plants = 929
+observed_statistic = 0.0088805166846070982
+```
+
+```{python deletable=TRUE, editable=TRUE}
+# Simulating the test statistic under the null hypothesis
+repetitions = 5000
+sampled_stats = make_array()
+
+for i in np.arange(repetitions):
+    new_sample = np.random.choice(null, total_plants)
+    sampled_stats = np.append(sampled_stats, test_stat(new_sample))
+```
+
+```{python deletable=TRUE, editable=TRUE}
+null_dist = Table().with_column('Null distribution', sampled_stats)
+null_dist.hist()
+_ = plots.plot([observed_statistic, observed_statistic], [0, 60])
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## P-value
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+# The P-value (an approximation based on the simulation)
+np.count_nonzero(sampled_stats >= observed_statistic)/repetitions
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Error Probability
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+cutoff = null_dist.sort(0, descending=True).row(round(0.05 * 5000)).item(0)
+cutoff
+```
+
+```{python deletable=TRUE, editable=TRUE}
+null_dist.hist()
+_ = plots.plot([cutoff, cutoff], [0, 60])
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Test Statistics
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+def number_of_different_colors(sample):
+    return Table().with_column('values', sample).group(0).num_rows
+
+observed = 2
+```
+
+```{python deletable=TRUE, editable=TRUE}
+# Simulating the test statistic under the null hypothesis
+repetitions = 5000
+sampled_stats = make_array()
+
+for i in np.arange(repetitions):
+    new_sample = np.random.choice(null, total_plants)
+    sampled_stats = np.append(sampled_stats, number_of_different_colors(new_sample))
+```
+
+```{python deletable=TRUE, editable=TRUE}
+Table().with_column('Null distribution', sampled_stats).hist()
+```

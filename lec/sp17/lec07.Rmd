@@ -1,0 +1,181 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+import numpy as np
+from datascience import *
+# %matplotlib inline
+np.set_printoptions(threshold=50)
+```
+
+## Review
+
+```{python}
+# This table can be found online: https://www.statcrunch.com/app/index.php?dataid=1843341
+nba = Table.read_table('http://inferentialthinking.com/notebooks/nba_salaries.csv').relabeled(3, 'SALARY').drop(2)
+nba
+```
+
+```{python}
+nba.where(1, 'PG').where(2, are.above(15)).column(0)
+```
+
+```{python}
+nba.with_row(['DeNero', 'C', 0.0])
+nba.where('PLAYER', are.containing('DeNero'))
+```
+
+```{python}
+sorted_by_salary = nba.where('POSITION', 'C').sort('SALARY')
+sorted_by_salary.take([2, 3, 4]).column(0)
+```
+
+## Population & Age
+
+```{python}
+# As of Jan 2017, this census file is online here: 
+data = 'http://www2.census.gov/programs-surveys/popest/datasets/2010-2015/national/asrh/nc-est2015-agesex-res.csv'
+
+# A copy can be accessed here in case census.gov moves the file:
+# data = 'http://inferentialthinking.com/notebooks/nc-est2015-agesex-res.csv'
+
+full_census_table = Table.read_table(data)
+full_census_table
+```
+
+```{python}
+partial = full_census_table.select('SEX', 'AGE', 'POPESTIMATE2010', 'POPESTIMATE2015')
+partial
+```
+
+```{python}
+us_pop = partial.relabeled(2, '2010').relabeled(3, '2015')
+us_pop
+```
+
+```{python}
+us_pop.column('2015') - us_pop.column('2010')
+```
+
+```{python}
+change = us_pop.column('2015') - us_pop.column('2010')
+census = us_pop.with_columns(
+    'Change', change,
+    'Percent Change', change/us_pop.column('2010')
+)
+census.set_format('Percent Change', PercentFormatter)
+```
+
+```{python}
+census.sort('Change', descending=True)
+```
+
+```{python}
+(321418820/309346863) ** (1/5) - 1
+```
+
+```{python}
+everyone = census.sort('Change', descending=True).row(0)
+everyone
+```
+
+```{python}
+type(everyone)
+```
+
+```{python}
+(everyone.item(3)/everyone.item(2)) ** (1/5) - 1
+```
+
+```{python}
+five_year_rate = everyone.item(5)
+(five_year_rate + 1) ** (1/5) - 1
+```
+
+```{python}
+2010-68 # Bombing of Pearl Harbor was 12/7/1941
+```
+
+```{python}
+2015-68 # Bombing of Nagasaki was 8/9/1945
+```
+
+## Population & Gender
+
+```{python}
+us_pop.where('AGE', are.above(97)).show()
+```
+
+```{python}
+us_pop_2015 = us_pop.drop('2010')
+all_ages = us_pop_2015.where('AGE', are.equal_to(999))
+all_ages
+```
+
+```{python}
+all_ages.column('2015').item(0)
+```
+
+```{python}
+all_ages.with_column(
+    'Proportion', all_ages.column('2015')/all_ages.column('2015').item(0)
+).set_format('Proportion', PercentFormatter)
+```
+
+```{python}
+infants = us_pop_2015.where('AGE', are.equal_to(0))
+infants
+```
+
+```{python}
+infants.with_column(
+    'Proportion', infants.column('2015')/infants.column('2015').item(0)
+).set_format('Proportion', PercentFormatter)
+```
+
+```{python}
+females_all_rows = us_pop_2015.where('SEX', are.equal_to(2))
+females = females_all_rows.where('AGE', are.not_equal_to(999))
+females
+```
+
+```{python}
+males_all_rows = us_pop_2015.where('SEX', are.equal_to(1))
+males = males_all_rows.where('AGE', are.not_equal_to(999))
+males
+```
+
+```{python}
+males.column('AGE')
+```
+
+```{python}
+females.column('AGE')
+```
+
+```{python}
+ratios = Table().with_columns(
+    'AGE', females.column('AGE'),
+    '2015 F:M RATIO', females.column('2015')/males.column('2015')
+)
+ratios
+```
+
+```{python}
+ratios.where('AGE', are.above(75)).show()
+```
+
+```{python}
+ratios.plot('AGE')
+```

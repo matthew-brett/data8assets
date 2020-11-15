@@ -1,0 +1,120 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+<!-- #region {"deletable": true, "editable": true} -->
+# Week 7 Tutoring
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+# Don't change this cell; just run it. 
+
+import numpy as np
+from datascience import *
+
+# %matplotlib inline
+import matplotlib.pyplot as plots
+plots.style.use('fivethirtyeight')
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+You flip a coin 10 times and land heads 9 times and tails once. You begin to get suspicious of the coin. Suppose you want to test whether or not that coin is fair. State the null and alternative hypotheses.
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+Null hypothesis:
+
+Alternative Hypothesis:
+
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+What test statistic would you use test your hypothesis?
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+Define a function that simulates flipping a coin ten times. The function should return the value of your test statistic.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+def simulate():
+    
+simulate()
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+Simulate this function 10,000 times and put the results in a histogram.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+Contruct a 95% confidence interval for the results. What are the upper and lower bounds?
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+lower_bound = 
+upper_bound = 
+print('Upper Bound: ' + str(upper_bound))
+print('Lower Bound: ' + str(lower_bound))
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+Calculate the p value.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+Using a p value cutoff of 1%, what can you say about the coin and the null hypothesis?
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+What does the p value represent?
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+What does the p value cutoff represent?
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+What does the confidence interval represent?
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+
+```

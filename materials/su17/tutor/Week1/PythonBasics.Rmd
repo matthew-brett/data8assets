@@ -1,0 +1,179 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+# These lines import the Numpy and Datascience modules.
+import numpy as np
+from datascience import *
+
+# These lines do some fancy plotting magic.
+import matplotlib
+# %matplotlib inline
+import matplotlib.pyplot as plt
+plt.style.use('fivethirtyeight')
+import warnings
+warnings.simplefilter('ignore', FutureWarning)
+```
+
+# Python basics
+
+
+# expressions
+
+
+
+```{python}
+3 * 4 + 5 * 3
+```
+
+```{python}
+2 ** 5
+```
+
+```{python}
+2 * * 5
+```
+
+```{python}
+7 // 3
+```
+
+```{python}
+7 / 3
+```
+
+# numbers
+
+
+Tell the differance between int and float
+https://www.inferentialthinking.com/chapters/03/2/numbers.html
+
+
+# names
+
+```{python}
+number_one = 5
+number_two = 20
+#not assigning number_one * number_two to any name(variable)
+number_one * number_two
+```
+
+```{python}
+#explain the meaning of this line of code
+hundred = number_one * number_two
+print(100 * 2)
+print(hundred * 2)
+
+```
+
+# call expression
+
+```{python}
+import math
+import operator
+
+print(math.ceil(3.2))
+print(math.pi)
+print(operator.pow(2,5))
+print(abs(-5))
+```
+
+# string
+
+```{python}
+"computer" + " " + "science"
+```
+
+```{python}
+c = "computer"
+s = "science"
+space = " "
+c + space + s
+```
+
+```{python}
+str(2**5)
+```
+
+```{python}
+ten = 10
+print("I have " + ten + " dollars")
+```
+
+```{python}
+print("I have " + str(ten) + " dollars")
+```
+
+```{python}
+cs = "computer science"
+data = cs.replace("computer", "data")
+print(data)
+```
+
+# sequence & array
+
+```{python}
+my_array = make_array(1,2,3,4)
+my_array
+```
+
+```{python}
+my_array2 = [1,2,3,4]
+my_array2
+```
+
+```{python}
+print(my_array.sum())
+print(sum(my_array))
+```
+
+```{python}
+print(sum(my_array2))
+# print(my_array2.sum()) what about doing .sum()?
+```
+
+```{python}
+print(my_array.size)
+print(len(my_array))
+```
+
+```{python}
+np.count_nonzero(make_array(1,2,0,2,1,0,2))
+```
+
+```{python}
+print(np.arange(10))
+print(np.arange(5,10,2))
+```
+
+```{python}
+prices = make_array(500,210,300)
+savings = make_array(200,10,200)
+final_price = prices - savings
+discount = final_price / prices
+print("final price is " + str(final_price))
+print("discount is " + str(np.round(discount,2)))
+```
+
+# table methods
+
+```{python}
+actors = Table.read_table("actors.csv")
+actors
+#you need to download actors.csv from textbook folder
+```
+
+```{python}
+#explain table method to students
+```

@@ -1,0 +1,284 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+from datascience import *
+import numpy as np
+
+import matplotlib.pyplot as plt
+plt.style.use('fivethirtyeight')
+# %matplotlib inline
+
+from ipywidgets import interact, interactive, fixed, interact_manual
+import ipywidgets as widgets
+```
+
+## Planes
+
+```{python}
+N = 1020 # The number of Z's in all of Shakespeare's plays
+sample_size = 30
+population = Table().with_column('Serial number', np.arange(N)+1)
+observation = population.sample(sample_size).column(0)
+```
+
+```{python}
+observation
+```
+
+```{python}
+observation.max()
+```
+
+```{python}
+np.average(observation)
+```
+
+### What is N?¿?¿?¿?¿?
+
+```{python}
+maxes = make_array()   # max(observations)
+doubles = make_array() # 2 * np.average(observations)
+
+for i in np.arange(1000):
+    observation = population.sample(sample_size).column(0)
+    maxes = np.append(maxes, max(observation))
+    doubles = np.append(doubles, 2 * np.average(observation))
+
+estimates = Table().with_columns(
+    'Max', maxes,
+    '2 * average', doubles
+)
+
+estimates
+```
+
+```{python}
+every_ten = np.arange(1, N+300, 10)
+estimates.hist(bins=every_ten)
+```
+
+```{python}
+
+```
+
+```{python}
+
+```
+
+```{python}
+
+```
+
+## A Clever Estimator
+
+```{python}
+maxes = make_array()   # max(observations)
+doubles = make_array() # 2 * np.average(observations)
+double_median = make_array() # 2 * np.median(observations)
+
+for i in np.arange(1000):
+    observation = population.sample(sample_size).column(0)
+    maxes = np.append(maxes, max(observation))
+    doubles = np.append(doubles, 2 * np.average(observation))
+    double_median = np.append(double_median, 2 * np.median(observation))
+
+estimates = Table().with_columns(
+    'Max', maxes,
+    '2 * average', doubles,
+    '2 * median', double_median,
+)
+
+estimates
+```
+
+```{python}
+estimates.hist(bins=every_ten)
+```
+
+```{python}
+maxes = make_array()    # max(observations)
+doubles = make_array()  # 2 * np.average(observations)
+max_plus_min = make_array() # clever(observation)
+
+for i in np.arange(1000):
+    observation = population.sample(sample_size).column(0)
+    maxes = np.append(maxes, max(observation))
+    doubles = np.append(doubles, 2 * np.average(observation))
+    max_plus_min = np.append(max_plus_min,
+                             np.max(observation) + np.min(observation))
+
+estimates = Table().with_columns(
+    'Max', maxes,
+    '2 * average', doubles,
+    'Max + min', max_plus_min,
+)
+
+estimates
+```
+
+```{python}
+estimates.hist(bins=every_ten)
+```
+
+## Bias & Variability
+
+```{python}
+np.abs(estimates.column(0) -
+       estimates.column(0).mean()).mean()
+```
+
+```{python}
+np.abs(estimates.column(1) -
+       estimates.column(1).mean()).mean()
+```
+
+```{python}
+np.abs(estimates.column(2) -
+       estimates.column(2).mean()).mean()
+```
+
+## Swain v Alabama
+
+
+What is the probability of getting 8/100 blacks in a panel?
+
+1. Start with distributions of eligible panel and the actual panel.
+2. Draw panels at random from my population.
+3. Estimate the probability; see if actual panel is likely.
+
+```{python}
+swain = Table().with_columns(
+    'Ethnicity', make_array('Black', 'Other'),
+    'Eligible', make_array(0.26, 0.74),
+    'Panel', make_array(0.08, 0.92)
+)
+
+swain.set_format([1, 2], PercentFormatter(0))
+```
+
+```{python}
+swain.barh(0)
+```
+
+## Total Variation Distance
+
+```{python}
+swain
+```
+
+```{python}
+tvd = sum(abs(swain.column(1) - swain.column(2))) / 2
+tvd
+```
+
+```{python}
+def total_variation_distance(dist1, dist2):
+    return sum(abs(dist1 - dist2)) / 2
+    
+total_variation_distance(swain.column(1), swain.column(2))
+```
+
+## Sample panels
+
+```{python}
+swain
+```
+
+```{python}
+swain.sample(10)
+```
+
+```{python}
+ethnicities = swain.select(0)
+ethnicities
+```
+
+```{python}
+ethnicities.sample(10)
+```
+
+```{python}
+pop_dist = swain.column('Eligible')
+pop_dist
+```
+
+```{python}
+ethnicities.sample(100, weights=pop_dist)
+```
+
+```{python}
+sample_panel = (ethnicities.sample(100, weights=pop_dist)
+                .group('Ethnicity'))
+counts = sample_panel.column('count')
+proportions = counts / 100
+proportions
+```
+
+```{python}
+with_random = swain.with_column('Random', proportions)
+with_random.set_format([1, 2, 3], PercentFormatter(0))
+```
+
+```{python}
+def random_jury_panel():
+    sample_panel = (ethnicities.sample(100, weights=pop_dist)
+                    .group('Ethnicity'))
+    counts = sample_panel.column('count')
+    proportions = counts / 100
+    with_random = swain.with_column('Random', proportions)
+    with_random.set_format([1, 2, 3], PercentFormatter(0))
+    return with_random
+
+random_jury_panel()
+```
+
+```{python}
+total_variation_distance?
+```
+
+```{python}
+repetitions = 1000
+tvds = make_array()
+
+for i in np.arange(repetitions):
+    new_sample = random_jury_panel()
+    tvds = np.append(tvds,
+                     total_variation_distance(
+                         new_sample.column(1),
+                         new_sample.column(3),
+                     ))
+
+results = Table().with_column(
+    'TVD between population and a random sample',
+    tvds
+)
+results
+```
+
+```{python}
+results.hist()
+```
+
+```{python}
+swain
+```
+
+```{python}
+tvd
+```
+
+```{python}
+
+```

@@ -1,0 +1,577 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python [conda root]
+    language: python
+    name: conda-root-py
+---
+
+Bonus Lecture #1: Doing Data Science with <a href="https://plot.ly/">plotly</a>
+=================
+
+
+### Exploring the US election
+
+In this lecture, we are going to explore some ways of visualizing data using plotly, a very cool visualization api which allows you to create professional-looking visualizations. We will do that in the context of Presidential election! We are going to combine data from various sources, just as you would do in real life data science! The data that we are using is a processed version of those found in the below sources.
+
+**US Election results** can be found <a href="http://www.stat.berkeley.edu/users/nolan/data/voteProject/2016_US_County_Level_Presidential_Results.csv">here</a>.
+
+**Median Income data by state** can be found here <a href="https://www.census.gov/prod/2012pubs/acsbr11-02.pdf">here</a>.
+
+**Gini coefficient** data lives <a href="http://www.census.gov/topics/income-poverty/income-inequality.html">here</a>.
+
+```{python}
+import plotly.plotly as py
+import plotly.graph_objs as go
+from datascience import *
+import numpy as np
+import math
+
+py.sign_in('data8', 'qOP6GPnJlLfnS2TnwDvs')
+```
+
+## Election Results Overview 
+
+```{python}
+#First off let's read in our data and take a quick look
+#One easy way to read in your data from a csv file is using the datascience package's table
+#You will learn more about the datascience package next week!
+election_2012 = Table.read_table("https://raw.githubusercontent.com/adnanhemani/data8-assets/master/data/election_df_2012.csv")
+election_2016 = Table.read_table("https://raw.githubusercontent.com/adnanhemani/data8-assets/master/data/election_df_2016.csv").drop("code")
+election_2016.show(5)
+```
+
+```{python}
+#The first step is to extract the data we are interested in from our tables
+#all the statements below return the corresponding table columns in the form of a numpy array.
+
+#state abbreviations in alphabetical order
+state_abbreviations = election_2016.column("state_abbr").astype(str)
+#hover text for 2016 state results
+text_16 = election_2016.column("text").astype(str)
+#Percentage difference between DNC and GOP in 2016
+perc_difference_16 = election_2016.column("perc_diff").astype(str)
+# 2016 election vote count by state
+votes_dem_16 = election_2016.column("votes_dem.16").astype(int)
+votes_gop_16 = election_2016.column("votes_gop.16").astype(int)
+# Percentage difference between DNC and GOP in 2012
+
+perc_difference_12 = election_2012.column("perc_diff").astype(str)
+```
+
+```{python}
+#Now I want to calculate the percentage that each party got on each state - numpy math
+perc_dem = votes_dem_16/(votes_dem_16+votes_gop_16)
+perc_gop = votes_gop_16/(votes_dem_16+votes_gop_16)
+```
+
+```{python}
+#Link to bar chart tutorial: https://plot.ly/python/bar-charts/
+import plotly.plotly as py
+import plotly.graph_objs as go
+
+trace1 = go.Bar(
+    y=state_abbreviations, #labels
+    x=perc_dem, #data
+    name='Democrats', #Name of the category of data
+    orientation = 'h', #vertical or horizontal bar chart
+    marker = dict(
+        color = 'rgba(169, 228, 232, 0.4)',
+        line = dict(
+            color = 'rgba(169, 228, 232, 1.0)',
+            width = 5)
+    )
+)
+trace2 = go.Bar(
+    y=state_abbreviations,
+    x=perc_gop,
+    name='Republicans',
+    orientation = 'h',
+    marker = dict(
+        color = 'rgba(224, 92, 45, 0.6)', #a is transparency, more clear once we zoom in
+        line = dict(
+            color = 'rgba(224, 92, 45, 1.0)',
+            width = 5)
+    )
+)
+
+data = [trace1, trace2]
+
+layout = go.Layout(
+    title = "Battle of the States",
+    barmode='stack',
+    xaxis = dict(title="% Vote"),
+    yaxis = dict(title="State Labels")
+)
+
+fig = go.Figure(data=data, layout=layout)
+py.iplot(fig, filename='marker-h-bar')
+```
+
+```{python}
+# Link to chloropleth map tutorial: https://plot.ly/python/choropleth-maps/
+
+#Determine the color scale that we will be using
+scl = [[0, 'rgb(255, 0, 0)'],[0.25, 'rgb(255, 122, 122)'],[0.4, "rgb(247, 133, 133)"],[0.45, 'rgb(255, 153, 153)'],
+       [0.5, 'rgb(255, 255, 255)'],[0.55, 'rgb(160, 160, 255)'],[0.6, 'rgb(133, 177, 247)'], [0.75, 'rgb(122,122,255)'],[1, 'rgb(0, 0, 255)']]
+
+#first off we have to put the data in the right format
+data = [ dict(
+        type='choropleth', #specifies type of plot
+        autocolorscale = False,
+        locations = state_abbreviations, #the state abbreviations go here
+        z = perc_difference_16.astype(float), # Data that will determine color
+        locationmode = 'USA-states', #determine the type of map you want to make
+        text = text_16, # hover text content
+        marker = dict(
+            line = dict (
+                color = 'rgb(255,255,255)',
+                width = 2
+            ) ), #marker determines line color between states 
+        colorbar = dict(
+            title = "Percentage Difference"), #Title of our map
+            colorscale = scl, #set the colorscale we created
+            zmin = -0.5,
+            zmax = 0.5
+        ) ]
+
+#make the layout that contains information about the map
+layout = dict(
+        title = '2016 Election Results', #chart title
+        geo = dict( #more information about the map plot
+            scope='usa',
+            projection=dict( type='albers usa' ),
+            showlakes = True,
+            lakecolor = 'rgb(255, 255, 255)'),
+             )
+    
+fig = dict( data=data, layout=layout )
+py.iplot( fig, filename='d3-cloropleth-map' )
+```
+
+## In how many states did each party improve their performance?
+
+This election was admittedly one of the most polarized of the recent years. So one question to ask is how did that affect the electoral map?
+
+```{python}
+#explore in how many states republicans and democrats improved their percentage
+perc_difference_12 = perc_difference_12.astype(float)
+perc_difference_16 = perc_difference_16.astype(float)
+diff = perc_difference_16-perc_difference_12
+diff
+```
+
+```{python}
+# Doing math with numpy arrays
+
+#Get rid of the nan value
+diff = diff[~np.isnan(diff)]
+dems_improved = np.count_nonzero(diff>0)
+republicans_improved = np.count_nonzero(diff<0)
+```
+
+```{python}
+#Bar chart
+trace0 = go.Bar(
+            x=['Democrats improved', 'Republicans improved'],
+            y=[dems_improved, republicans_improved]
+    )
+
+data = [trace0]
+
+layout = go.Layout(
+    title="In how many states did the two parties improve?"
+)
+fig = go.Figure(data=data, layout=layout)
+py.iplot(fig, filename='basic-bar')
+```
+
+```{python}
+#Let's try to see how many states republicans actually converted compared to the 2012 election
+gop_12 = perc_difference_12<0 #won by the gop in 2012
+gop_16 = perc_difference_16<0 #won by the gop in 2016
+lst = list(zip(gop_12, gop_16))
+lst
+```
+
+```{python}
+#How many times each item appears in a list
+from collections import Counter
+counts = dict(Counter(lst))
+counts
+```
+
+```{python}
+#Code to change the dictionary keys into something more readable
+counts["democrat_to_democrat"] = counts.pop((False, False)) #pop removes a key-pair value from your dictionary
+counts["democrat_to_republican"] = counts.pop((False, True))
+counts["republican_to_republican"] = counts.pop((True, True))
+counts["republican_to_democrat"] = 0
+counts
+```
+
+```{python}
+#Get all items from a dictionary in alphabetical order of the keys
+sorted_list = sorted(counts.items(), key=lambda x: x[0]) #sorts a dictionary by key and convert to a list of tuples.
+sorted_list
+```
+
+```{python}
+trace0 = go.Bar(
+    x=['Democrat to Democrat', 'Democrat to Republican', 'Republican to Democrat',
+       'Republican to Republican'],
+    y=[val for key, val in sorted_list], #I want the keys in sorted order
+    marker=dict(
+        color=['rgba(204,204,204,1)','rgba(222,45,38,0.8)','rgba(204,204,204,1)', 'rgba(204,204,204,1)']),
+)
+
+data = [trace0]
+layout = go.Layout(
+    title='How many states did the two parties manage to convert?',
+)
+
+fig = go.Figure(data=data, layout=layout)
+py.iplot(fig, filename='color-bar')
+```
+
+## Voting and income inequality
+
+Now we will take a look at how income and income inequality relate to the voting patterns using data from 2010 on median income per state and the Gini coefficient for income inequality.
+
+```{python}
+import csv #to read a dict from a csv file
+#we will need that dictionary to put our data in a similar format
+with open('data/state_abbreviations.csv', 'r') as csv_file:
+    reader = csv.reader(csv_file)
+    state_abbr_dict = dict(reader)
+# DC is missing from our data
+state_abbr_dict['district of columbia'] = "DC"
+```
+
+```{python}
+import pprint #for printing large dictionaries more cleanly
+with open('data/gini_states_data.csv', 'r') as csv_file:
+    reader = csv.reader(csv_file)
+    gini_data = dict(reader)
+    
+#Put the data in the right format
+for key in gini_data.keys():
+    gini_data[key] = eval(gini_data[key])
+    
+pp = pprint.PrettyPrinter(indent=4)
+pp.pprint(gini_data)
+```
+
+```{python}
+#replace states by state abbreaviations
+states_encoded = []
+for state in gini_data['State']:
+    state = state.lower() #convert to lowercase
+    if state in state_abbr_dict.keys():
+        states_encoded.append(state_abbr_dict[state])
+gini_data['State'] = states_encoded
+```
+
+```{python}
+gini = list(zip(gini_data['Year'], gini_data['State'], gini_data['Gini']))
+#keep data from 2010
+gini_2010 = [i for i in gini if i[0]==2010]
+len(gini_2010) #problem! why do we have 52 states?
+```
+
+```{python}
+sorted(gini_2010, key = lambda x:x[1])
+```
+
+```{python}
+gini_2010.remove((2010, 'SD', 0.655813515))
+len(gini_2010)
+```
+
+```{python}
+#Convert the list of tuples back into a dictionary, only keeping state and gini coefficient value.
+gini_2010 = dict([(i[1], i[2]) for i in gini_2010])
+gini_2010
+```
+
+```{python}
+#read in income data
+income = Table.read_table("data/states_median_income.csv")
+income.show(5)
+```
+
+```{python}
+#format the income column
+income.append_column("median_income",[int(i.replace(",", "")) for i in income.column("median_income")])
+income.append_column("State", [state_abbr_dict[key] for key in income.column("State")])
+```
+
+```{python}
+median_income = income.sort("State").column("median_income")
+gini = [i[1] for i in sorted(list(gini_2010.items()), key=lambda x:x[0])]
+```
+
+```{python}
+electoral = Table.read_table("data/electoral_votes.csv").select(["State", "electoral_votes"]).take(np.arange(51))
+electoral['State'] = electoral.apply(lambda x: state_abbr_dict[x.lower()], "State")
+electoral_votes = electoral.sort("State").column("electoral_votes")
+```
+
+```{python}
+#get the indices
+democratic_states = perc_difference_16.astype(float)>0
+republicans_states = perc_difference_16.astype(float)<0
+democratic_states
+```
+
+```{python}
+hover_text = []
+bubble_size = []
+for i in range(len(state_abbreviations)): 
+    hover_text.append(('State: {state}<br>'+
+                          'Electoral Votes: {evotes}<br>'+
+                          'Median income: {income}<br>'+
+                          'Gini coefficient: {gini}<br>').format(state=state_abbreviations[i],
+                                                evotes=electoral_votes[i],
+                                                income=median_income[i],
+                                                gini=gini[i]
+                                                )) #what appears when you hover over the bubbles
+    bubble_size.append(electoral_votes[i]) #bubble size depends on #of electoral votes
+```
+
+```{python}
+# Link to bubble chart tutorial: https://plot.ly/python/bubble-charts/
+text = hover_text
+size = np.array(bubble_size)*2
+
+trace0 = go.Scatter(
+    x=median_income[democratic_states],
+    y=np.array(gini)[democratic_states],
+    mode='markers',
+    name='Democratic',
+    text=np.array(text)[democratic_states],
+    marker=dict(
+        symbol='circle',
+        sizemode='diameter',
+        sizeref=0.85,
+        size=np.array(size)[democratic_states],
+        line=dict(
+            width=2
+        )
+    )
+)
+trace1 = go.Scatter(
+    x=median_income[republicans_states],
+    y=np.array(gini)[republicans_states],
+    mode='markers',
+    name='Republican',
+    text=np.array(text)[republicans_states],
+    marker=dict(
+        sizemode='diameter',
+        sizeref=0.85,
+        size=np.array(size)[republicans_states],
+        line=dict(
+            width=2
+        ), color = 'rgb(243, 0, 0)'
+    )
+)
+
+data = [trace0, trace1]
+layout = go.Layout(
+    title = "Income inequality and the 2016 election",
+    xaxis = dict(title="Median Income in 2010"),yaxis = dict(title="Gini coefficient in 2010"),
+    paper_bgcolor='rgb(243, 243, 243)',
+    plot_bgcolor='rgb(243, 243, 243)',
+)
+
+fig = go.Figure(data=data, layout=layout)
+py.iplot(fig, filename='2106')
+```
+
+## Let's take a look at Michigan
+
+```{python}
+#Let's find the voting and census data for all the Michigan counties
+election_16 = Table.read_table("https://raw.githubusercontent.com/adnanhemani/data8-assets/master/data/merged_election_data.csv")
+mi_voting_data = election_16.where(election_16.column("State") == "michigan")
+mi_voting_data
+```
+
+```{python}
+# Add a new column indicating % unemployed and % of GOP vote per county
+mi_voting_data = mi_voting_data.with_column("perc_labor_force", mi_voting_data.column("in_labor_force_yes")/(mi_voting_data.column("in_labor_force_yes") + mi_voting_data.column("in_labor_force_no")))
+mi_voting_data = mi_voting_data.with_column("perc_gop_vote", mi_voting_data.column("votes_gop.16")/(mi_voting_data.column("votes_gop.16") + mi_voting_data.column("votes_dem.16")))
+```
+
+```{python}
+# Break the counties into 2 tables: one for Democrat-voting counties and the other for Republic-voting counties
+gop_counties = mi_voting_data.where(mi_voting_data.column("perc_gop_vote") > 0.5)
+dem_counties = mi_voting_data.where(mi_voting_data.column("perc_gop_vote") < 0.5)
+```
+
+```{python}
+trace_gop = go.Scatter(
+    name = "Republican",
+    x = gop_counties.column("perc_labor_force"),
+    y = gop_counties.column("perc_gop_vote"),
+    text = gop_counties.column("County Name"),
+    mode = 'markers'
+)
+
+trace_dem = go.Scatter(
+    name = "Democrat",
+    x = dem_counties.column("perc_labor_force"),
+    y = dem_counties.column("perc_gop_vote"),
+    text = dem_counties.column("County Name"),
+    mode = 'markers'
+)
+
+data = [trace_gop, trace_dem]
+
+layout = go.Layout(
+    title='Percent Unemployed versus GOP Votes in Michigan',
+    xaxis = dict(
+        title = "% Employed",
+    ),
+    yaxis = dict(
+        title = "% Votes for Republicans",
+    )
+)
+
+fig = go.Figure(data = data, layout = layout)
+
+py.iplot(fig, filename='employment-vs-votes')
+```
+
+## Bonus material - Adnan
+
+```{python}
+import requests
+import json
+url = 'http://catalog.civicdashboards.com/dataset/08b4daa7-8888-4e03-ad73-ae2ff3c47771/resource/b12bbaa4-14df-4293-8636-2bb80804678c/download/89e296fe1c5c410d83c2d97155366e24temp.geojson'
+michigan_data = requests.get(url)
+michigan_data = michigan_data.json()
+```
+
+```{python}
+county_names = []
+county_names_dict = {}
+
+for county in michigan_data['features']:
+    for m in range(len(county['properties']['name'])):
+        if county['properties']['name'][m:m+6] == 'County':
+            county_names.append(county['properties']['name'][0:m-1].lower())
+            county_names_dict[county['properties']['name'][0:m-1]] = county['properties']['name']
+            
+print(county_names)
+```
+
+```{python}
+red_counties_2012 = []
+blue_counties_2012 = []
+election_16 = Table.read_table("https://raw.githubusercontent.com/adnanhemani/data8-assets/master/data/merged_election_data.csv")
+mi_voting_data = election_16.where(election_16.column("State") == "michigan")
+mi_voting_data
+```
+
+```{python}
+import re
+
+blue_counties_2016 = []
+red_counties_2016 = []
+
+for k, county in enumerate(county_names):
+    county_cleaned = re.sub("\.", "", county)
+    county_cleaned = re.sub(" ", "", county_cleaned)
+    county_cleaned = re.sub(".*-", "", county_cleaned)
+    row = mi_voting_data.where(mi_voting_data[1] == county_cleaned)
+    if (row.num_rows != 1):
+        print("Error: " + county_cleaned)
+    else:
+        if (row["votes_dem.16"].item() > row["votes_gop.16"].item()):
+            blue_counties_2016.append(michigan_data['features'][k])
+        else:
+            red_counties_2016.append(michigan_data['features'][k])
+    
+```
+
+```{python}
+red_data_2016 = {"type": "FeatureCollection"}
+red_data_2016['features'] = red_counties_2016
+
+blue_data_2016 = {"type": "FeatureCollection"}
+blue_data_2016['features'] = blue_counties_2016
+
+with open('data/michigan-red-data-2016.json', 'w') as f:
+    f.write(json.dumps(red_data_2016))
+with open('data/michigan-blue-data-2016.json', 'w') as f:
+    f.write(json.dumps(blue_data_2016))
+
+```
+
+```{python}
+import plotly.plotly as py
+import plotly.graph_objs as graph_objs
+
+mapbox_access_token = 'pk.eyJ1IjoiYWRuYW5oZW1hbmkiLCJhIjoiY2l5N3RnY3M4MDAxZTJxb3Y3anlsbnJ0ZSJ9.REcsaI8vU6ylkrpkjuMtqA'
+
+data = graph_objs.Data([
+    graph_objs.Scattermapbox(
+        lat=['45.5017'],
+        lon=['-73.5673'],
+        mode='markers',
+    )
+])
+layout = graph_objs.Layout(
+    height=600,
+    autosize=True,
+    hovermode='closest',
+    mapbox=dict(
+        layers=[
+            dict(
+                sourcetype = 'geojson',
+                source = 'https://raw.githubusercontent.com/adnanhemani/data8-assets/master/data/michigan-red-data-2016.json',
+                type = 'fill',
+                color = 'rgba(163,22,19,0.8)'
+            ),
+            dict(
+                sourcetype = 'geojson',
+                source = 'https://raw.githubusercontent.com/adnanhemani/data8-assets/master/data/michigan-blue-data-2016.json',
+                type = 'fill',
+                color = 'rgba(40,0,113,0.8)'
+            )
+        ],
+        accesstoken=mapbox_access_token,
+        bearing=0,
+        center=dict(
+            lat=44.5,
+            lon=-84.8
+        ),
+        pitch=0,
+        zoom=4.5,
+        style='light'
+    ),
+)
+
+fig = dict(data=data, layout=layout)
+py.iplot(fig, filename='county-level-choropleths-python')
+
+```
+
+```{python}
+
+```
+
+```{python}
+
+```
+
+```{python}
+
+```

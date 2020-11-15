@@ -1,0 +1,204 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+import numpy as np
+np.set_printoptions(threshold=50)
+```
+
+## Tables
+
+```{python}
+from datascience import *
+```
+
+```{python}
+Table()
+```
+
+```{python}
+Table().with_column('Petals', make_array(8, 34, 5))
+```
+
+```{python}
+Table().with_columns(
+    'Petals', make_array(8, 34, 5),
+    'Name', make_array('lotus', 'sunflower', 'rose')
+)
+```
+
+```{python}
+flowers = Table().with_columns(
+    'Petals', make_array(8, 34, 5),
+    'Name', make_array('lotus', 'sunflower', 'rose')
+)
+
+flowers.with_column(
+    'Color', make_array('pink', 'yellow', 'red')
+)
+```
+
+```{python}
+flowers
+```
+
+## Assignment
+
+```{python}
+x = 3
+```
+
+```{python}
+x + 2
+```
+
+```{python}
+x
+```
+
+```{python}
+x = x + 2
+x
+```
+
+```{python}
+x + 2
+```
+
+```{python}
+flowers
+```
+
+```{python}
+flowers = flowers.with_column(
+    'Color', make_array('pink', 'yellow', 'red')
+)
+flowers
+```
+
+## Minard's Map
+
+
+```{python}
+minard = Table.read_table('minard.csv') # or http://inferentialthinking.com/notebooks/minard.csv
+minard
+```
+
+```{python}
+minard.num_columns
+```
+
+```{python}
+minard.num_rows
+```
+
+```{python}
+minard.labels
+```
+
+```{python}
+minard.relabeled('City', 'City Name')
+```
+
+```{python}
+minard = minard.relabeled('City', 'City Name')
+minard
+```
+
+```{python}
+minard.column('Survivors')
+```
+
+```{python}
+minard.column(4)
+```
+
+```{python}
+minard.column(4).item(0)
+```
+
+```{python}
+initial = minard.column('Survivors').item(0)
+minard = minard.with_column(
+    'Percent Surviving', minard.column('Survivors')/initial
+)
+minard
+```
+
+```{python}
+minard.set_format('Percent Surviving', PercentFormatter)
+```
+
+```{python}
+minard.select('Longitude', 'Latitude')
+```
+
+```{python}
+minard.select(0, 1)
+```
+
+```{python}
+minard.select('Survivors')
+```
+
+```{python}
+minard.column('Survivors')
+```
+
+```{python}
+# sum(minard.select('Survivors')) vs sum(minard.column('Survivors'))
+```
+
+```{python}
+minard.drop('Longitude', 'Latitude', 'Direction')
+```
+
+```{python}
+minard
+```
+
+## Population
+
+```{python}
+url = 'https://raw.githubusercontent.com/open-source-economics/taxdata/master/Stage%20I/NC-EST2014-AGESEX-RES.csv'
+full_census_table = Table.read_table(url)
+full_census_table
+```
+
+```{python}
+partial_census_table = full_census_table.select('SEX', 'AGE', 'POPESTIMATE2010', 'POPESTIMATE2014')
+partial_census_table
+```
+
+```{python}
+simple = partial_census_table.relabeled('POPESTIMATE2010', '2010').relabeled('POPESTIMATE2014', '2014')
+simple
+```
+
+```{python}
+simple.column('2014') - simple.column('2010')
+```
+
+```{python}
+change = simple.column('2014') - simple.column('2010')
+census = simple.with_columns(
+    'Change', change,
+    'Percent Change', change/simple.column('2010')
+)
+census.set_format('Percent Change', PercentFormatter)
+```
+
+```{python}
+census.sort('Change', descending=True)
+```

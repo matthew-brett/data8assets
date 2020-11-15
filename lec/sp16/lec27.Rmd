@@ -1,0 +1,152 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+import numpy as np
+from datascience import *
+
+# Configure notebook (happens automatically on data8.berkeley.edu)
+# %matplotlib inline
+import matplotlib.pyplot as plt
+plt.style.use('fivethirtyeight')
+
+# Configure for presentation
+np.set_printoptions(threshold=50, linewidth=50)
+import matplotlib as mpl
+mpl.rc('font', size=16)
+```
+
+```{python}
+jury = Table(["Race", "Eligible", "Panel"]).with_rows([
+    ["Asian",  0.15, 0.26],
+    ["Black",  0.18, 0.08],
+    ["Latino", 0.12, 0.08],
+    ["White",  0.54, 0.54],
+    ["Other",  0.01, 0.04],
+    ])
+jury.set_format([1, 2], PercentFormatter(0))
+```
+
+```{python}
+jury.barh('Race')
+```
+
+## Total Variation Distance
+
+```{python}
+jury.append_column("Difference", jury.column("Panel") - jury.column("Eligible"))
+jury.append_column("Abs. Difference", np.abs(jury.column("Difference")))
+jury.set_format([3, 4], PercentFormatter(0))
+```
+
+```{python}
+sum(jury.column(4)) / 2
+```
+
+```{python}
+def total_variation_distance(column, other):
+    return sum(np.abs(column - other)) / 2
+
+def table_tvd(table, label, other):
+    return total_variation_distance(table.column(label), table.column(other))
+```
+
+```{python}
+table_tvd(jury, 'Eligible', 'Panel')
+```
+
+## Multinomial
+
+```{python}
+np.random.randint(1, 7)
+```
+
+```{python}
+np.random.normal()
+```
+
+```{python}
+np.random.multinomial(1, [0.5, 0.5])
+```
+
+```{python}
+np.random.multinomial(50, [0.5, 0.5])
+```
+
+```{python}
+np.random.multinomial(1000, [0.5, 0.5])
+```
+
+```{python}
+np.random.multinomial(1000, np.array([1, 1, 1, 1, 1, 1])/6)
+```
+
+```{python}
+eligible = jury.column('Eligible')
+eligible
+```
+
+```{python}
+np.random.multinomial(1, eligible)
+```
+
+```{python}
+sample_size = 1453
+random_panel = np.random.multinomial(sample_size, eligible)
+random_panel
+```
+
+```{python}
+sum(random_panel)
+```
+
+```{python}
+random_panel / sample_size
+```
+
+## Comparison
+
+```{python}
+sampled = jury.select(['Race', 'Eligible', 'Panel']).with_column(
+    'Random Panel', random_panel / sample_size)
+sampled.set_format(3, PercentFormatter(0))
+```
+
+```{python}
+sampled.barh('Race', [1, 3])
+```
+
+```{python}
+sampled.barh('Race', [1, 3, 2])
+```
+
+```{python}
+table_tvd(sampled, 'Eligible', 'Random Panel')
+```
+
+```{python}
+distribution = jury.column('Eligible')
+tvds = Table(["TVD from a random sample"])
+
+for i in np.arange(1000):
+    sample = np.random.multinomial(sample_size, distribution) 
+    tvd = total_variation_distance(sample / sample_size, distribution)
+    tvds.append([tvd])
+
+tvds
+```
+
+```{python}
+tvds.hist(bins=np.arange(0, 0.15, 0.005))
+```

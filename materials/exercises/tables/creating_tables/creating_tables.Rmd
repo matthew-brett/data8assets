@@ -1,0 +1,123 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+## Tables
+
+```{python}
+# Run this cell to set up the notebook, but please don't change it.
+
+# These lines import the Numpy and Datascience modules.
+import numpy as np
+from datascience import *
+
+# These lines load the tests.
+from client.api.assignment import load_assignment 
+tests = load_assignment('creating_tables.ok')
+```
+
+**Question 1.** Suppose you have 4 apples, 3 oranges, and 3 pineapples.  (Perhaps you're using Python to solve a high school Algebra problem.)  Create a table that contains this information.  It should have two columns: "fruit name" and "count".  Give it the name `fruits`.
+
+**Note:** Use lower-case and singular words for the name of each fruit, like `"apple"`.
+
+```{python}
+# Our solution uses 1 statement split over 3 lines for readability.
+# Of course, you can complete the question however you like.
+fruits = ...
+        ...
+        ...
+fruits
+```
+
+```{python}
+_ = tests.grade('q1')
+```
+
+**Question 2.** The file `inventory.csv` contains information about the inventory at a fruit stand.  Each row represents the contents of one box of fruit.  Load it as a table named `inventory`.
+
+```{python}
+inventory = ...
+inventory
+```
+
+```{python}
+_ = tests.grade('q2')
+```
+
+**Question 3.** Does each box at the fruit stand contain a different fruit?
+
+
+*Write your answer here, replacing this text.*
+
+
+**Question 4.** The file `sales.csv` contains the number of fruit sold from each box last Saturday.  It has an extra column called "price per fruit (\$)" that's the price *per item of fruit* for fruit in that box.  The rows are in the same order as the `inventory` table.  Load these data into a table called `sales`.
+
+```{python}
+sales = ...
+sales
+```
+
+```{python}
+_ = tests.grade('q4')
+```
+
+**Question 5.** How many fruits did the store sell in total on that day?
+
+```{python}
+total_fruits_sold = ...
+total_fruits_sold
+```
+
+```{python}
+_ = tests.grade('q5')
+```
+
+**Question 6.** What was the store's total revenue (the total price of all fruits sold) on that day?
+
+*Hint:* If you're stuck, think first about how you would compute the total revenue from just the grape sales.
+
+```{python}
+total_revenue = ...
+total_revenue
+```
+
+```{python}
+_ = tests.grade('q6')
+```
+
+**Question 7.** Make a new table called `remaining_inventory`.  It should have the same rows and columns as `inventory`, except that the amount of fruit sold from each box should be subtracted from that box's count, so that the "count" is the amount of fruit remaining after Saturday.
+
+```{python}
+remaining_inventory = ...
+    ...
+    ...
+    ...
+remaining_inventory
+```
+
+```{python}
+_ = tests.grade('q7')
+```
+
+```{python}
+# For your convenience, you can run this cell to run all the tests at once!
+import os
+_ = [tests.grade(q[:-3]) for q in os.listdir("tests") if q.startswith('q')]
+```
+
+```{python}
+# Run this cell to submit your work *after* you have passed all of the test cells.
+# It's ok to run this cell multiple times. Only your final submission will be scored.
+
+# !TZ=America/Los_Angeles ipython nbconvert --output=".creating_tables_$(date +%m%d_%H%M)_submission.html" creating_tables.ipynb
+```

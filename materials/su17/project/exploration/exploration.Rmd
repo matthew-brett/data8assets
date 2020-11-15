@@ -1,0 +1,86 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Independent Data Exploration
+<!-- #endregion -->
+
+<!-- #region {"deletable": true, "editable": true} -->
+You can either use this notebook directly or add the contents of this notebook to your own project notebook named `exploration.ipynb`. The following cell is required to submit.
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+# Run this cell to 
+# - create necessary support files, 
+# - check that your exploration is formatted correctly, 
+# - and submit your work to OK.
+
+ok_spec = """
+{
+  "name": "Independent Data Exploration",
+  "endpoint": "cal/data8/sp17/exploration",
+  "src": [
+    "exploration.ipynb"
+  ],
+  "tests": {},
+  "protocols": [
+      "file_contents",
+      "backup"
+  ]
+}    
+"""
+    
+ok_test = '''
+test = {
+  'name': 'Check file name',
+  'points': 1,
+  'suites': [
+    {
+      'cases': [
+        {
+          'code': r"""
+          >>> # Make sure that you name your submission file exploration.ipynb
+          >>> import os
+          >>> os.path.exists('exploration.ipynb')
+          True
+          """,
+          'hidden': False,
+          'locked': False
+        },
+      ],
+      'scored': True,
+      'setup': '',
+      'teardown': '',
+      'type': 'doctest'
+    }
+  ]
+}
+'''
+    
+import os
+    
+if not os.path.exists('exploration.ok'):
+    with open('exploration.ok', 'w') as out:
+        out.write(ok_spec)
+
+if not os.path.exists('tests/q1.py'):
+    with open('tests/q1.py', 'w') as out:
+        out.write(ok_test)
+    
+from client.api.notebook import Notebook
+ok = Notebook('exploration.ok')
+ok.auth(inline=True)
+ok.grade('q1')
+_ = ok.submit()
+```

@@ -1,0 +1,115 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+import numpy as np
+from datascience import *
+# %matplotlib inline
+np.set_printoptions(threshold=50)
+```
+
+## Population & Age
+
+```{python}
+# As of Jan 2017, this census file is online here: 
+data = 'http://www2.census.gov/programs-surveys/popest/datasets/2010-2015/national/asrh/nc-est2015-agesex-res.csv'
+
+# A copy can be accessed here in case census.gov moves the file:
+# data = 'http://inferentialthinking.com/notebooks/nc-est2015-agesex-res.csv'
+
+full_census_table = Table.read_table(data)
+full_census_table
+```
+
+```{python}
+partial = full_census_table.select('SEX', 'AGE', 'POPESTIMATE2010', 'POPESTIMATE2015')
+partial
+```
+
+```{python}
+us_pop = partial.relabeled(2, '2010').relabeled(3, '2015')
+us_pop
+```
+
+```{python}
+change = us_pop.column('2015') - us_pop.column('2010')
+census = us_pop.with_columns(
+    'Change', change,
+    'Percent Change', change/us_pop.column('2010')
+)
+census.set_format('Percent Change', PercentFormatter)
+```
+
+## Advanced Where
+
+```{python}
+3 > 2
+```
+
+```{python}
+1 > 2
+```
+
+```{python}
+np.arange(5) > 2
+```
+
+```{python}
+us_pop.where('AGE', 70)
+```
+
+```{python}
+us_pop.where('AGE', 70).where([False, True, True])
+```
+
+```{python}
+seventy = us_pop.where('AGE', 70)
+seventy.column('2010') < 2000000
+```
+
+```{python}
+seventy.where(seventy.column('2010') < 2000000)
+```
+
+```{python}
+us_pop.column('2010') > 4e6
+```
+
+```{python}
+us_pop.where('2010', are.above(4e6))
+```
+
+```{python}
+us_pop.where(us_pop.column('2010') > 4e6)
+```
+
+```{python}
+# us_pop.where('AGE', 70).where(us_pop.column('2010') > 4e6)
+```
+
+```{python}
+us_pop.column('2015') / us_pop.column('2010') > 1.5
+```
+
+```{python}
+us_pop.where(us_pop.column('2015') / us_pop.column('2010') > 1.5)
+```
+
+```{python}
+census.where('Percent Change', are.above(.5))
+```
+
+```{python}
+us_pop.where('2010', are.above, '2015')
+```

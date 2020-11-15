@@ -1,0 +1,78 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+# Run this cell, but please don't change it.
+
+# These lines import the Numpy and Datascience modules.
+import numpy as np
+from datascience import *
+
+# These lines load the tests.
+from client.api.assignment import load_assignment 
+lab03 = load_assignment('lab03.ok')
+```
+
+```{python}
+2+2
+```
+
+```{python}
+a = Table.with_column('age')
+```
+
+```{python}
+people = Table().with_columns([
+    "Age",                  [16    , 36    , 28     , 39    , 7.5    ],
+    "Name", ["Sam", "second", "third", "fourth", "fifth"],
+    "Index (in Python)",     [0      , 1       , 2      , 3       , 4      ]
+    ])
+
+
+
+all(x in  people.column("Age") for x in [16, 36])
+```
+
+```{python}
+len(people.column('Name'))
+```
+
+```{python}
+#Define a function called millenial that takes a person’s name, and returns
+#True if their age is between 16 and 36 (including either 16 or 36), and False otherw
+def millenial(name):
+    if  name == all(x in  people.column("Age") for x in [16, 36]):
+        return True
+    else: 
+        return False
+millenial("Sam")
+
+
+```
+
+```{python}
+email = Table().with_columns([
+    "Age",                  [16    , 36    , 42     , -1.0    , 7.5    ],
+    "text", ["Sam", "APPP", "third", "fourth", "fifth"],
+    "Index (in Python)",     [0      , 1       , 2      , 3       , 4      ]
+    ])
+
+for email_text in email.column("text"): 
+    if email_text == email.column("text").isupper():
+        print("Potential spam email: " + email_text)
+```
+
+```{python}
+
+```

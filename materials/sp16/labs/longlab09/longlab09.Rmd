@@ -1,0 +1,283 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+
+```
+
+```{python}
+
+```
+
+# Lab 9: Maps and Other Visualizations
+
+Welcome to lab 9!
+
+The first part of this lab is part of the 3rd Data 8 project.  We'll use a simple line plot to make a plausible causal claim about the impact of the death penalty on murder rates.
+
+The second part of the lab is part of the 1st Data 8 project, in which students expore connections between water usage, geography, and income in California.  Maps are an important part of the exploration.
+
+**Run the cell below** to set up the package imports and automatic tests.
+
+```{python}
+# Run this cell, but please don't change it.
+
+import numpy as np
+import math
+from datascience import *
+
+# These lines set up the plotting functionality and formatting.
+import matplotlib
+matplotlib.use('Agg', warn=False)
+# %matplotlib inline
+import matplotlib.pyplot as plots
+plots.style.use('fivethirtyeight')
+
+# These lines load the tests.
+from client.api.assignment import load_assignment 
+lab09 = load_assignment('longlab09.ok')
+```
+
+# 1. Murder rates and the death penalty, revisited
+
+In lab 4, we ran an hypothesis test about the changes in murder rates over time.  That was the first part of the 3rd project in Data 8.  After that, students take advantage of a natural experiment to investigate the causal effect of the death penalty on murder rates.  In 1972, a Supreme Court decision suddenly banned the death penalty across the US.  A 1976 decision lifted the ban, reinstating the death penalty in many states.  Students come to the following conclusions (stated roughly here) using hypothesis testing:
+
+1. Overall, the murder rate in a state is about as likely to increase as decrease year-over-year.
+2. After the death penalty was banned in 1972, the murder rate went up (more than we'd expect by chance) in the states where the death penalty had previously been in effect.
+3. After the death penalty was reinstated in 1976, the murder rate went down (more than we'd expect by chance) in the states where the death penalty came back into effect.
+4. In states that didn't have a death penalty, the Supreme Court decisions had no effect.  The murder rate was about as likely to increase as decrease year-over-year in this period.
+
+The analysis appears to favor the conclusion that the death penalty is associated with murder.  By looking at states that weren't affected by the sudden ban, we even have a sort of control group, so we could plausibly claim to have evidence that the death penalty *causes* a lower murder rate.  But [a 2006 Stanford Law Review paper](http://users.nber.org/~jwolfers/papers/DeathPenalty%28SLR%29.pdf) argues the opposite: that historical murder rates do **not** provide evidence that the death penalty deters murder.
+
+The argument becomes clear when we just draw a picture of the data.  First, let's load the data:
+
+```{python}
+# This table has data about murder rates over time in different states.
+murder_rates = Table.read_table("crime_rates.csv").select(['State', 'Year', 'Population', 'Murder Rate'])
+murder_rates.set_format(2, NumberFormatter)
+murder_rates.show(10)
+
+# This table tells us whether each state had the death penalty in 1972.
+# (The states that didn't have the death penalty weren't affected by the
+# Supreme Court ban, so they're like a control group.)
+death_penalty = Table.read_table("death_penalty.csv")
+death_penalty.show(10)
+```
+
+What plot should we draw?
+
+We know that we want to compare murder rates of states with and without the death penalty.  Perhaps it would be reasonable to look at the average murder rates for those two groups, so we'll try that.  For each year, we'll compute the average murder rate in states without the death penalty and in those with the death penalty.
+
+First it will help to figure out, for each row in `murder_rates`, whether that state had the death penalty.  Concretely, we want to add a column to `murder_rates` that says something like "yes" if that state had the death penalty and "no" otherwise.
+
+**Question 1.1.** Do that by joining the `murder_rates` and `death_penalty` tables.  We covered `join` briefly in lab 8, and there will be more extensive use of join in lab 10.  If you're stuck, ask a neighbor, run the tests for the answer.
+
+```{python}
+murder_rates_with_death_penalty = ...
+murder_rates_with_death_penalty
+```
+
+```{python}
+_ = lab09.grade("q11")
+```
+
+Now we'll average across the death penalty states for each year, and do the same for the non-death penalty states.  The easiest way to do that is with `pivot`.  Here's how we have students do that:
+
+```{python}
+average_murder_rates = murder_rates_with_death_penalty.pivot("Death Penalty", "Year", "Murder Rate", np.mean)
+average_murder_rates
+```
+
+`pivot` just groups data according to 2 columns, but it's a little mysterious for students, and maybe for you, too.  If you'd like, try to redo the analysis here using `groups` or `where` or some other method.
+
+In any case, now we can make our plot:
+
+```{python}
+average_murder_rates.plot("Year")
+```
+
+The plot suggests a very different conclusion: Murder rates in states with and without the death penalty change in pretty much the same way.  In particular, murder rates were rising everywhere throughout the early 1970s, and falling everywhere in the mid-1970s.  There's no radical departure of the two groups around 1972 or 1976.  In particular, the slight dip in murder rates among the no-death-penalty states in 1972 looks like a fluke when we include the years around it.
+
+For further evidence, we can include murder rates from Canada over this period.
+
+```{python}
+# Load the Canadian data:
+canada = Table.read_table('canada.csv')
+canada
+```
+
+```{python}
+# Add the Canadian data for each year to our average_murder_rates table.
+average_murder_rates_with_canada = average_murder_rates.join("Year", canada.select(["Year", "Homicide"]).relabeled("Homicide", "Canada"))
+# Plot all three time series together.
+average_murder_rates_with_canada.plot('Year')
+```
+
+Though murder rates are overall much lower in Canada, they moved in a similar way, providing further evidence that trends were similar regardless of the "treatment" of removing the death penalty in 1972.
+
+Of course, this should not really be the end of the analysis.  The intended lesson is that a good graph can be more informative than a precise statistical analysis that doesn't look at the data in the right way.
+
+
+# 2. Water usage and maps
+Now we'll see a slice of project 1.
+
+The water data for the project was procured from the [California State Water Resources Control Board](http://www2.pacinst.org/gpcd/table.html) and curated by the [Pacific Institute](http://pacinst.org/). The map data includes [US topography](https://github.com/jgoodall/us-maps), [California counties](https://github.com/johan/world.geo.json/tree/master/countries/USA/CA), and [ZIP codes](http://bl.ocks.org/jefffriesen/6892860).
+
+The dataset on income comes from the IRS ([documentation](http://www.irs.gov/pub/irs-soi/13zpdoc.doc)).  We have identified some interesting columns in the dataset, but a full description of all the columns (and a definition of the population in the dataset and some interesting anonymization procedures they used) is available in this [description](irs_info.pdf).
+
+
+First, load the data. Loading may take some time.
+
+```{python}
+# Run this cell.
+districts = Map.read_geojson('water_districts.geojson')
+zips = Map.read_geojson('ca_zips.geojson.gz')
+```
+
+The `districts` and `zips` data sets are `Map` objects.  Like strings, numbers, or tables, maps have their own methods and their own behaviors.  Documentation on mapping in the `datascience` package can be found at [data8.org/datascience/maps.html](http://data8.org/datascience/maps.html).  
+
+To view a map of California's water districts, run the cell below. Click on a district to see its description.
+
+```{python}
+districts.format(width=400, height=200)
+```
+
+A `Map` is a collection of regions and other features such as points and markers, each of which has a **string** `id` and various properties.
+
+In fact, we can view the data in a map as a table, with one row for each separate thing drawn on the map.  That allows us, for example, to use table methods to view only parts of the map.
+
+Here's how to view the features of the `districts` map as a table:
+
+```{python}
+district_table = Table.from_records(districts.features)
+district_table.show(3)
+```
+
+To display a `Map` containing only two features from the `district_table`, call `Map` on a list containing those two features from the `feature` column.
+    
+For example, we can draw a map of the Alameda County Water District and the East Bay Municipal Utilities District:
+
+```{python}
+# The "|" here means "or", so think of this predicate as finding
+# districts whose names are equal to "Alameda County Water District"
+# OR equal to "East Bay Municipal Utilities District".
+predicate = are.equal_to("Alameda County Water District") | are.equal_to("East Bay Municipal Utilities District")
+alameda_and_east_bay = district_table.where("popupContent", predicate).column('feature')
+Map(alameda_and_east_bay, height=300, width=300)
+```
+
+*Hint*: If scrolling becomes slow on your computer, you can clear maps for the cells above by running `Cell > All Output > Clear` from the `Cell` menu.
+
+The table view is also useful because it's similar to how the data are stored in the computer.  [water_districts.geojson](water_districts.geojson) is like a text file version of `district_table`.  The geographic regions are specified by the GPS coordinates of their perimeters.  These data were publicly available, but a GSI (Ross Boczar) had to do quite a bit of wrangling to get them into a usable form.
+
+
+#### Roadmap
+In the actual project, we have students:
+1. Use IRS data to compute the average income (and proportion of farmers) in each California zip code.
+2. Match zip codes to water districts to compute the (rough) average income in each water district.
+3. Load data about water usage in each water district, and join that with the income data.
+
+If you want to dive into the details of these analyses, you can find the actual project [here](https://data8.berkeley.edu/hub/interact?repo=data8assets&path=labs/project1).  Here we'll mostly look at the visualizations students make at each step.
+
+After wrangling the IRS data for awhile, students arrive at the following table:
+
+```{python}
+income = Table.read_table("income.csv")
+income
+```
+
+**Question 1.1.** Among the tax returns in California for ZIP codes represented in the `incomes` table, is there an association between income and living in a ZIP code with a higher-than-average proportion of farmers?  Investigate by comparing two histograms: the average incomes of ZIP codes that have above-average vs below-average proportions of farmers. Among which kind of ZIP code is there more variability in average incomes?
+
+The histogram is displayed here:
+
+<img src="https://i.imgur.com/jicA2to.png"/>
+
+
+ZIP codes cover all the land in California and do not overlap. Here's a map of all of them.
+
+<img src="california-zip-code-map.jpg" alt="CA ZIP Codes"/>
+
+(You can also display our actual ZIP code data by making a new code cell and writing `zips`.  But it will take a few minutes to draw the map, so you might not want to do that.)
+
+
+**Question 1.2.** Among the ZIP codes represented in the `incomes` table, is there an association between high average income and some aspect of the ZIP code's location?  Run the cell below to draw a map of all ZIP codes that have an average income above 100,000 dollars.  *Then, describe an association that you observe.*
+
+```{python}
+# Identify the ZIP codes with high average incomes.
+avg_income = 1000 * income.column('total')/income.column('returns')
+high_average_zips = income.select('ZIP').with_column('Average Income', avg_income).where("Average Income", are.above(100000))
+
+# Get the map features for those ZIP codes.
+zip_features = Table.from_records(zips.features)
+zip_features.append_column("ZIP", zip_features.apply(int, "ZIP"))
+high_zips_with_region = high_average_zips.join('ZIP', zip_features)
+
+Map(list(high_zips_with_region.column('feature')), width=400, height=300)
+```
+
+*Replace this line with a description of your findings.*
+
+
+#### Water usage
+We will now investigate water usage in California.  The `usage` table below contains three columns:
+
+- `PWSID`: The Public Water Supply Identifier of the district
+- `Population`: Estimate of average population served in 2015
+- `Water`: Average residential water use (gallons per person per day) in 2014-2015
+
+```{python}
+# Run this cell to create the usage table.
+usage_raw = Table.read_table('water_usage.csv', dtype={'pwsid': str})
+usage_raw.set_format(4, NumberFormatter)
+max_pop = usage_raw.select([0, 'population']).group(0, max).relabeled(1, 'Population')
+avg_water = usage_raw.select([0, 'res_gpcd']).group(0, np.mean).relabeled(1, 'Water')
+usage = max_pop.join('pwsid', avg_water).relabeled(0, 'PWSID')
+usage
+```
+
+Now we can draw a map of the water districts, colored by the per capita water usage in each district.
+
+We've used the `districts.color(...)` method to generate the map. It takes as its first argument a two-column table with one row per district that has the district `PWSID` as its first column. The label of the second column is used in the legend of the map, and the values are used to color each region.
+
+```{python}
+per_capita_usage = usage.select(["PWSID", "Water"])
+districts.color(per_capita_usage, key_on='feature.properties.PWSID') 
+```
+
+**Question 1.3.** Based on the map above, which part of California appears to use more water per person, the San Francisco area or the Los Angeles area? 
+
+
+*Replace this line with a description of your findings.*
+
+
+#### Putting it together
+Finally, students write code to match ZIP codes with water districts.  The goal is to compare income with water usage.  Here is a table they arrive at (after much blood, sweat, and tears).
+
+```{python}
+district_data = Table.read_table("district_data.csv")
+district_data
+```
+
+**Question 1.4.** Make a scatter plot to investigate the relationship between average income and average water usage in California water districts.  *Hint:* After making your scatter plot, you may want to try using `where` to eliminate a few unusual districts to view the rest more clearly.
+
+```{python}
+district_data.where("Income", are.below(1000000)).where("Water", are.below(300)).scatter(3, 2, fit_line=True)
+```
+
+We've only scratched the surface of this dataset.  It's worth playing around with it.  Here are some raw datasets we worked with in the full project:
+
+```{python}
+income_raw = Table.read_table('ca_income_by_zip.csv', dtype={'ZIP': str}).drop(['STATEFIPS', 'STATE', 'agi_stub'])
+wd_vs_zip = Table.read_table('wd_vs_zip.csv', dtype={'PWSID': str, 'ZIP': str}).set_format([2, 3], PercentFormatter)
+```

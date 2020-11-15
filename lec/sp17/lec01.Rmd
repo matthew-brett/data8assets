@@ -1,0 +1,51 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+from datascience import *
+import numpy as np
+# %matplotlib inline
+import matplotlib.pyplot as plots
+plots.style.use('fivethirtyeight')
+import warnings
+warnings.simplefilter(action="ignore", category=FutureWarning)
+
+from urllib.request import urlopen 
+import re
+def read_url(url): 
+    return re.sub('\\s+', ' ', urlopen(url).read().decode())
+```
+
+```{python}
+little_women_url = 'http://data8.org/data8assets/lec/little_women.txt'
+little_women_text = read_url(little_women_url)
+chapters = little_women_text.split('CHAPTER ')[1:]
+```
+
+```{python}
+Table().with_columns([
+    "Jo",   np.char.count(chapters, "Jo"),
+    "Meg",  np.char.count(chapters, "Meg"),
+    "Amy",  np.char.count(chapters, "Amy"),
+    "Beth", np.char.count(chapters, "Beth"),
+    "Laurie", np.char.count(chapters, "Laurie")
+]).cumsum().plot(overlay=True)
+```
+
+```{python}
+Table().with_columns([
+        "Characters", [len(c) for c in chapters],
+        "Periods", np.char.count(chapters, "."),
+    ]).scatter('Periods')
+```

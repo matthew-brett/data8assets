@@ -1,0 +1,170 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+from datascience import *
+import numpy as np
+
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+plt.style.use('fivethirtyeight')
+# %matplotlib inline
+
+from ipywidgets import interact, interactive, fixed, interact_manual
+import ipywidgets as widgets
+```
+
+## Defining a classifier
+
+```{python}
+patients = Table.read_table('http://inferentialthinking.com/notebooks/breast-cancer.csv').drop('ID')
+patients.show(5)
+```
+
+```{python}
+patients.scatter('Bland Chromatin', 'Single Epithelial Cell Size', colors='Class')
+```
+
+```{python}
+def randomize_column(a):
+    return a + np.random.normal(0.0, 0.09, size=len(a))
+
+jittered = Table().with_columns([
+        'Bland Chromatin (jittered)', 
+        randomize_column(patients.column('Bland Chromatin')),
+        'Single Epithelial Cell Size (jittered)', 
+        randomize_column(patients.column('Single Epithelial Cell Size')),
+        'Class',
+        patients.column('Class')
+    ])
+
+jittered.scatter(0, 1, colors='Class')
+```
+
+## Distance
+
+```{python}
+def distance(pt1, pt2):
+    """The distance between two points, represented as arrays."""
+    return np.sqrt(sum((pt1 - pt2) ** 2))
+
+def row_distance(row1, row2):
+    """The distance between two rows of a table."""
+    return distance(np.array(row1), np.array(row2))
+```
+
+```{python}
+attributes = patients.drop('Class')
+attributes.show(3)
+```
+
+```{python}
+row_distance(attributes.row(0), attributes.row(1))
+```
+
+```{python}
+row_distance(attributes.row(0), attributes.row(0))
+```
+
+```{python}
+row_distance(attributes.row(0), attributes.row(2))
+```
+
+## Classification Procedure
+
+```{python}
+def distances(training, example):
+    """Compute the distance from example for each row in training."""
+    dists = []
+    attributes = training.drop('Class')
+    for row in attributes.rows:
+        dists.append(row_distance(row, example))
+    return training.with_column('Distance', dists)
+
+def closest(training, example, k):
+    """Return a table of the k closest neighbors to example."""
+    return distances(training, example).sort('Distance').take(np.arange(k))
+```
+
+```{python}
+patients.take(12)
+```
+
+```{python}
+example = patients.drop('Class').row(12)
+example
+```
+
+```{python}
+closest(patients.exclude(12), example, 5)
+```
+
+```{python}
+def majority_class(top_k):
+    """Return the class with the highest count."""
+    return top_k.group('Class').sort('count', descending=True).column(0).item(0)
+
+def classify(training, example, k):
+    """Return the majority class among the k nearest neighbors."""
+    return majority_class(closest(training, example, k))
+```
+
+```{python}
+classify(patients.exclude(12), example, 5)
+```
+
+## Evaluation
+
+```{python}
+patients.num_rows
+```
+
+```{python}
+shuffled = patients.sample(with_replacement=False) # Randomly permute the rows
+trainset = shuffled.take(range(342))
+testset  = shuffled.take(range(342, 683))
+```
+
+```{python}
+def evaluate_accuracy(training, test, k):
+    test_attributes = test.drop('Class')
+    numcorrect = 0
+    for i in range(test.num_rows):
+        # Run the classifier on the ith patient in the test set
+        c = classify(training, test_attributes.row(i), k)
+        # Was the classifier's prediction correct?
+        if c == test.column('Class').item(i):
+            numcorrect = numcorrect + 1
+    return numcorrect / test.num_rows
+```
+
+```{python}
+evaluate_accuracy(trainset, testset, 5)
+```
+
+```{python}
+evaluate_accuracy(trainset, testset, 1)
+```
+
+```{python}
+evaluate_accuracy(trainset, trainset, 5)
+```
+
+```{python}
+evaluate_accuracy(trainset, trainset, 1)
+```
+
+```{python}
+
+```

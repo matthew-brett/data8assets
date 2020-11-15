@@ -1,0 +1,467 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+# Lab 10: Project 2 Intro
+
+# 0. Intro
+Welcome to Lab 10!
+
+Today's lab is designed to be started in a group guided by a TA.  It's a review of some tricky concepts in classification.  Learning these ideas will help you when you work on Project 2.
+
+This lab **won't be collected**.  As usual, tests are provided to give you quick feedback on your answers.
+
+```{python}
+# Run this cell, but please don't change it.
+
+# These lines import the Numpy and Datascience modules.
+import numpy as np
+from datascience import *
+
+# These lines do some fancy plotting magic.
+import matplotlib
+# %matplotlib inline
+import matplotlib.pyplot as plt
+plt.style.use('fivethirtyeight')
+import warnings
+warnings.simplefilter('ignore', FutureWarning)
+
+from lab10_knn import *
+
+# These lines load the tests.
+from client.api.assignment import load_assignment 
+lab10 = load_assignment('lab10.ok')
+```
+
+# 1. What is classification?
+### Classification
+Classification is a special kind of prediction.  We see some information about an entity and we want to predict other information about that entity.  The predicted information is *categorical*, like "Yes" or "No", not *numeric*, like 5 or 5.1.
+
+Unfortunately, practitioners use different terms for these things.  Entities might also be called *examples*.  The information we see about each entity is called its *attributes* or *features*.  The thing we’re trying to predict about each entity is called its *outcome*, *class*, *label*, or *true value*.  Our prediction itself is called a *predicted outcome*, *predicted class*, *predicted label*, or *predicted value*.
+
+In Project 2, the entities are songs, the features are data on the song’s lyrics (the words in the song), and the class will be the song’s genre (country or hip-hop).  Below is a table called `lyrics` with a small example of song data.  Each row represents a song.  The first column is the true label of each song.  The other columns record how frequently the words "the", "a", "style", "girl", "boy", "yo", and "truck" appeared in the song.  In the actual project, the data are much richer than this.
+
+```{python}
+lyrics = Table.read_table("lyrics_example.csv")
+lyrics
+```
+
+### Classifiers
+A *classifier* is a piece of software that takes in information about something and produces a predicted value.
+
+In the project your classifier will be a Python function that takes data on a song’s lyrics as an argument and returns a string like “Hip-hop” or “Country”.
+
+<img src="1_classifier.jpg">
+
+For concreteness, here's an example of a simple and very inaccurate song-genre classifier.  It's fully documented so you can figure out how to call it.
+
+```{python}
+def really_bad_classifier(song_features):
+    """
+    Produces a predicted label for a song with the given features.
+    
+    song_features should be a row of a table like lyrics, except that
+    it shouldn't include the column with the true label.  For example,
+    you could call this function like this to classify the first
+    example in the lyrics table:
+    
+      really_bad_classifier(lyrics.drop("Genre").row(0))
+    
+    Returns a string that's the predicted label for the given song.
+    In this case, labels are the string "Country" or "Hip-hop".
+    
+    This function actually doesn't do anything intelligent, as you
+    can see below.
+    """
+    # We just check whether the thousandths digit of the first
+    # feature is odd or even.
+    if (1000 * song_features.item(0)) % 2 == 0:
+        return "Country"
+    else:
+        return "Hip-hop"
+```
+
+**Question 1.1.** Compute `really_bad_classifier`'s predictions for the songs in `lyrics` with indices 90 through 94 (inclusive).
+
+*Hint:* Two Table methods will be useful:
+* If `t` is a table, then `t.take(range(3, 6))` is a smaller version of `t` with only rows 3, 4, and 5.
+* `t.apply(f)` calls the function `f` on each *row* in the table `t`, producing an array of the values returned by `f` for each row.  It's the same as saying `np.array([f(t.row(0)), f(t.row(1)), f(t.row(2), ...])`.  `t.row(i)` is basically a list of the things in row `i` of table `t`.
+
+```{python}
+bad_predictions = ...
+bad_predictions
+```
+
+```{python}
+_ = lab10.grade("q11")
+```
+
+**Question 1.2.** Compute the proportion of right answers `really_bad_classifier` got on that 5-song dataset.
+
+```{python}
+proportion_right_answers = ...
+proportion_right_answers
+```
+
+```{python}
+_ = lab10.grade("q12")
+```
+
+### Making a classifier
+The classification methods we’re looking at in this class require examples of labeled data.  That is, we need some data where we know both the features and the true label.  We use that data to *train* a classifier to make predictions that match many of the true labels for the training data.  Hopefully it will make good predictions for other data it hasn't seen, too.
+
+<img src="1_training.jpg">
+
+The box that takes training data and makes a classifier is *itself* a Python function, which we might call a training function.  Since a classifier is a function, a training function that produces a classifier is a *higher-order function* -- a function that returns another function.
+
+`make_classifier` in the next cell is an example of a training function.  To avoid spoilers, it makes classifiers that aren't quite the same as the k-Nearest Neighbors classifiers you'll work with in the project.
+
+```{python}
+def make_classifier(training_data):
+    """
+    Takes a table of labeled examples and returns a classifier function
+    trained on that data.
+    
+    The resulting classifier function behaves like really_bad_classifier
+    in exercise 1.1, in the sense that it takes the same arguments and
+    produces the same kind of output.  It produces slightly more sensible
+    results than really_bad_classifier.
+    
+    training_data should be a table of data like the lyrics table.  Each
+    row should represent one song.  Its first column should be the true
+    genre of each song.  All other columns should be features.
+    """
+    averages_by_genre = training_data.group("Genre", np.mean)
+    country_averages = np.array(averages_by_genre.where("Genre", "Country").drop("Genre").row(0))
+    hiphop_averages = np.array(averages_by_genre.where("Genre", "Hip-hop").drop("Genre").row(0))
+    
+    def classifier(features):
+        features_array = np.array(features)
+        if sum(abs(features_array - country_averages)) <= sum(abs(features_array - hiphop_averages)):
+            return "Country"
+        else:
+            return "Hip-hop"
+    
+    return classifier
+```
+
+**Question 1.3.** Read the documentation of the function `make_classifier`.  Use it to make a classifier function called `my_classifier`.
+
+```{python}
+my_classifier = ...
+```
+
+```{python}
+_ = lab10.grade("q13")
+```
+
+**Question 1.4.** Use `my_classifier` to make a prediction for the song with index 90 in `lyrics`.
+
+*Hint:* If you get an error like "`TypeError: ufunc 'subtract' did not contain...`", make sure you're calling `my_classifier` with only the *features* in the `lyrics` table.  It will be confused if your row includes the actual genre of the song.
+
+*Hint 2:* If you get an error like "`ValueError: invalid __array_struct__`", make sure you're calling `my_classifier` with a *row* of the `lyrics` table (using `.row(...)`), not a table containing only one row.
+
+```{python}
+prediction = ...
+prediction
+```
+
+```{python}
+_ = lab10.grade("q14")
+```
+
+# 2. Goals of classification
+### What is our goal when we classify?
+
+We have some *population* of songs in mind, and we're eventually going to use our classifier to make predictions about songs from that population.  That means we care about the proportion of correct predictions our classifier makes *for that entire population*.  An ideal song classifier would work well on all the hip-hop and country songs that have ever been written or will ever be written.  We might have to settle for something that works well on the songs we have available to us.
+
+<img src="2_population_accuracy.jpg">
+
+
+### How do we try to make a classifier that meets that goal?
+We usually don’t have access to the outcomes of everything in the population.  If we did, we wouldn't be interested in predicting them!
+
+The fact that we don't know about the whole population raises difficulties both in *training a good classifier* and in *measuring how well our classifier works*.  First let's talk about training.
+
+A typical case is that we have data from a sample of the population.  It might not be a simple random sample.  For example, we can't know about songs that will be written in the future, even if we want our classifier to work well on them.  In the project, we have a dataset of about 1800 songs whose lyrics and genres were recorded in an online database.
+
+To train a classifier, we use our available sample -- our *training set* -- to make a classifier that we hope works well on the population.  To classify a song whose label we don't know, the idea is generally to find songs in the training set that are similar to the song, and to use those songs' labels to predict the song's label.
+
+<img src="2_sample_training.jpg">
+
+Here's a lightning review of what a k-Nearest-Neighbors classifier does.  To classify a song, it finds `k` songs in the training set whose lyrics are most similar to the song (as measured by Euclidean distance between the word frequencies).  It predicts that the song's genre is the genre most common among those similar songs.  For details about k-Nearest-Neighbors classification, you might want to review the [lecture webcast](https://data-8.appspot.com/sp16/unit?unit=5&lesson=24) or the [textbook chapter](http://www.inferentialthinking.com/chapter4/classification.html) on classification.
+
+Below is a picture of a small made-up training set with only 2 features (which is the most we can easily visualize).  Each point represents a song.  On the horizontal axis is the frequency of the word "style", and on the vertical axis is the frequency of the word "truck".  Blue triangles are hip-hop songs and red circles are country songs.  We've placed the axes a bit below 0% for visual clarity.
+
+<img src="2_training_graph.jpg">
+
+
+**Question 2.1.** Why are so many of the points at 0% for one or both features?
+
+
+*Write your answer here, replacing this text.*
+
+
+**Question 2.2.** How would a 3-Nearest Neighbor classifier trained on this data classify a song located at the center of the big star?
+
+<img src="2_2_song.jpg">
+
+```{python}
+# Set this to either the string "Country" or the string "Hip-hop",
+# depending on how you think a 3-NN classifier will classify the
+# star.
+q22_classification = ...
+```
+
+```{python}
+_ = lab10.grade("q22")
+```
+
+**Question 2.3.** How would a 1-Nearest Neighbor classifier trained on the same data classify that song?
+
+```{python}
+# Set this to either the string "Country" or the string "Hip-hop",
+# depending on how you think a 1-NN classifier will classify the
+# star.
+q23_classification = ...
+```
+
+```{python}
+_ = lab10.grade("q23")
+```
+
+**Question 2.4.** How would a 3-Nearest Neighbor classifier classify a song located at the center of the big star?
+
+<img src="2_4_song.jpg">
+
+```{python}
+# Set this to either the string "Country" or the string "Hip-hop",
+# depending on how you think a 3-NN classifier will classify the
+# star.
+q24_classification = ...
+```
+
+```{python}
+_ = lab10.grade("q24")
+```
+
+**Question 2.5.** How would a 1-Nearest Neighbor classifier classify that song?
+
+```{python}
+# Set this to either the string "Country" or the string "Hip-hop",
+# depending on how you think a 1-NN classifier will classify the
+# star.
+q25_classification = ...
+```
+
+```{python}
+_ = lab10.grade("q25")
+```
+
+**Question 2.6.** Describe two regions of "style"-"truck" space (that is, two regions of the graph) where a 1-Nearest Neighbor classifier makes decisions that seem wrong.
+
+
+*Write your answer here, replacing this text.*
+
+
+### How do we measure whether we’ve met our goals?
+k-Nearest Neighbors sounds reasonable, but as you saw above, it's not always going to work well.  Depending on the application, the consequences of bad classication could range from losing a company money to endangering patients' lives.  So before we use a classifier, it's important to verify that it works well enough for the application.
+
+Ideally, we'd make a prediction for everyone in the population and check how many we get right, in the same way you checked a classifier's accuracy for a few songs in question 1.2.
+
+<img src="2_population_accuracy_redux.jpg">
+
+But again, we don’t have access to the outcomes of everyone in the population.
+This is a problem we’ve seen and solved before.  When pollsters want to find out what proportion of people in a population will vote for a candidate, they take a random sample and estimate the population proportion by the sample proportion.
+
+<img src="2_polling_example.jpg">
+
+Similarly, we can compute the accuracy of our classifier on a sample that we do have access to.
+
+<img src="2_sample_accuracy.jpg">
+
+In practice we usually have access to just 1 dataset, so we use part of it to train and the rest to test, simulating two separate samples from the population.  Often the first step in a data analysis is to split all the available data into a training set and a test set.
+
+
+Why do we use separate data for training and test?  Because a classifier will often work better on its training data than on the rest of the population.  If we train and test on the same data, the picture looks like this:
+
+<img src="2_test_on_training.jpg">
+
+...but if we use separate data, then it looks like this:
+
+<img src="2_test_on_test.jpg">
+
+**Question 2.7.** Explain this phenomenon in your own words.  Concretely, say that we have one random sample from the population and we use that whole sample to train **and** the same sample to test.  Why isn’t that like testing on a separate random sample from the population?
+
+
+*Write your answer here, replacing this text.*
+
+
+### An example
+Suppose we train a 1-Nearest Neighbor classifier on the training data in this picture:
+
+<img src="2_training_graph.jpg">
+
+We'll use the classifier trained on this data for questions 2.8 through 2.9.
+
+**Question 2.8.** What is the accuracy of the classifier on *the same training set*?  That is, what proportion of songs in the training set are correctly classified?
+
+```{python}
+q28_accuracy = ...
+```
+
+```{python}
+_ = lab10.grade("q28")
+```
+
+Now suppose our population actually looks like this:
+
+<img src="2_population_graph.jpg">
+
+**Question 2.9.** Is the true accuracy (the accuracy on the whole population) of the classifier roughly the same as its accuracy on the training set, which we computed above?
+
+
+*Write your answer here, replacing this text.*
+
+
+Now we take a new sample from the population (disjoint from the training set) and use that as our test set.  The training set (the same one we've been using for this whole section) is overlaid for convenience.
+
+<img src="2_test_graph.jpg">
+
+**Question 2.10.** What is the exact accuracy of the 1-Nearest Neighbor classifier on this test set?  You'll have to manually examine each point.
+
+```{python}
+q210_accuracy = ...
+```
+
+```{python}
+_ = lab10.grade("q210")
+```
+
+# 3. Beyond train/test: Model selection
+The ideas in this section are used in part 4 of Project 2, in which you'll try to find good features and a good value of `k`.  You might want to revisit this section if you get stuck or confused when you're working on that part of the project.
+
+### What if we want to try out several classifiers and pick the best one?
+Here's a scenario a student brought up in class: Suppose we'd like to do k-Nearest Neighbors, but we don't know how to pick `k`.
+
+Here's a simple solution: Take your training data and train a 1-NN classifier, a 3-NN classifier, a 5-NN classifier, and so on.  Then check each one's accuracy on another sample from the population and pick the one with the best accuracy on that sample.  We call this new sample the "validation set" for reasons we'll discuss soon.
+
+<img src="3_model_selection.jpg">
+
+That simple solution is a pretty good idea!  This procedure -- trying lots of classifiers and picking the best -- is called *model selection*.
+
+
+**Question 3.1.** Complete the function below called `make_best_knn_classifier`.  It takes two arguments: a training set and a validation set.  Both are tables with the same columns as `lyrics`, whose first column is the song's genre.  `make_best_knn_classifier` should return a k-Nearest Neighbors classifier trained on the training set.  (That's a function, so `make_best_knn_classifier` is a higher-order function.)  It should choose the value of `k` from among the numbers 1, 3, 5, 7, and 9 using the procedure from the picture above:
+1. Train one k-Nearest Neighbors classifier for each value of `k`.
+2. Compute each classifier's accuracy on the validation set.
+3. Choose the classifier with the best validation-set accuracy.  (For example, in the picture, that turned out to be the 5-Nearest Neighbors classifier.)  Return that classifier.
+
+We've filled in most of the function for you, including the part that trains k-Nearest Neighbors classifiers.  You'll do that part in Project 2.
+
+```{python}
+def make_best_knn_classifier(training_set, validation_set):
+    ks = np.arange(1, 11, 2)
+    classifiers = Table().with_column("k", ks)
+    
+    def make_classifier_for_k(k):
+        # make_knn_classifier behaves like make_classifier, except that
+        # it produces a k-Nearest Neighbor classifier.  It therefore
+        # takes two arguments: A training set (like make_classifier did)
+        # and an odd integer to use as k.  It returns a classifier.
+        return make_knn_classifier(training_set, k)
+    
+    classifiers.append_column("classifier", classifiers.apply(make_classifier_for_k, "k"))
+    
+    def validation_accuracy(classifier):
+        predicted_labels = validation_set.drop(0).apply(classifier)
+        true_labels = validation_set.column(0)
+        validation_set_size = validation_set.num_rows
+        num_correct_classifications = np.count_nonzero(predicted_labels == true_labels)
+        return num_correct_classifications / validation_set_size
+    
+    # START FILLING IN CODE BELOW HERE.
+    # So far we've generated a table with one row for each each value
+    # of k, and two columns:
+    #   "k":           The value of k.
+    #   "classifier":  A k-Nearest Neighbor classifier trained on
+    #                  training_set.  (Yes, we're storing *functions*
+    #                  in a table.)
+    # Add a column to this table called "accuracy" that is the accuracy
+    # of each classifier on the validation set.
+    # Hint: Use validation_accuracy, which we've written above.
+    classifiers.append_column(
+            "accuracy",
+            ...
+        )
+    
+    # Now we've computed the accuracy of each classifier.  Return the
+    # classifier with the best accuracy.  Again, the classifier
+    # functions are stored in the "classifier" column of the classifiers
+    # table.
+    ...
+```
+
+```{python}
+_ = lab10.grade("q31")
+```
+
+### How do we test this?
+Suppose you use `make_best_knn_classifier` to make a classifier.  You consider using the accuracy of that classifier on the validation set, which you computed in `classifiers.column("accuracy")` inside `make_best_knn_classifier`, as an estimate of its accuracy in the population.  Is that a good idea?
+
+No!
+
+You should think of `make_best_knn_classifier` as a big compound training procedure that produced one classifier.  It’s like when you found the best line in linear regression by trying lots of lines, except that now we’re finding the best k.  Inside that training procedure, you peeked at the validation set to pick the classifier you used.  You used it for a different purpose than the training set, but you still used it.  So you’re going to do better on that data than on the rest of the population.  We have to make yet another test set to test out this one.
+
+That's why we call the second argument to `make_best_knn_classifier` the "validation set."  We reserve the name "test set" for the dataset you test on at the very end, once you’ve built the model you’re finally going to use.
+
+Here's a picture of the right procedure for training and testing a classifier with `make_best_knn_classifier`:
+
+<img src="3_validation.jpg">
+
+
+**Question 3.2.** Call `make_best_knn_classifier` to make a classifier, using the first 80 examples in `lyrics` as a training set and the next 10 examples as a validation set.  Call the classifier `best_knn_classifier`.
+
+```{python}
+# Set best_knn_classifier to the classifier produced by make_best_knn_classifier
+# on the datasets described above.
+best_knn_classifier = ...
+```
+
+```{python}
+_ = lab10.grade("q32")
+```
+
+**Question 3.3.** Test the performance of `best_knn_classifier` on the last 10 examples in `lyrics`.  That is, compute the proportion of correct classifications it makes for that dataset.
+
+```{python}
+# We recommend computing the test set table first and calling it q33_test_set.
+q33_test_set = ...
+# Now compute the proportion of correct answers best_knn_classifier gives on
+# q33_test_set.
+q33_accuracy = ...
+q33_accuracy
+```
+
+```{python}
+_ = lab10.grade("q33")
+```
+
+Since you only used 10 songs to test your classifier, you should be skeptical about `q33_accuracy`, just like you'd be skeptical about a poll of only 10 voters.  In the project you'll use larger datasets to get better classifiers and more plausible accuracy numbers.
+
+```{python}
+# For your convenience, you can run this cell to run all the tests at once!
+import os
+print("Running all tests...")
+_ = [lab10.grade(q[:-3]) for q in os.listdir("tests") if q.startswith('q')]
+print("Finished running all tests.")
+```

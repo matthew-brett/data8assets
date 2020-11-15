@@ -1,0 +1,163 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python deletable=TRUE, editable=TRUE}
+from datascience import *
+import numpy as np
+
+import matplotlib.pyplot as plots
+plots.style.use('fivethirtyeight')
+# %matplotlib inline
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Central Limit Theorem
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+united = Table.read_table('http://inferentialthinking.com/notebooks/united_summer2015.csv')
+delay = united.select('Delay')
+delay.hist(bins=30)
+
+mean_delay = np.mean(delay.column(0))
+sd_delay = np.std(delay.column(0))
+print('mean:', mean_delay,' ; SD:', sd_delay)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+def sample_means(sample_size):
+    means = []
+    for i in np.arange(10000):
+        sample = delay.sample(sample_size)
+        means.append(np.mean(sample.column(0)))
+    return means
+
+def variability(sample_size):
+    means = sample_means(sample_size)
+    Table().with_column('Sample mean', means).hist(bins=30, unit='minute')
+    sqrt_n = np.sqrt(sample_size)
+    print('Sample size:          ', sample_size)
+    print('Square root n:        ', sqrt_n)
+    print('Sample mean SD:       ', np.std(means)) # 7 spaces
+    print(sd_delay, '/', sqrt_n, '=', sd_delay / sqrt_n)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+variability(900)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+variability(4)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+variability(20)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+variability(50)
+```
+
+## Discussion
+
+```{python}
+0.975 ** 100
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Experiment Design
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+votes = [1, 1, 1, 1, 1, 0, 0, 0, 0, 0]
+np.std(votes)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+votes = [1, 1, 1, 0, 0, 0, 0, 0, 0, 0]
+np.std(votes)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+votes = [1, 1, 0, 0, 0, 0, 0, 0, 0, 0]
+np.std(votes)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+votes = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+np.std(votes)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+votes = [1, 1, 1, 1, 1, 1, 1, 0, 0, 0]
+np.std(votes)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+votes = [1, 1, 1, 1, 1, 1, 1, 1, 0, 0]
+np.std(votes)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+votes = [1, 1, 1, 1, 1, 1, 1, 1, 1, 0]
+np.std(votes)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+worst_sd_of_population = 0.5
+width_in_sds = 4 # For 95% of a normal distribution, mean +/- 2 SDs
+desired_width = 0.03 
+sample_size = (worst_sd_of_population * width_in_sds / desired_width) ** 2
+sample_size
+```
+
+```{python deletable=TRUE, editable=TRUE}
+n = 4445
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+### Conducting the experiment
+<!-- #endregion -->
+
+```{python}
+# Hide before lecture
+voters = Table().with_column(
+    'Candidate', ['A', 'B'],
+    'Chance',    [0.5, 0.5]) # Might be different in live lecture!
+```
+
+```{python}
+voters.labels
+```
+
+```{python}
+voters.select(0)
+```
+
+```{python}
+sum(voters.column(1))
+```
+
+```{python deletable=TRUE, editable=TRUE}
+observed_sample = voters.select(0).sample(n, weights=coin.column('Chance'))
+observed_sample
+```
+
+```{python deletable=TRUE, editable=TRUE}
+means = []
+for i in np.arange(1000):
+    resample = observed_sample.sample()
+    means.append(np.count_nonzero(resample.column(0) == 'A') / n)
+print(percentile(2.5, means), percentile(97.5, means))
+```

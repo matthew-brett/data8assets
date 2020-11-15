@@ -1,0 +1,176 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+from datascience import *
+import numpy as np
+
+import matplotlib.pyplot as plots
+plots.style.use('fivethirtyeight')
+# %matplotlib inline
+```
+
+## Central Limit Theorem
+
+```{python}
+coin = Table().with_column(
+    'Face', ['Heads', 'Tails'],
+    'Chance', [0.6, 0.4])
+coin
+
+```
+
+```{python}
+sample = coin.sample_from_distribution('Chance', 1000)
+sample
+```
+
+```{python}
+sample.column(2).item(0)
+```
+
+```{python}
+heads = []
+for i in np.arange(10000):
+    sample = coin.sample_from_distribution('Chance', 1000)
+    heads.append(sample.column(2).item(0))
+```
+
+```{python}
+Table().with_column('Number of heads', heads).hist(bins=25)
+```
+
+```{python}
+united = Table.read_table('http://inferentialthinking.com/notebooks/united_summer2015.csv')
+united
+```
+
+```{python}
+united.hist('Delay', bins=30)
+```
+
+```{python}
+mean_delay = np.mean(united.column('Delay'))
+sd_delay = np.std(united.column('Delay'))
+
+mean_delay, sd_delay
+```
+
+```{python}
+delay = united.select('Delay')
+delay.show(3)
+```
+
+```{python}
+means = []
+for i in np.arange(10000):
+    sample = delay.sample(400)
+    means.append(np.mean(sample.column(0)))
+
+Table().with_column('Sample mean', means).hist(bins=30, unit='minute')
+```
+
+```{python}
+means = []
+for i in np.arange(10000):
+    sample = delay.sample(400)
+    means.append(np.mean(sample.column(0)))
+
+Table().with_column('Sample mean', means).hist(bins=30, unit='minute')
+```
+
+## Variability of the sample mean
+
+```{python}
+def sample_means(sample_size):
+    means = []
+    for i in np.arange(10000):
+        sample = delay.sample(sample_size)
+        means.append(np.mean(sample.column(0)))
+    return means
+sample_means(400)
+```
+
+```{python}
+Table().with_column(
+    '400', sample_means(400),
+    '900', sample_means(900),
+    '2500', sample_means(2500),
+).hist(bins=30, unit='minute')
+```
+
+```{python}
+sd_delay
+```
+
+```{python}
+def variability(sample_size):
+    means = sample_means(sample_size)
+    Table().with_column('Sample mean', means).hist(bins=30, unit='minute')
+    sqrt_n = np.sqrt(sample_size)
+    
+    print('Sample size:          ', sample_size)
+    print('Square root n:        ', sqrt_n)
+    print('Sample mean SD:       ', np.std(means))
+    print(sd_delay, '/', sqrt_n, '=', sd_delay / sqrt_n)
+```
+
+```{python}
+variability(400)
+```
+
+```{python}
+variability(800)
+```
+
+```{python}
+variability(3200)
+```
+
+```{python}
+variability(1)
+```
+
+```{python}
+variability(2)
+```
+
+```{python}
+variability(4)
+```
+
+```{python}
+variability(8)
+```
+
+```{python}
+
+variability(16)
+```
+
+```{python}
+variability(64)
+```
+
+```{python}
+variability(128)
+```
+
+```{python}
+x = 2
+```
+
+```{python}
+
+```

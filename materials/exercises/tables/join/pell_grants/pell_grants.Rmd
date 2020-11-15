@@ -1,0 +1,126 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+## Pell Grants by State
+
+```{python}
+# Run this cell to set up the notebook, but please don't change it.
+
+# These lines import the Numpy and Datascience modules.
+import numpy as np
+from datascience import *
+
+# These lines do some fancy plotting magic.
+import matplotlib
+# %matplotlib inline
+import matplotlib.pyplot as plt
+plt.style.use('fivethirtyeight')
+import warnings
+warnings.simplefilter('ignore', FutureWarning)
+
+# These lines load the tests.
+from client.api.assignment import load_assignment 
+tests = load_assignment('pell_grants.ok')
+```
+
+The US National Center for Education Statistics compiles information about US colleges and universities in the Integrated Postsecondary Education Data System (IPEDS).  Here's a [spreadsheet](https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=1&cad=rja&uact=8&ved=0ahUKEwjMocT62pHOAhUJ1GMKHenBCccQFggeMAA&url=http%3A%2F%2Fnces.ed.gov%2Fipeds%2Ftablefiles%2FtableDocs%2FIPEDS201314Tablesdoc.xlsx&usg=AFQjCNGfg7FWu8NNIQ5ABCDoUH_Yu6Tm0A&sig2=K-z7Bvv2fQSkKSHeYLtkBg) describing the tables in the IPEDS.  The full datasets are available [here](http://nces.ed.gov/ipeds/datacenter/DataFiles.aspx).
+
+In this assignment, we'll use IPEDS data to compute the proportion of college students in each US state who receive Pell grants, which are a kind of financial aid.  The data come from 2013.
+
+The data we need are spread across two IPEDS tables, so we'll have to use `join` to bring them together.
+
+First, run the cell below to load the IPEDS data.  (We've pared down the data to just a few columns for this exercise, but the original datasets are quite rich.)
+
+```{python}
+sfa = Table.read_table("sfa.csv")
+hd = Table.read_table("hd.csv")
+
+sfa.show(5)
+hd.show(5)
+```
+
+We want to compute the proportion of students in each *state* who receive Pell grants.  Right now we know:
+
+* how many students are at each *school* (the `sfa` table);
+* how many students received Pell grants at each school (also the `sfa` table); and
+* what state each school is in (the `hd` table).
+
+Let's work backward.  If we know the total number of students in each state and the total number of Pell grant recipients in each state, we can compute the proportions.  If we know how many students and Pell grant recipients were at each school, and we know what state each school is in, then we can group by state to compute the total number of students and Pell grant recipients per state.
+
+That means we first need to compile the state, student, and Pell grant recipient information for each school into a single table.
+
+To match data across tables, each school is assigned a unique identifier in the column named "Institution ID".
+
+
+**Question 1.** Make a table called `with_state` that includes one row for each school that's present in *both* `sfa` and `hd`.  Each row should have the school's ID, its number of undergraduate students, its number of Pell grant recipients, and its state.  (It's okay if it has other columns besides those four.)  Use the same names for those columns as the corresponding columns in the original data tables.
+
+```{python}
+with_state = ...
+with_state
+```
+
+```{python}
+_ = tests.grade('q1')
+```
+
+**Question 2.** Make a table called `students_and_grants_by_state` that has the total number of undergradutes and Pell grant recipients in each *state*.  Use the same names for those columns as the corresponding columns in the original data tables.
+
+```{python}
+students_and_grants_by_state = with_state.select(1, 2, 6)\
+                                         .group('State (abbreviated)', sum)\
+                                         .relabeled(1, "Number of Pell grant recipients")\
+                                         .relabeled(2, "Number of undergraduates")
+students_and_grants_by_state
+```
+
+```{python for_assignment_type=student}
+students_and_grants_by_state = ...
+students_and_grants_by_state
+```
+
+```{python}
+_ = tests.grade('q2')
+```
+
+**Question 3.** Create a table called `pell_proportions` with two columns: "State (abbreviated)" is the name of each state, and "Pell proportion" is the proportion of students in each state who receive Pell grants.
+
+```{python}
+proportions = students_and_grants_by_state.column("Number of Pell grant recipients") \
+              / students_and_grants_by_state.column("Number of undergraduates")
+pell_proportions = students_and_grants_by_state.drop(1, 2)\
+                                               .with_column("Pell proportion", proportions)
+pell_proportions
+```
+
+```{python}
+pell_proportions = ...
+pell_proportions
+```
+
+```{python}
+_ = tests.grade('q3')
+```
+
+```{python}
+# For your convenience, you can run this cell to run all the tests at once!
+import os
+_ = [tests.grade(q[:-3]) for q in os.listdir("tests") if q.startswith('q')]
+```
+
+```{python}
+# Run this cell to submit your work *after* you have passed all of the test cells.
+# It's ok to run this cell multiple times. Only your final submission will be scored.
+
+# !TZ=America/Los_Angeles ipython nbconvert --output=".pell_grants_$(date +%m%d_%H%M)_submission.html" pell_grants.ipynb
+```

@@ -1,0 +1,132 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+## Working with Text using Functions
+
+```{python}
+# Run this cell to set up the notebook, but please don't change it.
+
+# These lines import the Numpy and Datascience modules.
+import numpy as np
+from datascience import *
+
+# These lines load the tests.
+from client.api.assignment import load_assignment 
+tests = load_assignment('text_functions.ok')
+```
+
+The following array contains the words from four chapters of Charles Dickins' [A Tale of Two Cities](http://www.gutenberg.org/cache/epub/98/pg98.txt).  We're going to compute some simple facts about each chapter.  Since we're performing the same computation on each chapter, it's best to encapsulate each computational procedure in a function, and then call the function several times.
+
+```{python}
+# Just run this cell to load the data.
+tale_chapters = Table.read_table("tale.csv").column("Chapter text")
+tale_chapters
+```
+
+**Question 1.** Write a function called `word_count` that takes a single argument, the text of a single chapter, and returns the number of words in that chapter.  Assume that words are separated from each other by spaces.
+
+*Hint:* Try the string method `split` and the function `len`.
+
+```{python}
+def word_count(chapter_text):
+    return len(chapter_text.split(" "))
+
+word_count(tale_chapters.item(0))
+```
+
+```{python}
+...
+
+word_count(tale_chapters.item(0))
+```
+
+```{python}
+_ = tests.grade('q1')
+```
+
+**Question 2.** Create an array called `chapter_lengths` containing the length of each chapter in `tale_chapters`.
+
+```{python for_assignment_type=student}
+...
+```
+
+```{python}
+_ = tests.grade('q2')
+```
+
+**Question 3.** Write a function called `character_count`.  It should take a string as its argument and return the number of characters in that string that aren't spaces (" "), periods ("."), exclamation marks ("!"), or question marks ("?").
+
+*Hint:* Try using the string method `replace` several times to remove the characters we don't want to count.
+
+```{python for_assignment_type=student}
+...
+```
+
+```{python}
+_ = tests.grade('q3')
+```
+
+**Question 4.** Write a function called `chapter_number`.  It should take a single argument, the text of a chapter from our dataset, and return the number of that chapter, as a Roman numeral.  (For example, it should return the string "I" for the first chapter and "II" for the second.)  If the argument doesn't have a chapter number in the same place as the chapters in our dataset, `chapter_number` can return whatever you like.
+
+To help you with this, we've included a function called `text_before`.  Its documentation describes what it does.
+
+```{python}
+def text_before(full_text, pattern):
+    """Finds all the text that occurs in full_text before the specified pattern.
+
+    Parameters
+    ----------
+    full_text : str
+        The text we want to search within.
+    param2 : str
+        The thing we want to search for.
+
+    Returns
+    -------
+    str
+        All the text that occurs in full_text before pattern.  If pattern
+        doesn't appear anywhere, all of full_text is returned.
+    
+    Examples
+    --------
+    
+    >>> text_before("The rain in Spain falls mainly on the plain.", "Spain")
+    'The rain in '
+    >>> text_before("The rain in Spain falls mainly on the plain.", "ain")
+    'The r'
+    >>> text_before("The rain in Spain falls mainly on the plain.", "Portugal")
+    'The rain in Spain falls mainly on the plain.'
+    """
+    return np.array(full_text.split(pattern)).item(0)
+
+def chapter_number(chapter_text):
+    ...
+```
+
+```{python}
+_ = tests.grade('q4')
+```
+
+```{python}
+# For your convenience, you can run this cell to run all the tests at once!
+import os
+_ = [tests.grade(q[:-3]) for q in os.listdir("tests") if q.startswith('q')]
+```
+
+```{python}
+# Run this cell to submit your work *after* you have passed all of the test cells.
+# It's ok to run this cell multiple times. Only your final submission will be scored.
+
+# !TZ=America/Los_Angeles ipython nbconvert --output=".text_functions_$(date +%m%d_%H%M)_submission.html" text_functions.ipynb
+```

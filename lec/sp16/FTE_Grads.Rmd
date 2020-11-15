@@ -1,0 +1,204 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+# HIDDEN
+# This useful nonsense should just go at the top of your notebook.
+from datascience import *
+# %matplotlib inline
+import matplotlib.pyplot as plots
+import numpy as np
+from numpy import mean
+plots.style.use('fivethirtyeight')
+from ipywidgets import interact
+# datascience version number of last run of this notebook
+version.__version__
+```
+
+# A Computational Narrative about FTE and Graduates
+
+This computational document assumes the basic operations on individual tables 
+and illustrates the process of refining raw data into a form that can be worked
+with more sensibly and combines data from multiple tables.
+
+```{python}
+#raw_fte = Table.read_table("./data/deptFTE.csv")
+raw_fte = Table.read_table("https://deculler.github.io/DataScienceTableDemos/data/deptFTE.csv")
+raw_fte
+```
+
+```{python}
+fte = raw_fte.where(raw_fte['FTE'] > 0)
+fte
+```
+
+```{python}
+raw_degrees = Table().read_table("./data/DegreeCounts-1983-2016.csv")  # Raw degree data from CalAnswers
+raw_degrees
+```
+
+Six thousand rows!  Now that's hard to deal with mousing around in a spreadsheet.  But it is also hard to deal with the categories.  So let's clean it up.
+
+```{python}
+degree_rows = raw_degrees.where(raw_degrees['Academic Yr'] != '2015-16')
+degrees = degree_rows.drop('All Major Acad Hier Level Nm')
+degrees.relabel('Academic Yr', 'Year')
+degrees.relabel('Academic Department Short Nm', 'Dept')
+degrees.relabel('Reporting Clg School Short Nm', 'College')
+degrees.relabel('Academic Division Short Nm','Div')
+degrees.relabel('Student Headcount', 'Grads')
+degrees.relabel('Prorated Student Major Cnt Sum', 'Prorated')
+degrees['Year'] = degrees.apply(lambda x:int(x[0:4])+1, 'Year')
+degrees.show()
+```
+
+```{python}
+degrees.num_rows
+```
+
+```{python}
+Totals = degrees.select(['Year', 'DegLvlDesc', 'Grads']).groups(['Year', 'DegLvlDesc'], collect=sum)
+Totals
+```
+
+```{python}
+# Transpose this data into columns of years, per degree type, summing the number of grads.
+Grads_by_year = Totals.pivot('DegLvlDesc', 'Year', 'Grads sum', collect=sum)
+Grads_by_year
+```
+
+```{python}
+# What does this look like?
+Grads_by_year.plot('Year')
+```
+
+```{python}
+# Let's look at the last year of data
+degrees.where('Year', 2015)
+```
+
+```{python}
+graduates = degrees.where('Year', 2015).select(['DegLvlDesc', 'College', 'Dept', 'Grads']).pivot('DegLvlDesc', ['College', 'Dept'], 'Grads', collect=sum)
+graduates
+```
+
+# Joining data from multiple tables
+
+We now have FTE by dept and graduates by dept.  Join them together in a single table with both.
+
+```{python}
+fte.join('Dept',graduates )
+```
+
+```{python}
+depts = fte.join('Dept',graduates )
+depts['BA per FTE'] = depts['Bachelor'] / depts['FTE']
+depts.sort('Dept').show()
+```
+
+```{python}
+depts.where(depts['BA per FTE'] < 50).scatter('FTE', 'BA per FTE')
+```
+
+```{python}
+#raw_fte.where(raw_fte['FTE'] == 0).show()
+```
+
+```{python}
+depts = raw_fte.join('Dept',graduates )
+depts['BA per FTE'] = depts['Bachelor'] / depts['FTE']
+depts.sort('Dept').show()
+```
+
+```{python}
+depts = raw_fte.join('Dept',graduates.drop(['Doctoral', 'Masters/Professional']).where('Bachelor') )
+depts['BA per FTE'] = depts['Bachelor'] / depts['FTE']
+depts.sort('Dept').show()
+```
+
+```{python}
+depts.where('FTE', 0)
+```
+
+```{python}
+xlat = Table(['Dept', 'toDept']).with_rows([
+        ('L&S Chemistry', 'Chemistry'),
+        ('L&S Computer Science', 'Electrical Eng & Comp Sci'),
+        ('L&S Envir Econ & Policy', 'Env Sci, Policy, & Mgmt'),
+        ('L&S Legal Studies', 'Law'),
+        ('L&S Ops Rsch & Mgmt Sci', 'Industrial Eng & Ops Rsch'),
+        ('L&S Public Health', 'Public Health'),
+        ('L&S Social Welfare', 'Social Welfare')
+    ])
+xlat
+```
+
+```{python}
+def fix_dept(dept):
+    if dept in xlat['Dept']:
+        return xlat['toDept'][list(xlat['Dept']).index(dept)]
+    else:
+        return dept
+```
+
+```{python}
+fix_dept('History')
+```
+
+```{python}
+fix_dept('L&S Legal Studies')
+```
+
+```{python}
+BAs = graduates.drop(['Doctoral', 'Masters/Professional']).where('Bachelor')
+BAs['Dept'] = BAs.apply(fix_dept, 'Dept')
+gBAs = BAs.drop('College').group('Dept', collect = sum)
+gBAs.show()
+```
+
+```{python}
+gdepts = raw_fte.join('Dept',gBAs)
+gdepts['BA per FTE'] = gdepts['Bachelor sum'] / gdepts['FTE']
+gdepts.sort('Dept')
+```
+
+```{python}
+gdepts.where(gdepts['BA per FTE']<20).scatter('FTE', 'BA per FTE',fit_line=True)
+```
+
+```{python}
+gdepts.where(gdepts['BA per FTE']<20).sort('BA per FTE', descending=True)
+```
+
+```{python}
+
+```
+
+```{python}
+fte.groups('Div', collect=sum)
+```
+
+```{python}
+def sum_collect(s):
+    try:
+        return sum(s)
+    except TypeError:
+        if np.all(np.array(s) == s[0]):
+            return s[0]
+        else:
+            return s
+
+Divisions = fte.select(['Div', 'Dept', 'FTE']).group('Div', collect=sum_collect).show()
+Divisions
+```

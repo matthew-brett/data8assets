@@ -1,0 +1,68 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python deletable=TRUE, editable=TRUE}
+from datascience import *
+import numpy as np
+
+import matplotlib.pyplot as plots
+from mpl_toolkits.mplot3d import Axes3D
+plots.style.use('fivethirtyeight')
+# %matplotlib inline
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Classification examples
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+ckd = Table.read_table('ckd.csv').relabeled('Blood Glucose Random', 'Glucose')
+ckd.show(3)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+ckd.group('Class')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+ckd.scatter('White Blood Cell Count', 'Glucose', colors='Class')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+ckd.scatter('Hemoglobin', 'Glucose', colors='Class')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+banknotes = Table.read_table('banknote.csv')
+banknotes
+```
+
+```{python deletable=TRUE, editable=TRUE}
+banknotes.scatter('WaveletVar', 'WaveletCurt', colors='Class')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+banknotes.scatter('WaveletSkew', 'Entropy', colors='Class')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+fig = plots.figure(figsize=(8,8))
+ax = Axes3D(fig)
+ax.scatter(banknotes.column('WaveletSkew'), 
+           banknotes.column('WaveletVar'), 
+           banknotes.column('WaveletCurt'), 
+           c=banknotes.column('Class'),
+           cmap='viridis',
+          s=50);
+```

@@ -1,0 +1,137 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+## Review
+
+
+
+```{python}
+import numpy as np
+from datascience import *
+# %matplotlib inline
+np.set_printoptions(threshold=50)
+```
+
+```{python}
+# This table can be found online: https://www.statcrunch.com/app/index.php?dataid=1843341
+nba = Table.read_table('http://inferentialthinking.com/notebooks/nba_salaries.csv').relabeled(3, 'SALARY').drop(2)
+nba
+```
+
+```{python}
+nba.where(1, 'PG').where(2, are.above_or_equal_to(15)).column(0)
+```
+
+```{python}
+nba.with_row(['Sam Lau', 'Mascot', 100.0])
+nba.where('PLAYER', are.containing('Lau'))
+```
+
+## Population and Age
+
+```{python}
+# As of Jan 2017, this census file is online here: 
+data = 'http://www2.census.gov/programs-surveys/popest/datasets/2010-2015/national/asrh/nc-est2015-agesex-res.csv'
+
+# A copy can be accessed here in case census.gov moves the file:
+# data = 'http://inferentialthinking.com/notebooks/nc-est2015-agesex-res.csv'
+
+full_census_table = Table.read_table(data)
+full_census_table
+```
+
+```{python}
+partial = full_census_table.select('SEX', 'AGE', 'POPESTIMATE2010', 'POPESTIMATE2015')
+partial
+```
+
+```{python}
+us_pop = partial.relabeled('POPESTIMATE2010', '2010').relabeled('POPESTIMATE2015', '2015')
+us_pop
+```
+
+```{python}
+us_pop.column('2010')
+```
+
+```{python}
+us_pop.column('2015') - us_pop.column('2010')
+```
+
+```{python}
+change = us_pop.column('2015') - us_pop.column('2010')
+census = us_pop.with_columns(
+    'Change', change,
+    'Percent Change', change / us_pop.column('2010'),
+)
+census.set_format('Percent Change', PercentFormatter)
+```
+
+```{python}
+census.sort('Change', descending=True)
+```
+
+```{python}
+# What is the growth rate each year if we assume exponential growth?
+(321418820 / 309346863) ** (1/5) - 1
+```
+
+```{python}
+everyone = census.sort('Change', descending=True).row(0)
+(everyone.item(3) / everyone.item(2)) ** (1/5) - 1
+```
+
+```{python}
+census.sort('Change', descending=True)
+```
+
+```{python}
+2010 - 68 # 12/7/1941
+```
+
+```{python}
+2015 - 68 # 8/9/1945
+```
+
+```{python}
+us_pop.where('AGE', are.above(97)).show()
+```
+
+```{python}
+us_pop_2015 = us_pop.drop('2010')
+all_ages = us_pop_2015.where('AGE', 999)
+all_ages
+```
+
+```{python}
+total = all_ages.column('2015').item(0)
+all_ages.with_column(
+    'Proportion', all_ages.column('2015') / total,
+).set_format('Proportion', PercentFormatter)
+```
+
+```{python}
+infants = us_pop_2015.where('AGE', 0)
+infants
+```
+
+```{python}
+infants.with_column(
+    'Proportion', infants.column('2015') / infants.column('2015').item(0),
+).set_format('Proportion', PercentFormatter)
+```
+
+```{python}
+
+```

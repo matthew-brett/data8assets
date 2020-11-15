@@ -1,0 +1,115 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python deletable=TRUE, editable=TRUE}
+from datascience import *
+import numpy as np
+
+# %matplotlib inline
+import matplotlib.pyplot as plots
+plots.style.use('fivethirtyeight')
+
+np.set_printoptions(suppress=True)
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+- 60% of the students are Second Years and the remaining 40% are Third Years
+- 50% of the Second Years have declared their major
+- 80% of the Third Years have declared their major
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+40 / 8
+```
+
+```{python deletable=TRUE, editable=TRUE}
+40 // 8
+```
+
+```{python deletable=TRUE, editable=TRUE}
+np.array(['Second'] * (40//8))
+```
+
+```{python deletable=TRUE, editable=TRUE}
+k = 100
+second = round(k * 0.6)
+third = round(k * 0.4)
+
+year = np.array(['Second'] * second + ['Third'] * third)
+major = np.array(['Declared'] * (second//2) + ['Undeclared'] * (second//2) + \
+                 ['Declared'] * (4*third//5)  + ['Undeclared'] * (third//5))
+students = Table().with_columns(
+    'Year', year,
+    'Major', major
+)
+students.show(3)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+students.group('Year')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+students.pivot('Major', 'Year')
+```
+
+```{python}
+32/62
+```
+
+```{python}
+30/62
+```
+
+```{python deletable=TRUE, editable=TRUE}
+(0.4 * 0.8)/(0.6 * 0.5  +  0.4 * 0.8)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+(0.6 * 0.5)/(0.6 * 0.5  +  0.4 * 0.8)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+1/1000
+```
+
+```{python}
+(1/1000 * 1) / (1/1000 * 1 + 999/1000 * 5/100)
+```
+
+```{python}
+1 / (1 + 999 * 5/100)
+```
+
+```{python}
+prior = 1/1000
+false_positive = 5/100
+true_positive = 100/100
+
+# posterior of disease given positive test
+(prior * true_positive) / (prior * true_positive + (1-prior) * false_positive)
+```
+
+```{python}
+prior = 1/50
+false_positive = 5/100
+true_positive = 100/100
+
+# posterior of disease given positive test
+(prior * true_positive) / (prior * true_positive + (1-prior) * false_positive)
+```
+
+```{python}
+
+```

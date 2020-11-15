@@ -1,0 +1,241 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+import numpy as np
+np.set_printoptions(threshold=50, linewidth=50)
+```
+
+```{python}
+# From Lecture 6
+from datascience import *
+full = Table.read_table('NC-EST2014-AGESEX-RES.csv')
+partial = full.select(['SEX', 'AGE', 4, 8])
+simple = partial.relabeled(2, '2010').relabeled(3, '2014')
+census = simple.with_columns([
+        'Change', simple.column('2014')-simple.column('2010'),
+        'Growth', (simple.column('2014')/simple.column('2010')) ** (1/4) - 1
+    ])
+census.set_format('Growth', PercentFormatter)
+census.set_format([2, 3, 4], NumberFormatter)
+```
+
+```{python}
+males = census.where('SEX', 1)
+females = census.where('SEX', 2)
+```
+
+```{python}
+females
+```
+
+#### Discussion question
+
+```{python}
+females.sort('2014', descending=True).column('AGE').item(1)
+```
+
+```{python}
+males.sort('2014', descending=True)
+```
+
+```{python}
+males.where(males.column('Change') > 300000).sort('AGE').show()
+```
+
+```{python}
+males.where(np.logical_and(males.column('AGE') > 55, 
+                           males.column('AGE') < 70)).show()
+```
+
+```{python}
+census.where(np.logical_or(census.column('AGE') == 18,
+                           census.column('AGE') == 19))
+```
+
+## Functions
+
+```{python}
+def percent(x):
+    return round(100*x, 2)
+```
+
+```{python}
+percent(1/6)
+```
+
+```{python}
+sixth = 1/6
+percent(sixth)
+```
+
+```{python}
+percent(1/6000)
+```
+
+```{python}
+percent(1/60000)
+```
+
+```{python}
+def percent(x):
+    if x < 0.00005:
+        return 100 * x
+    return round(100 * x, 2)
+```
+
+```{python}
+print('1/6 =', percent(1/6))
+print('1/6000 =', percent(1/6000))
+print('1/60000 =', percent(1/60000))
+```
+
+```{python}
+print('1/60000000000 =', percent(1/60000000000))
+```
+
+```{python}
+def percent(x):
+    if x < 1e-8:
+        return 0.0
+    elif x < 0.00005:
+        return 100 * x
+    else:
+        return round(100 * x, 2)
+```
+
+```{python}
+print('1/6 =', percent(1/6))
+print('1/6000 =', percent(1/6000))
+print('1/60000 =', percent(1/60000))
+print('1/60000000000 =', percent(1/60000000000))
+```
+
+```{python}
+percent(-1/6)
+```
+
+```{python}
+-1/6 < 1e-8
+```
+
+```{python}
+def percent(x):
+    if abs(x) < 1e-8:
+        return 0.0
+    elif abs(x) < 0.00005:
+        return 100 * x
+    else:
+        return round(100 * x, 2)
+```
+
+```{python}
+print('1/6 =', percent(1/6))
+print('1/6000 =', percent(1/6000))
+print('1/60000 =', percent(1/60000))
+print('1/60000000000 =', percent(1/60000000000))
+print('-1/6 =', percent(-1/6))
+```
+
+```{python}
+census.where(np.logical_or(census.column('AGE') == 18,
+                           census.column('AGE') == 19))
+```
+
+```{python}
+def voting_teens(t):
+    return t.where(np.logical_or(t.column('AGE') == 18, t.column('AGE') == 19))
+```
+
+```{python}
+voting_teens(females)
+```
+
+```{python}
+voting_teens(males)
+```
+
+```{python}
+voting_teens(census)
+```
+
+```{python}
+voting_teens(census).column('Growth')
+```
+
+#### Discussion Question
+
+```{python}
+def f(s):
+    return np.round(s / sum(s) * 100, 2)
+```
+
+```{python}
+f(np.array([1, 1, 3, 1, 2]))
+```
+
+```{python}
+f(females.where(females.column('AGE') < 5).column('2014'))
+```
+
+```{python}
+voting_teens(census).apply(percent, 'Growth')
+```
+
+```{python}
+def mf(code):
+    if code == 0:
+        return 'Total'
+    elif code == 1:
+        return 'Male'
+    elif code == 2:
+        return 'Female'
+census_mf = census.with_column('SEX', census.apply(mf, 'SEX'))
+census_mf.show()
+```
+
+## Pivot
+
+```{python}
+pivoted = census_mf.relabeled('2014', 'Population').pivot('SEX', 'AGE', 'Population', sum)
+fraction = pivoted.with_column('Fraction', pivoted.column(2)/pivoted.column(3))
+fraction.set_format('Fraction', PercentFormatter).show()
+```
+
+```{python}
+decade = census_mf.with_column('Nearest Decade', np.round(census.column('AGE'), -1))
+decade
+```
+
+```{python}
+pivoted = decade.relabeled('2014', 'Population').pivot('SEX', 'Nearest Decade', 'Population', sum)
+fraction = pivoted.with_column('Fraction', pivoted.column(2)/pivoted.column(3))
+fraction.set_format('Fraction', PercentFormatter).show()
+```
+
+## Group
+
+```{python}
+cardio = Table.read_table("~/Downloads/Data 8 Cardio Participation Log (Responses) - Form Responses 1.csv")
+cardio
+```
+
+```{python}
+days = cardio.select([1, 2, 3]).group(0, sum)
+days
+```
+
+```{python}
+days.with_column('Minutes/Lap', days.column(2)/days.column(1))
+```

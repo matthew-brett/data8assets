@@ -1,0 +1,143 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+import numpy as np
+from datascience import *
+
+# Configure notebook (happens automatically on data8.berkeley.edu)
+# %matplotlib inline
+import matplotlib.pyplot as plt
+plt.style.use('fivethirtyeight')
+
+# Configure for presentation
+np.set_printoptions(threshold=50, linewidth=50)
+import matplotlib as mpl
+mpl.rc('font', size=16)
+```
+
+```{python}
+def total_variation_distance(column, other):
+    return sum(np.abs(column - other)) / 2
+```
+
+```{python}
+jury = Table(["Race", "Eligible", "Panel"]).with_rows([
+    ["Asian",  0.15, 0.26],
+    ["Black",  0.18, 0.08],
+    ["Latino", 0.12, 0.08],
+    ["White",  0.54, 0.54],
+    ["Other",  0.01, 0.04],
+    ])
+jury.set_format([1, 2], PercentFormatter(0))
+```
+
+```{python}
+total_variation_distance(jury.column(1), jury.column(2))
+```
+
+```{python}
+panel_size = 1453
+jury.sample_from_distribution("Eligible", panel_size)
+```
+
+```{python}
+def empirical_distribution(table, label, sample_size, k, f):
+    stats = Table(['Sample #', 'Statistic'])
+    for i in np.arange(k):
+        sample = table.sample_from_distribution(label, sample_size)
+        statistic = f(sample)
+        stats.append([i, statistic])
+    return stats
+```
+
+```{python}
+def tvd_from_eligible(sample):
+    counts = sample.column('Eligible sample')
+    distribution = counts / sum(counts)
+    return total_variation_distance(jury.column('Eligible'), distribution)
+
+empirical_distribution(jury, 'Eligible', panel_size, 1000, tvd_from_eligible)
+```
+
+```{python}
+empirical_distribution(jury, 'Eligible', panel_size, 1000, tvd_from_eligible).hist(1)
+```
+
+```{python}
+empirical_distribution(jury, 'Eligible', 20, 1000, tvd_from_eligible).hist(1)
+```
+
+```{python}
+jury.sample_from_distribution('Eligible', 20)
+```
+
+## Chi-Squared
+
+```{python}
+eligible = jury.column("Eligible") 
+panel = jury.column("Panel")
+```
+
+```{python}
+sum((eligible - panel) ** 2 / eligible) * panel_size
+```
+
+```{python}
+def chi_squared(dist, other, sample_size):
+    return sum((dist - other) ** 2 / dist) * sample_size
+chi_squared(eligible, panel, panel_size)
+```
+
+```{python}
+chi_squared(panel, eligible, panel_size)
+```
+
+```{python}
+def X2_eligible(sample):
+    counts = sample.column('Eligible sample')
+    distribution = counts / sum(counts)
+    return chi_squared(eligible, distribution, sum(counts))
+```
+
+```{python}
+X2s = empirical_distribution(jury, 'Eligible', panel_size, 1000, X2_eligible)
+X2s.hist(1, bins=np.arange(0, 18, 0.5))
+```
+
+```{python}
+np.mean(X2s.column(1))
+```
+
+## Swain vs. Alabama
+
+```{python}
+alabama = Table(['Race', 'Eligible']).with_rows([
+    ["Black", 0.26],
+    ["Other", 0.74]
+])
+alabama.set_format(1, PercentFormatter(0))
+```
+
+```{python}
+def num_black(sample):
+    return sample.where('Race', 'Black').column('Eligible sample').item(0)
+
+black_in_sample = empirical_distribution(alabama, 'Eligible', 100, 10000, num_black)
+black_in_sample
+```
+
+```{python}
+black_in_sample.hist(1, bins=np.arange(0, 50, 1))
+```

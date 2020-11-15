@@ -1,0 +1,285 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python deletable=TRUE, editable=TRUE}
+from datascience import *
+import numpy as np
+
+# %matplotlib inline
+import matplotlib.pyplot as plots
+plots.style.use('fivethirtyeight')
+
+np.set_printoptions(suppress=True)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+def standard_units(any_numbers):
+    "Convert any array of numbers to standard units."
+    return (any_numbers - np.mean(any_numbers))/np.std(any_numbers)  
+
+def correlation(t, x, y):
+    return np.mean(standard_units(t.column(x))*standard_units(t.column(y)))
+
+def slope(t, x, y):
+    """The slope of ther regression line (original units)."""
+    r = correlation(t, x, y)
+    return r * np.std(t.column(y)) / np.std(t.column(x))
+
+def intercept(t, x, y):
+    """The intercept of the regression line (original units)."""
+    return np.mean(t.column(y)) - slope(t, x, y) * np.mean(t.column(x))
+```
+
+```{python deletable=TRUE, editable=TRUE}
+all_sales = Table.read_table('house.csv')
+sales = all_sales.where('Bldg Type', '1Fam').where('Sale Condition', 'Normal').select(
+    'SalePrice', '1st Flr SF', '2nd Flr SF', 
+    'Total Bsmt SF', 'Garage Area', 
+    'Wood Deck SF', 'Open Porch SF', 'Lot Area', 
+    'Year Built', 'Yr Sold')
+sales.sort('SalePrice')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+train, test = sales.split(1001)
+print(train.num_rows)
+print(test.num_rows)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+train.hist(0, bins=32, unit='$')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+train.scatter(1, 0, fit_line=True)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+correlation(train, 0, 1)
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+$\frac{variance(Residuals)}{variance(Y)} = (1-r^2)$
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+r = correlation(train, 0, 1)
+variance_y = np.var(train.column(0))
+variance_residuals = (1-r**2) * variance_y
+print("Root mean squared error:", variance_residuals ** 0.5)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+rs = []
+for label in sales.labels:
+    rs.append(correlation(train, label, 0))
+Table().with_columns('Column', train.labels, 'r', rs)
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Two attributes
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+both = train.column(1) + train.column(2)
+train_both = train.with_column('Both', both)
+r = correlation(train_both, 'SalePrice', 'Both')
+r
+```
+
+```{python deletable=TRUE, editable=TRUE}
+variance_residuals = (1-r**2) * variance_y
+print("Root mean squared error:", variance_residuals ** 0.5)
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Test set performance
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+a = slope(train_both, 'Both', 'SalePrice')
+a
+```
+
+```{python deletable=TRUE, editable=TRUE}
+b = intercept(train_both, 'Both', 'SalePrice')
+b
+```
+
+```{python deletable=TRUE, editable=TRUE}
+example_row = test.drop('SalePrice').row(0)
+example_row
+```
+
+```{python deletable=TRUE, editable=TRUE}
+a * (example_row.item(0) + example_row.item(1)) + b
+```
+
+```{python deletable=TRUE, editable=TRUE}
+test.show(1)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+predictions = a * (test.column(1) + test.column(2)) + b
+predictions
+```
+
+```{python deletable=TRUE, editable=TRUE}
+np.mean((predictions - test.column(0)) ** 2) ** 0.5
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Multiple Regression
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+random_slopes = np.random.normal(10, 2, len(example_row))
+random_slopes
+```
+
+```{python deletable=TRUE, editable=TRUE}
+def predict(slopes, row):
+    return sum(slopes * np.array(row))
+
+predict(random_slopes, example_row)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+test.row(0).item(0)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+train_prices = train.column(0)
+train_attributes = train.drop(0)
+
+def rmse(slopes, attributes, prices):
+    errors = []
+    for i in np.arange(len(prices)):
+        predicted = predict(slopes, attributes.row(i))
+        actual = prices.item(i)
+        errors.append((predicted - actual) ** 2)
+    return np.mean(errors) ** 0.5
+
+def rmse_train(slopes):
+    return rmse(slopes, train_attributes, train_prices)
+
+rmse_train(random_slopes)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+best_slopes = minimize(rmse_train, start=random_slopes, smooth=True, array=True)
+best_slopes
+```
+
+```{python deletable=TRUE, editable=TRUE}
+Table(train_attributes.labels).with_row(list(best_slopes)).show()
+```
+
+```{python deletable=TRUE, editable=TRUE}
+rmse_train(best_slopes)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+test_prices = test.column(0)
+test_attributes = test.drop(0)
+
+def rmse_test(slopes):
+    return rmse(slopes, test_attributes, test_prices)
+
+rmse_linear = rmse_test(best_slopes)
+print('Test set RMSE for multiple linear regression:', rmse_linear)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+def fit(row):
+    return sum(best_slopes * np.array(row))
+
+test.with_column('Fitted', test.drop(0).apply(fit)).scatter('Fitted', 0)
+plots.plot([0, 5e5], [0, 5e5]);
+```
+
+```{python deletable=TRUE, editable=TRUE}
+test.with_column('Residual', test_prices-test.drop(0).apply(fit)).scatter(0, 'Residual')
+plots.plot([0, 7e5], [0, 0]);
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Nearest Neighbors for Regression (Not Covered in Lecture)
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+train_nn = train.select(0, 1, 2, 3, 4, 8)
+test_nn = test.select(0, 1, 2, 3, 4, 8)
+train_nn.show(3)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+def distance(pt1, pt2):
+    """The distance between two points, represented as arrays."""
+    return np.sqrt(sum((pt1 - pt2) ** 2))
+
+def row_distance(row1, row2):
+    """The distance between two rows of a table."""
+    return distance(np.array(row1), np.array(row2))
+
+def distances(training, example, output):
+    """Compute the distance from example for each row in training."""
+    dists = []
+    attributes = training.drop(output)
+    for row in attributes.rows:
+        dists.append(row_distance(row, example))
+    return training.with_column('Distance', dists)
+
+def closest(training, example, k, output):
+    """Return a table of the k closest neighbors to example."""
+    return distances(training, example, output).sort('Distance').take(np.arange(k))
+
+example_nn_row = test_nn.drop(0).row(0)
+closest(train_nn, example_nn_row, 5, 'SalePrice')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+def predict_nn(example):
+    """Return the majority class among the k nearest neighbors."""
+    return np.average(closest(train_nn, example, 5, 'SalePrice').column('SalePrice'))
+
+predict_nn(example_nn_row)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+print('Actual sale price:', test_nn.column('SalePrice').item(0))
+print('Predicted sale price using nearest neighbors:', predict_nn(example_nn_row))
+```
+
+```{python deletable=TRUE, editable=TRUE}
+nn_test_predictions = test_nn.drop('SalePrice').apply(predict_nn)
+rmse_nn = np.mean((test_prices - nn_test_predictions) ** 2) ** 0.5
+
+print('Test set RMSE for multiple linear regression: ', rmse_linear)
+print('Test set RMSE for nearest neighbor regression:', rmse_nn)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+train_nn = train.select(0, 1, 2, 3, 4).with_column('Age * 10', 10 * (2017 - train.column('Year Built')))
+test_nn = test.select(0, 1, 2, 3, 4).with_column('Age * 10', 10 * (2017 - test.column('Year Built')))
+train_nn.show(3)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+nn_test_predictions = test_nn.drop('SalePrice').apply(predict_nn)
+rmse_nn = np.mean((test_prices - nn_test_predictions) ** 2) ** 0.5
+
+print('Test set RMSE for multiple linear regression: ', rmse_linear)
+print('Test set RMSE for nearest neighbor regression:', rmse_nn)
+```

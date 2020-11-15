@@ -1,0 +1,220 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python deletable=TRUE, editable=TRUE}
+from datascience import *
+import numpy as np
+
+import matplotlib.pyplot as plots
+plots.style.use('fivethirtyeight')
+# %matplotlib inline
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Linear regression
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+def standard_units(any_numbers):
+    "Convert any array of numbers to standard units."
+    return (any_numbers - np.mean(any_numbers)) / np.std(any_numbers)  
+
+def correlation(t, x, y):
+    """Return the correlation coefficient (r) of two variables."""
+    return np.mean(standard_units(t.column(x)) * standard_units(t.column(y)))
+
+def slope(t, x, y):
+    """The slope of ther regression line (original units)."""
+    r = correlation(t, x, y)
+    return r * np.std(t.column(y)) / np.std(t.column(x))
+
+def intercept(t, x, y):
+    """The intercept of the regression line (original units)."""
+    return np.mean(t.column(y)) - slope(t, x, y) * np.mean(t.column(x))
+
+def fit(table, x, y):
+    """Return the height of the regression line at each x value."""
+    a = slope(table, x, y)
+    b = intercept(table, x, y)
+    return a * table.column(x) + b
+```
+
+```{python deletable=TRUE, editable=TRUE}
+lw = Table.read_table('little_women.csv').move_to_start('Periods')
+lw.show(3)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+shotput = Table.read_table('shotput.csv')
+shotput.show(3)
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Residuals
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+lw.scatter(0, 1, fit_line=True)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+y = lw.column(1)
+fitted = fit(lw, 0, 1)
+residuals = y - fitted
+```
+
+```{python deletable=TRUE, editable=TRUE}
+sum(residuals)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+np.mean(residuals**2)**0.5
+```
+
+```{python deletable=TRUE, editable=TRUE}
+lw.with_column('residual', residuals).scatter(0, 2)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+def plot_residuals(t):
+    t.scatter(0, 1, fit_line=True)
+    y = t.column(1)
+    fitted = fit(t, 0, 1)
+    residuals = y - fitted
+    print('Sum of residuals:', sum(residuals))
+    print('RMSE:', np.mean(residuals**2)**0.5)
+    t.with_column('Residual', residuals).scatter(0, 2)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+plot_residuals(shotput)
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Dugong
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+dugong = Table.read_table('http://www.statsci.org/data/oz/dugongs.txt')
+dugong.show(3)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+plot_residuals(dugong)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+us_women = Table.read_table('us_women.csv')
+us_women.show(3)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+correlation(us_women, 0, 1)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+plot_residuals(us_women)
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Variance
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+lw.hist(1)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+y = lw.column(1)
+fitted = fit(lw, 0, 1)
+residuals = y - fitted
+```
+
+```{python deletable=TRUE, editable=TRUE}
+np.std(y)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+np.std(y) ** 2
+```
+
+```{python deletable=TRUE, editable=TRUE}
+np.var(y)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+r = correlation(lw, 0, 1)
+r
+```
+
+```{python deletable=TRUE, editable=TRUE}
+r ** 2
+```
+
+```{python deletable=TRUE, editable=TRUE}
+1 - r ** 2
+```
+
+```{python deletable=TRUE, editable=TRUE}
+np.var(fitted) / np.var(y)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+np.var(residuals) / np.var(y)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+np.var(fitted) + np.var(residuals)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+np.std(fitted) / np.std(y)
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Regression Model
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+def draw_and_compare(true_slope, true_int, sample_size):
+    x = np.random.normal(50, 5, sample_size)
+    xlims = np.array([np.min(x), np.max(x)])
+    errors = np.random.normal(0, 6, sample_size)
+    y = (true_slope * x + true_int) + errors
+    sample = Table().with_columns('x', x, 'y', y)
+
+    sample.scatter(0, 1)
+    plots.plot(xlims, true_slope*xlims + true_int, lw=2, color='green')
+    plots.title('True Line, and Points Created')
+
+    sample.scatter(0, 1)
+    plots.title('What We Get to See')
+
+    sample.scatter(0, 1, fit_line=True)
+    plots.title('Regression Line: Estimate of True Line')
+
+    sample.scatter(0, 1, fit_line=True)
+    plots.plot(xlims, true_slope*xlims + true_int, lw=2, color='green')
+    plots.title("Regression Line and True Line")
+    
+draw_and_compare(2, -5, 10)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+draw_and_compare(2, -5, 100)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+draw_and_compare(2, -5, 1000)
+```

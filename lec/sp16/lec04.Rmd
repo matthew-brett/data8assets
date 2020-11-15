@@ -1,0 +1,202 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+## Growth Review
+
+```{python}
+fed_budget_2002 = 2370000000000
+fed_budget_2012 = 3380000000000
+g = (fed_budget_2012 / fed_budget_2002) ** (1/10) - 1
+g
+```
+
+```{python}
+x = 2.37 
+```
+
+```{python}
+x = (1 + g) * x
+x
+```
+
+```{python}
+t = 5730
+0.5 ** (1/t) - 1
+```
+
+## Strings
+
+```{python}
+'2.3'
+```
+
+```{python}
+'2.3' + 4
+```
+
+```{python}
+'2.3' * 4
+```
+
+```{python}
+float('2.3')
+```
+
+```{python}
+int('2.3')
+```
+
+```{python}
+int('23') + float('2.3')
+```
+
+```{python}
+x = 12
+int(str(x) + '0')
+```
+
+## Sequences
+
+```{python}
+baseline_high = 14.48
+highs_list = [baseline_high - 0.880, baseline_high - 0.093,
+              baseline_high + 0.105, baseline_high + 0.684]
+highs_list
+```
+
+```{python}
+sum(highs_list)/len(highs_list)
+```
+
+```{python}
+baseline_low = 3.00
+lows_tuple = (baseline_low - 0.872, baseline_low - 0.629,
+              baseline_low - 0.126, baseline_low + 0.728)
+lows_tuple
+```
+
+## Arrays
+
+```{python}
+import numpy as np
+```
+
+```{python}
+highs = np.array(highs_list)
+```
+
+```{python}
+lows = np.array((baseline_low - 0.872, baseline_low - 0.629,
+                 baseline_low - 0.126, baseline_low + 0.728))
+```
+
+```{python}
+highs
+```
+
+```{python}
+lows
+```
+
+```{python}
+print(highs)
+```
+
+```{python}
+(9/5) * highs + 32
+```
+
+```{python}
+highs - lows
+```
+
+```{python}
+(9/5) * (highs - lows) + 32
+```
+
+```{python}
+len(highs)
+```
+
+```{python}
+highs.size
+```
+
+```{python}
+highs
+```
+
+```{python}
+highs.item(0)
+```
+
+```{python}
+highs.item(1)
+```
+
+```{python}
+highs.item(-1)
+```
+
+```{python}
+highs.item(1) - highs.item(0)
+```
+
+```{python}
+np.diff(highs)
+```
+
+## Ranges
+
+```{python}
+by_four = np.arange(1, 10, 4)
+by_four
+```
+
+```{python}
+4 * sum( 1/by_four - 1/(by_four + 2) )
+```
+
+### Birthday problem
+
+```{python}
+all_different = (364/365)*(363/365)*(362/365)
+```
+
+```{python}
+k = 4
+numerators = np.arange(364, 365-k, -1)
+numerators
+```
+
+```{python}
+np.prod(numerators/365)
+```
+
+```{python}
+k = 40
+numerators = np.arange(364, 365-k, -1)
+np.prod(numerators/365)
+```
+
+```{python}
+ten = np.arange(1, 9)
+np.cumprod(ten)
+```
+
+```{python}
+k = 60
+numerators = np.arange(364, 365-k, -1)
+np.cumprod(numerators/365)
+```

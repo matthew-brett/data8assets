@@ -1,0 +1,218 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+from datascience import *
+import numpy as np
+
+import matplotlib.pyplot as plt
+plt.style.use('fivethirtyeight')
+# %matplotlib inline
+```
+
+## Interval Estimates
+
+```{python}
+sf = Table.read_table('http://inferentialthinking.com/notebooks/san_francisco_2015.csv').select(3, 11, 21)
+sf.set_format(2, NumberFormatter(0))
+sf = sf.where(2, are.above(10000))
+sf.show(3)
+```
+
+```{python}
+comp_bins = np.arange(0, 700000, 25000)
+sf.hist(2, bins=comp_bins)
+```
+
+```{python}
+pop_median = np.median(sf.column(2))
+pop_median
+```
+
+```{python}
+sample_from_population = sf.sample(500, with_replacement=False)
+
+resampled_medians = []
+for i in np.arange(1000):
+    resample = sample_from_population.sample()
+    median = np.median(resample.column(2))
+    resampled_medians.append(median)
+    
+interval_95 = [
+    percentile(2.5, resampled_medians),
+    percentile(97.5, resampled_medians)
+]
+
+Table().with_column('Resampled median', resampled_medians).hist(0)
+plt.plot(interval_95, [0, 0], color='gold', lw=8)
+pop_median = np.median(sf.column(2))
+plt.scatter(pop_median, 0, color='red', s=400);
+```
+
+```{python}
+def bootstrap_median(sample_from_population, label, repetitions):
+    resampled_medians = []
+    for i in np.arange(repetitions):
+        resample = sample_from_population.sample()
+        median = np.median(resample.column(label))
+        resampled_medians.append(median)
+    return resampled_medians
+```
+
+```{python}
+# THE BIG SIMULATION: This one takes several minutes.
+
+# Generate 100 intervals, in the table intervals
+
+left_ends = make_array()
+right_ends = make_array()
+
+total_comps = sf.select(2)
+for i in np.arange(100):
+    sample_from_pop = total_comps.sample(200, with_replacement=False)
+    medians = bootstrap_median(sample_from_pop, 'Total Compensation', 5000)
+    left_ends = np.append(left_ends, percentile(2.5, medians))
+    right_ends = np.append(right_ends, percentile(97.5, medians))
+    print('Iteration:', i)
+
+intervals = Table().with_columns(
+    'Left', left_ends,
+    'Right', right_ends
+)    
+```
+
+```{python}
+intervals.show(3)
+```
+
+```{python}
+(intervals
+ .where('Left', are.below(pop_median))
+ .where('Right', are.above(pop_median))
+ .num_rows)
+```
+
+```{python}
+replication_number = np.ndarray.astype(np.arange(1, 101), str)
+
+intervals2 = Table(replication_number).with_rows(make_array(left_ends, right_ends))
+
+plt.figure(figsize=(8,8))
+n=100
+for i in np.arange(n):
+    ends = intervals2.column(i)
+    plt.plot(ends, make_array(i+1, i+1), color='gold')
+plt.plot(make_array(pop_median, pop_median), make_array(0, n), color='red', lw=2)
+plt.xlabel('Median (dollars)')
+plt.ylabel('Replication')
+plt.title('Population Median and Intervals of Estimates');
+```
+
+## Baby Weights
+
+```{python}
+births = Table.read_table('http://inferentialthinking.com/notebooks/baby.csv')
+births.show(3)
+```
+
+```{python}
+babies = births.select(0, 1)
+babies.show(3)
+```
+
+```{python}
+ratios = babies.with_column(
+    'Ratio BW:GD', babies.column(0) / babies.column(1)
+)
+ratios.show(3)
+```
+
+```{python}
+ratios.hist(2)
+```
+
+```{python}
+np.median(ratios.column(2))
+```
+
+```
+[ 0.4257  0.4327]
+[ 0.4255  0.4327]
+```
+
+```{python}
+resampled_medians = bootstrap_median(ratios, 2, 5000)
+```
+
+```{python}
+interval_95 = make_array(
+    percentile(2.5, resampled_medians),
+    percentile(97.5, resampled_medians)
+)
+
+Table().with_column('Resampled median', resampled_medians).hist(0)
+plt.plot(interval_95, [0, 0], color='gold', lw=8)
+print('Approximate 95% Bootstrap Confidence Interval for the Population Median')
+print(np.round(interval_95, 4))
+```
+
+```{python}
+interval_80 = make_array(
+    percentile(10, resampled_medians),
+    percentile(90, resampled_medians)
+)
+
+Table().with_column('Resampled median', resampled_medians).hist(0)
+plt.plot(interval_80, [0, 0], color='gold', lw=8)
+print('Approximate 80% Bootstrap Confidence Interval for the Population Median')
+
+print(np.round(interval_80, 4))
+```
+
+```{python}
+def bootstrap_mean(sample_from_population, label, repetitions):
+    resampled_means = []
+    for i in np.arange(repetitions):
+        resample = sample_from_population.sample()
+        mean = np.mean(resample.column(label))
+        resampled_means.append(mean)
+    return resampled_means
+```
+
+```{python}
+def bootstrap_ci_mean(sample_from_population, label, repetitions):
+    resampled_means = bootstrap_mean(sample_from_population, label, repetitions)
+    
+    interval_95 = make_array(
+        percentile(2.5, resampled_means),
+        percentile(97.5, resampled_means)
+    )
+    
+    Table().with_column('Resampled mean', resampled_means).hist(0)
+    plt.plot(interval_95, [0, 0], color='gold', lw=8)
+    print('Approximate 95% Bootstrap Confidence Interval for Population Mean:')
+    print(np.round(interval_95, 3))
+```
+
+```{python}
+births.show(3)
+```
+
+```{python}
+bootstrap_ci_mean(births, 'Maternal Age', 5000)
+```
+
+```{python}
+births.hist('Maternal Age')
+```

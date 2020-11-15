@@ -1,0 +1,235 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+import numpy as np
+from datascience import *
+
+# Configure notebook (happens automatically on data8.berkeley.edu)
+# %matplotlib inline
+import matplotlib.pyplot as plt
+plt.style.use('fivethirtyeight')
+
+# Configure for presentation
+np.set_printoptions(threshold=50, linewidth=50)
+import matplotlib as mpl
+mpl.rc('font', size=16)
+```
+
+```{python}
+def standard_units(any_numbers):
+    "Convert any array of numbers to standard units."
+    return (any_numbers - np.mean(any_numbers))/np.std(any_numbers)  
+
+def correlation(t, x, y):
+    "Compute r."
+    return np.mean(standard_units(t.column(x))*standard_units(t.column(y)))
+
+def slope(table, x, y):
+    "The slope of the regression line (original units)"
+    r = correlation(table, x, y)
+    return r * np.std(table.column(y))/np.std(table.column(x))
+
+def intercept(table, x, y):
+    "The intercept of the regression line (original units)"
+    a = slope(table, x, y)
+    return np.mean(table.column(y)) - a * np.mean(table.column(x))
+
+def fit(table, x, y):
+    """Return the height of the regression line at each x value."""
+    a = slope(table, x, y)
+    b = intercept(table, x, y)
+    return a * table.column(x) + b
+```
+
+## Regression Model
+
+```{python}
+np.random.normal()
+```
+
+```{python}
+samples = Table('x')
+for i in np.arange(10000):
+    samples.append([np.random.normal()])
+samples.hist(0, bins=np.arange(-4, 4, 0.1))
+```
+
+```{python}
+def signal_and_noise(x, r):
+    return r * x + np.random.normal() * (1-r**2)**0.5
+```
+
+```{python}
+def regression_model(r, sample_size):
+    pairs = Table(['x', 'y'])
+    for i in np.arange(sample_size):
+        x = np.random.normal()
+        y = signal_and_noise(x, r)
+        pairs.append([x, y])
+    return pairs
+
+regression_model(1/2, 1000).scatter('x', 'y')
+```
+
+```{python}
+def compare(true_r, sample_size):
+    pairs = regression_model(true_r, sample_size)
+    estimated_r = correlation(pairs, 'x', 'y')
+    pairs.scatter('x', 'y', fit_line=True, s=10)
+    plt.plot([-3, 3], [-3 * true_r, 3 * true_r], color='g', lw=4)
+    print("The true r is ", true_r, " and the estimated r is ", estimated_r)
+
+compare(0.5, 1000)
+```
+
+```{python}
+compare(0.5, 10)
+```
+
+```{python}
+compare(0.9, 10)
+```
+
+## Prediction
+
+```{python}
+baby = Table.read_table('baby.csv')
+baby
+```
+
+```{python}
+baby.hist(1, bins=np.arange(200, 350, 10))
+```
+
+```{python}
+baby.hist(0)
+```
+
+```{python}
+baby.scatter(0, 1, fit_line=True, s=5)
+```
+
+```{python}
+days = baby.column(1)
+typical = baby.where(np.logical_and(days > 250, days < 310))
+typical.scatter(1, 0, fit_line=True)
+```
+
+```{python}
+correlation(typical, 0, 1)
+```
+
+```{python}
+slope(typical, 1, 0)
+```
+
+```{python}
+a = slope(typical, 1, 0)
+b = intercept(typical, 1, 0)
+a * 290 + b
+```
+
+```{python}
+def predict(t, x, y, new_x_value):
+    a = slope(t, x, y)
+    b = intercept(t, x, y)
+    return a * new_x_value + b
+predict(typical, 1, 0, 290)
+```
+
+## Variability in predictions
+
+```{python}
+typical.num_rows
+```
+
+```{python}
+sample_size = 100
+predict(typical.sample(sample_size), 1, 0, 290)
+```
+
+```{python}
+def sample_predict(new_x_value):
+    predictions = Table(['Predictions'])
+    for i in np.arange(1000):
+        predicted = predict(typical.sample(sample_size), 1, 0, new_x_value)
+        predictions.append([predicted])
+    predictions.hist(0, bins=np.arange(100, 160))
+sample_predict(290)
+```
+
+```{python}
+sample_predict(300)
+```
+
+```{python}
+sample_predict(315)
+```
+
+## Errors
+
+```{python}
+little_women = Table.read_table('little_women.csv')
+little_women.show(3)
+```
+
+```{python}
+little_women.scatter('Periods', 'Characters')
+```
+
+```{python}
+correlation(little_women, 'Periods', 'Characters')
+```
+
+```{python}
+sample = [[131, 14431], [231, 20558], [392, 40935], [157, 23524]]
+def lw_errors(a, b):
+    little_women.scatter('Periods', 'Characters')
+    xlims = np.array([50, 450])
+    plt.plot(xlims, a * xlims + b, lw=2)
+    for x, y in sample:
+        plt.plot([x, x], [y, a * x + b], color='r', lw=2)
+```
+
+```{python}
+a = slope(little_women, 'Periods', 'Characters')
+b = intercept(little_women, 'Periods', 'Characters')
+lw_errors(a, b)
+```
+
+```{python}
+lw_errors(-100, 50000)
+```
+
+```{python}
+lw_errors(0, np.mean(little_women.column('Characters')))
+```
+
+```{python}
+def lw_rmse(a, b):
+    lw_errors(a, b)
+    x = little_women.column('Periods')
+    y = little_women.column('Characters')
+    estimate = a * x + b
+    return np.average((y - estimate) ** 2) ** 0.5
+```
+
+```{python}
+lw_rmse(0, np.mean(little_women.column('Characters')))
+```
+
+```{python}
+lw_rmse(a, b)
+```

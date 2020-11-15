@@ -1,0 +1,256 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python deletable=TRUE, editable=TRUE}
+from datascience import *
+import numpy as np
+
+import matplotlib.pyplot as plots
+plots.style.use('fivethirtyeight')
+# %matplotlib inline
+```
+
+## Sampling
+
+```{python deletable=TRUE, editable=TRUE}
+top = Table.read_table('top_movies.csv')
+top = top.with_column('Row Index', np.arange(top.num_rows)).move_to_start('Row Index')
+top
+```
+
+```{python deletable=TRUE, editable=TRUE}
+top.take([3, 5, 7])
+```
+
+```{python deletable=TRUE, editable=TRUE}
+top.where('Title', are.containing('and the'))
+```
+
+```{python}
+start = np.random.choice(np.arange(10))
+top.take(np.arange(start, 200, 10))
+```
+
+```{python}
+top.sample(5)
+```
+
+```{python}
+top.sample(5, with_replacement=False)
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Dice
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+die = Table().with_column('face', np.arange(6)+1)
+die
+```
+
+```{python deletable=TRUE, editable=TRUE}
+def face_hist(t):
+    t.hist('face', bins=np.arange(0.5, 7, 1), unit='face')
+    plots.xlabel('Face')
+    
+face_hist(die)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+face_hist(die.sample(10))
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Flights
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+united = Table.read_table('united.csv')
+united
+```
+
+```{python deletable=TRUE, editable=TRUE}
+united.hist('Delay')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+def delay_hist(t):
+    t.hist('Delay', unit='minute', bins=np.arange(-20, 301, 10))
+    
+delay_hist(united)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+united.where('Delay', are.between(10, 20)).num_rows / united.num_rows
+```
+
+```{python deletable=TRUE, editable=TRUE}
+s = united.sample(1000)
+delay_hist(s)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+s.where('Delay', are.between(10, 20)).num_rows / s.num_rows
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Monty Hall
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+doors = make_array(1, 2, 3)
+prizes = make_array('car', 'first goat', 'second goat')
+
+def setup():
+    """Return a random game of Let's Make a Deal."""
+    return Table().with_columns(
+        'Door', doors,
+        'Prize', np.random.choice(prizes, 3, replace=False))
+
+def behind(game, door):
+    """Return the prize behind a door."""
+    return game.where('Door', door).column('Prize').item(0)
+
+def location(game, prize):
+    """Return the door that hides a prize."""
+    return game.where('Prize', prize).column('Door').item(0)
+
+def expose(game, guess):
+    """Return the door that Monty Hall opens to expose a goat."""
+    guessed_prize = behind(game, guess)
+    if guessed_prize == 'first goat':
+        reveal = 'second goat'
+    elif guessed_prize == 'second goat':
+        reveal = 'first goat'
+    else:
+        reveal = np.random.choice(['first goat', 'second goat'])
+    return location(game, reveal)
+
+def other(game, guess, exposed):
+    """Return the door that is not the guess or the exposed."""
+    return (1 + 2 + 3) - guess - exposed
+
+trials = Table(['trial', 'guess', 'exposed', 'remaining'])
+for i in np.arange(10000)+1:
+    game = setup()
+    guess = np.random.choice(doors)
+    exposed = expose(game, guess)
+    remaining = other(game, guess, exposed)
+    trials.append([i, behind(game, guess), behind(game, exposed), behind(game, remaining)])
+    
+trials
+```
+
+```{python deletable=TRUE, editable=TRUE}
+counts = trials.group(['guess', 'exposed', 'remaining'])
+counts
+```
+
+```{python deletable=TRUE, editable=TRUE}
+counts.set_format('count', DistributionFormatter)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+outcomes = counts.drop('count')
+outcomes
+```
+
+```{python deletable=TRUE, editable=TRUE}
+chances = make_array(
+    1/3 * 1/2, 
+    1/3 * 1/2, 
+    1/3 * 1,
+    1/3 * 1
+)
+distribution = outcomes.with_column('chance', chances)
+distribution.set_format('chance', PercentFormatter)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+samples = outcomes.sample(10000, weights=chances)
+samples
+```
+
+```{python deletable=TRUE, editable=TRUE}
+samples.group(['guess', 'exposed', 'remaining'])
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+Roll a die 4 times. What's P(at least one 6).
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+1 - (5/6) ** 4
+```
+
+```{python deletable=TRUE, editable=TRUE}
+rolls = np.arange(1, 51, 1)
+at_least_one = Table().with_columns(
+    'Rolls', rolls,
+    'Chance of at least one 6', 1 - (5/6)**rolls
+)
+at_least_one.set_format(1, PercentFormatter(3))
+```
+
+```{python deletable=TRUE, editable=TRUE}
+at_least_one.scatter('Rolls')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+at_least_one.where('Rolls', 20)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+rolls = np.random.choice(np.arange(6)+1, 20)
+rolls
+```
+
+```{python deletable=TRUE, editable=TRUE}
+np.count_nonzero(rolls==6)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+trials = 1000
+successes = 0
+
+for i in np.arange(trials):
+    rolls = np.random.choice(np.arange(6)+1, 20)
+    if np.count_nonzero(rolls==6) > 0:
+        successes = successes + 1
+
+successes/trials
+```
+
+```{python deletable=TRUE, editable=TRUE}
+def roll_20():
+    trials = 1000
+    successes = 0
+
+    for i in np.arange(trials):
+        rolls = np.random.choice(np.arange(6)+1, 20)
+        if np.count_nonzero(rolls==6) > 0:
+            successes = successes + 1
+
+    return successes/trials
+
+estimates = Table(['estimate'])
+for k in np.arange(1000):
+    estimates.append([roll_20()])
+
+estimates.hist(normed=False)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+np.average(estimates.column(0))
+```

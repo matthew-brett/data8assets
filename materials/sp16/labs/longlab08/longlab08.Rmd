@@ -1,0 +1,421 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+# Lab 8: Python Miscellanea
+
+Welcome to Lab 8!  This lab is aimed at solidifying some of the Python concepts we've been using.  Today you'll:
+
+* Practice working with data in tables
+* Learn a new workhorse method for working with data `join`
+* Define your own functions
+* Practice using functions as objects (via *higher-order* functions)
+
+**Run the next cell first** to set up the lab:
+
+```{python}
+# Run this cell, but please don't change it.
+
+# These lines import the Numpy and Datascience modules.
+import numpy as np
+from datascience import *
+
+# These lines do some fancy plotting magic
+import matplotlib
+# %matplotlib inline
+import matplotlib.pyplot as plots
+plots.style.use('fivethirtyeight')
+
+# These lines load the tests.
+from client.api.assignment import load_assignment 
+lab08 = load_assignment('longlab08.ok')
+```
+
+The material in this lab comes from the 4th week of class.  It's a bit less customized for the short course than prior labs, so it's close to what students do in a lab session.
+
+
+# 1. More fun with Tables
+
+
+One dataset for today will be [twitter_follows.csv](twitter_follows.csv), which contains data about a few Twitter accounts. If you get stuck, try referring to the Tables [documentation](http://data8.org/datascience/tables.html).
+
+
+**Question 1.1.** Start by importing the data in `twitter_follows.csv` into a table, giving it the name `follows`.
+
+```{python}
+# Fill in the following line:
+follows = ...
+follows
+```
+
+```{python}
+_ = lab08.grade('q11')
+```
+
+In the table, `Followers` refers to the number of people who follow the user, and `Friends` refers to the number of people they follow.
+Let's explore this data a bit to review a few table functions.
+
+
+#### `sort`
+**Question 1.2.** Calculate the smallest value in the `Friends` column and assign it to the variable `least_friends`.  Try doing it using the `sort` method of tables.  For example, `follows.sort("Followers")` is a copy of `follows` whose rows have been sorted in increasing order by number of followers.
+
+*Note:* Once you've sorted by the number of friends, get the "Friends" column of the sorted table.  Then the first element of that column will be the thing you want.  Columns are arrays, and if `a` is an array, then `a.item(0)` is the first element in `a`.
+
+```{python}
+# Fill in the following line.
+least_friends = ...
+least_friends
+```
+
+```{python}
+_ = lab08.grade('q12')
+```
+
+**Question 1.3.** Now, calculate the **name of the user** with the **most** friends, giving that string the name `friendly`.
+
+*Note:* If you sort `follows` by the "Friends" column, it will be in *increasing* order, so the person with the most friends is in the last row.  It might be convenient to sort in the opposite order, *descending* order.  You can make a table that's sorted in descending order by writing:
+    
+    follows.sort("Friends", descending=True)
+
+```{python}
+# Fill in the following line.
+friendly = ...
+friendly
+```
+
+```{python}
+_ = lab08.grade('q13')
+```
+
+#### `where`
+
+**Question 1.4.** We want to know which users are true superstars. Use the `where` method to make a table with only the users who have more than 5 million followers.  Call that table `superstars`.  You last saw `where` in lab 4.
+
+```{python}
+# Fill in the following line.
+superstars = ...
+superstars
+```
+
+```{python}
+_ = lab08.grade('q14')
+```
+
+When working with data, we sometimes can't get all the information we're interested in from one place.
+For example, with our Twitter data, we might like some other information about the users in our table, such as their gender or age.
+
+
+**Question 1.5.** Import the file `twitter_info.csv` into a table, naming it `info`.
+
+```{python}
+# Fill in the following line.
+info = ...
+info
+```
+
+```{python}
+_ = lab08.grade('q15')
+```
+
+#### `join`
+Looks like we've got a more complete set of data now, but unfortunately it's split between two tables (`follows` and `info`). We'd like to join these two tables together.  More concretely, we'd like to take the `follows` table and add each user's name, gender, and film medium.  For that we will use the `join` method.
+
+The syntax of `join` looks like this: `t.join(column_name_in_t_for_matching, r, column_name_in_r_for_matching)`, where `t` and `r` are tables, `column_name_in_t_for_matching` is a string that names a column in `t`, and similarly for `column_name_in_r_for_matching`.  If you're using columns with the same name to match rows in `t` and `r`, the third argument can be omitted.  (For example, for the Twitter data we want to use the column named "Screen name" in `info` and the column with the same name in `follows`.)
+
+The result is a new table.  The new table is formed by going through the rows of `t` and looking for a matching row in `r` to add data to each row in `t`.  To find a row in `r` to match a row in `t`, it looks at the value of the match column in `t` and finds a row in `r` where the match column in `r` also has that value.  There's a simplified picture below the next question; it includes the answer to the question if you're stuck.
+
+
+**Question 1.6.** Use the `join` function to combine the tables `info` and `follows` into one table called `twitter`.
+
+```{python}
+# Fill in the following line.
+twitter = ...
+twitter
+```
+
+Here's a diagram (with spoilers for the above question):
+
+<img  width=800px src="join_example.png">
+
+```{python}
+_ = lab08.grade('q16')
+```
+
+#### `group`
+Now we can ask some interesting questions. For example, maybe we want to know the gender breakdown of our table. For this we can use the `group` function, which (to review) looks like this:
+
+```{python}
+# Just run this cell.
+twitter.group("Gender")
+```
+
+When given just a column name as an argument, `group` merges together the rows with repeated values in that column, with one row in the result per unique value in that column, and a column for the number of rows that were in each group.
+
+
+**Question 1.7.** Use `group` to find out how many of these Twitter users work on films, how many work on TV, and how many work on both.  (More concretely, compute a table with that information.)  Place your result in the variable `medium_counts`.
+
+```{python}
+# Fill in the following line.
+medium_counts = ...
+medium_counts
+```
+
+```{python}
+_ = lab08.grade("q17")
+```
+
+`group` is quite useful for counting, but it can actually do more powerful computations. If you pass a function name (like `np.mean`) as a second argument to `group`, it uses that function to aggregate together the values in each column other than the grouping column. People often call the function an *aggregation function* or *aggregator*. The syntax looks like: `t.group(name_of_column_to_group_by, aggregation_function)`.
+
+Suppose that for each medium (film, TV, or both) we'd like to know the largest number of followers and friends among all the users who work in that medium.  Here's a diagram of how it works when we use `group` to do that:
+<img src="group_example.png">
+
+You might think it looks weird when we write `np.max` without parentheses.  This often confuses people.  The distinction is between the value you get when you *call* a function with some arguments:
+
+```{python}
+np.max([1, 2, -3])
+```
+
+...and the function itself:
+
+```{python}
+np.max
+```
+
+The distinction between a function and the result of one call to the function is similar to the difference between a cake recipe and a particular cake made by following that recipe.  You could follow the recipe many times using slightly different inputs, like different icing colors or different amounts of sugar.  Similarly, you can call a function many times with different arguments.
+
+Sometimes it's useful to treat recipes as concrete things; we can print them or email them to friends.  Similarly, it's often useful to treat functions themselves as values to be manipulated.  For example, we can make a new name for a function, and then call it under its new name, as shown below:
+
+```{python}
+# Just run this cell.
+my_max = np.max
+my_max([1, 2, -3])
+```
+
+Going back to `group`, notice how the columns are named in the result table.  `group` takes the original column names and appends the name of the function passed in.  Though you can give a new name to a function, it always carries around its original name, and that's the name `group` uses.  The original name of `np.max` is `amax`, so we see column names like `"Followers amax"`.
+
+
+**Question 1.8.** Use `group` and `np.max` to find the largest Followers and Friends values for each value of "Medium".
+
+```{python}
+# Fill in the following line.
+medium_max = ...
+medium_max
+```
+
+You might have noticed that some of the columns are left blank. This is because taking the `max` of a text column doesn't really make sense. We can use `select` to make a new table with only the columns we wanted:
+
+```{python}
+clean_medium_max = medium_max.select([0, 4, 5])
+clean_medium_max
+```
+
+```{python}
+_ = lab08.grade('q18')
+```
+
+#### `groups`
+Sometimes we're interested in examining groups that are defined by multiple variables (like all possible combinations of `Medium` and `Gender`). We can do this using the `groups` function, which works exactly like `group`, but takes a list of column names instead of a single column name. The syntax looks like this: `t.groups(["Colname 1", "Colname 2", ...], aggregation_function)`.
+
+
+**Question 1.9.** Try using the `groups` and `np.mean` functions to examine the mean followers/friends of each `Gender/Medium` combination.
+
+```{python}
+# Fill in the following line.
+group_means = ...
+group_means
+```
+
+```{python}
+_ = lab08.grade('q19')
+```
+
+#### `pivot`
+This gives us some interesting information, but the format isn't as nice as it could be.  Here's a different way of viewing the same information, using a method called `pivot`. It looks like this:
+
+```{python}
+# Just run this cell.
+twitter.pivot("Gender", "Medium", "Followers", np.mean)
+```
+
+Here, the first two arguments are columns that we want to group by, the third is the column whose values we're interested in, and the fourth is the function which aggregates those values together for each group. Notice that the values are the same as those in the "Followers mean" column in the previous table, except that we've filled in the missing category (women who only do film) with a 0. We sometimes call the output of this function a "pivot table" or "contingency table."
+
+Students had a hard time with `pivot` this Spring.  It's easier to use `groups` in many situations.
+
+
+# 2. Defining functions
+One of the most powerful tools in a programming language is the ability to define your own functions.  By now you've seen us write quite a few functions, and you might have seen how much they can simplify tasks.  It's worth learning some details about how they work.
+
+Here's how to define a function called `DoSomething` in Python:
+
+
+<img  width=500px src="func.png">
+
+
+Some key things to notice:
+* We have to start with the keyword `def`, which is short for "define."
+* After the function's name, we have a pair of parentheses. In this example they are empty, but we will see examples of the parentheses having something inside of them.
+* Everything that's underneath `def` and indented is part of the function's *body*, which is the code that runs whenever the function is called.  When you write a line without indentation, that's a signal to Python that the function definition has ended, and you're back to just writing regular code.
+* Anything we've done in regular code we can do in the function body, including assignment statements like `value = 1`.
+* The function ends with the keyword `return` and then an expression.  That expression's value becomes the value of the function call, so `DoSomething()` has value 1.
+
+```{python}
+def DoSomething():
+    value = 1
+    return value
+
+# Back to writing regular code.
+some_calculation = 2 + 2
+DoSomething()
+```
+
+When you run this cell, Python goes from top to bottom.  First it sees the definition of `DoSomething`, so it creates that function.  Then it computes `some_calculation` to be 4.  Then it sees the call to `DoSomething()`.  At that point, it goes to the body of `DoSomething` and starts running, so it sets `value` to 1.  Then it sees `return value`, so the call to `DoSomething` has finished, and `DoSomething()` has value 1.  Since that's the last line in the cell, Jupyter helpfully prints 1.
+
+Notice how we call our function. Just as we have seen before with built-in or imported functions, we write the function's name, and then we write parentheses to call it.  Compare this with the next expression, where we don't call the function.  (We did this earlier in the lab with `max`.)  Notice what Python displays.
+
+```{python}
+# Run this cell.
+DoSomething
+```
+
+This prints a kinda-readable version of the function.  It tells us that it's a function, it tells us where it was defined (in "`__main__`", meaning in your code, not in a module), and it tells us what its name is.  Again, the expression in that cell isn't a function *call* expression, it's just a name expression whose value is the function we defined above.
+
+
+If no `return` is explicitly stated in a function, then calls to the function have no value at all, as in this example:
+
+```{python}
+def useless():
+    value = 1
+```
+
+Here nothing gets printed, because the last line of the cell has no value (like the line `x = 2`).
+
+```{python}
+# Run this cell.
+useless()
+```
+
+Here we get an error, because we're trying to compute the absolute value of nothing (not 0, but nothing at all, which Python calls `None`):
+
+```{python}
+# Run this cell.
+abs(useless())
+```
+
+**Question 2.1.** Run the cell below, and notice it doesn't do anything. Fix it such that the function `eight` returns `8`.
+
+```{python}
+# Fill in the return line in the function.
+def eight():
+    x = 8
+    ...
+eight()
+```
+
+```{python}
+_ = lab08.grade('q21')
+```
+
+## 2.1. Arguments to functions
+So far, our functions haven't take any arguments.  This is unlike most of the built-in or imported functions we've seen.  As a result, our functions have always done exactly the same thing every time we've called them, because we couldn't pass them any information. For example, every time we write `eight()`, that expression has the value `8`. That's cute but pretty useless.
+
+Let's see how to write more useful functions.
+
+To give a function arguments, put a list of names inside the parentheses in its definition, mimicking the way you'd pass arguments when calling the function. Check out the example below.
+
+```{python}
+# Run this cell.
+def addition(x,y):
+    return x + y
+addition(4,5)
+```
+
+When you say `def addition(x,y)`, you're saying: "every time you call `addition`, the first argument will get the name `x` while the code inside this function is running, and the second argument will get the name `y` while the code inside this function is running." So the names `x` and `y` in the line `def addition(x,y)` didn't already have values, and they don't have values outside the function definition. (You can test that by writing `x` or `y` after the last line in the previous cell.) 
+
+We passed in `4` for `x`, and `5` for `y`. Hence, when we ask for the value of `addition(4,5)`, the function returns `9`.
+
+An important thing to know, however, is that Python doesn't check to make sure our arguments make sense.
+
+```{python}
+# Run this cell.
+addition(4, 'a string')
+```
+
+If someone passes in arguments a function isn't designed to deal with, then errors often occur, in exactly the same way that errors occur when values are misused in other kinds of code.  (Just writing `4 + 'a string'` causes the same error you get when you run the cell above.)
+
+
+**Question 2.1.1.** Fill in the implementation of `five_times`, which takes in three arguments and returns 5 times the sum of the arguments. 
+
+```{python}
+# Fill in the function's body.
+def five_times(x, y, z):
+    ...
+five_times(2,3,5)
+```
+
+```{python}
+_ = lab08.grade('q211')
+```
+
+**Question 2.1.2.** Suppose you're estimating something, and you decide that a good way to estimate it is to take a sample of data, average them, multiply that by 3, and add 2.  Define a function below from scratch, which takes an array of numbers as its argument and returns three times the average of the numbers in the array, plus 2.  Call the function `thrice_average_plus_two`.
+
+```{python}
+# Define the thrice_average_plus_two function.
+...
+    ...
+
+# For convenience, here's an example call to your function,
+# which should have value 3*4+2, or 14:
+thrice_average_plus_two(np.arange(0, 10, 2))
+```
+
+```{python}
+_ = lab08.grade('q212')
+```
+
+**Question 2.1.3.** Implement the function `most_followers`, which takes as a single argument a table formatted like `follows` (from your Twitter dataset investigations), and returns the screen name of the person with the most followers.
+
+```{python}
+# Fill in the function's body.
+def most_followers(tbl):
+    ...
+most_followers(follows)
+```
+
+```{python}
+_ = lab08.grade('q213')
+```
+
+## 2.2. `apply`
+
+
+Now that we have the ability to write functions, we can perform powerful computations with Tables.  For example, we can call a function on each column in a table, or on a combination of columns.
+
+Returning to our Twitter data, we might be interested in computing a user's total "connections" as the sum of their followers and friends. We'll use the `apply` function, which works like this: `t.apply(fn, ["Column1", "Column2", ...])`. Given a function `fn`, `apply` calls that function on every row of the table, passing in values from each specified column. Here's an example:
+<img src="apply_example.png">
+
+
+
+In the above diagram, notice how `addition` gets called once for every row of the table. It takes two arguments, and we've told `apply` to give it each user's number of followers as the first argument, and their number of friends as the second argument.
+
+
+**Question 2.2.1.** Using `apply` and your `addition` function from earlier, compute each user's total connections. The result should be an array of length eight.
+
+```{python}
+# Fill in the following line.
+connections = ...
+connections
+```
+
+```{python}
+_ = lab08.grade('q221')
+```

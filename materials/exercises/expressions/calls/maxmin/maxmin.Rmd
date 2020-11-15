@@ -1,0 +1,35 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+## The Middle
+
+
+Suppose that Yulin, another Data 8 student, is tasked with writing code to find the middle of three distinct numbers named `a`, `b`, and `c`. (By “middle” we mean the value that is neither the maximum nor the minimum.) For example, given the values 4, 2, and 7, the code should give back 4.
+
+Yulin has a moment of inspired thought and rapidly types the following into her Jupyter notebook:
+
+```{python}
+a + b + c - max(a, b, c) + min(a, b, c)
+```
+
+Is her code correct?  Why or why not?  If not, make a *simple* change to the cell above to fix it.
+
+*Hint:* Running the cell will produce an error because we haven't defined `a`, `b`, and `c`, but you're free to make any changes you want to test your ideas.  (Please have just 1 line in the cell above in the notebook you submit, though.)
+
+```{python}
+# Run this cell to submit your work *after* you have passed all of the test cells.
+# It's ok to run this cell multiple times. Only your final submission will be scored.
+
+# !TZ=America/Los_Angeles ipython nbconvert --output=".maxmin_$(date +%m%d_%H%M)_submission.html" maxmin.ipynb
+```

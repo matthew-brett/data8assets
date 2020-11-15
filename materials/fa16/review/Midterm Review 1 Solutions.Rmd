@@ -1,0 +1,96 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+The total fertility rate (TFR) is the average number of children that would be born to a woman over her lifetime if:
+
+- She were to experience the exact current age-specific fertility rates (ASFRs) through her lifetime, and
+- She were to survive from birth through the end of her reproductive life.
+
+From `https://en.wikipedia.org/wiki/Total_fertility_rate`
+
+```{python}
+# Run this cell, but please don't change it.
+
+# These lines import the Numpy and Datascience modules.
+import numpy as np
+from datascience import *
+
+# These lines do some fancy plotting magic.
+import matplotlib
+# %matplotlib inline
+import matplotlib.pyplot as plt
+plt.style.use('fivethirtyeight')
+import warnings
+warnings.simplefilter('ignore', FutureWarning)
+```
+
+```{python}
+fert = Table.read_table('fertility.csv')
+fert.sort(1)
+```
+
+```{python}
+
+```
+
+```{python}
+
+```
+
+**Question 1.** The two histograms...
+* Definitely visualize the same thing
+* May or may not visualize the same thing
+* Definitely do not visualize the same thing
+
+**Answer:** They may or may not visualize the same thing.  A histogram is a summary of data, so it doesn't tell you everything about the data.  Even two histograms that look exactly the same may represent different data, as in this example:
+
+```{python}
+Table().with_column("x", [0, 0, 0, 1])      .hist(bins=[-0.5, 0.5, 1.5])
+Table().with_column("x", [0.4, 0.4, 0.4, 1]).hist(bins=[-0.5, 0.5, 1.5])
+```
+
+So we can't be sure they visualize the same data.
+
+On the other hand, it's **sometimes** possible to rule out that two histograms represent the same data.  But we can't do that in this case.
+
+For example, the first 2 bins in the first histogram cover the data from 0 to 6, and the first 3 bins in the second histogram cover the same range.  So the total area of the first 2 bins in histogram 1 should equal the proportion of the data between 0 and 6, and so should the total area of the first 3 bins in histogram 2.  If they don't have the same total area, we can infer that the two histograms don't represent the same data.  But they do.
+
+Technically, we'd have to do similar checks for all other groupings of histograms to be sure that we can't rule out that the histograms represent the same data.  A visual inspection is probably enough, though.
+
+
+**Question 2.** Assuming they do, what proportion of rates are between 0 and 3?
+
+**Answer:** 75%.  We can just look at the first bar in histogram 1, since it covers exactly the range 0 to 3.  Its height is 25% per unit, and its width is 3 units, so its area is 75%.
+
+**Question 3.** Assuming they do, what proportion of rates are between 2 and 3?
+
+**Answer:** 31%.  For this we need to use information from **both histograms** together.
+* We know from histogram 1 that 75% of the stuff is between 0 and 3.  * If we take away the amount of stuff from 0 to 2, then we're left with the amount of stuff from 2 to 3.
+* The first bar in histogram 2 tells us that the amount of stuff from 0 to 2 is 44% (22% per unit times 2 units).
+
+So the proportion of rates between 2 and 3 is 75% - 44%, or 31%.
+
+Note that we had to assume the histograms both represented our data to use them in this way.
+
+**Question 4.** Does the `fert` table contain enough information to compute the global total fertility rate, assuming it has a row for every country?
+
+**Answer:** No.
+
+The global fertility rate is naturally defined as the average fertility *among people*.  (If you imagine forgetting for a moment that we have data about countries, it wouldn't be natural to think about fertility rates for countries when computing the global rate.)  We can't just take an average over *countries'* fertility rates, because that would count countries with lots of people the same as countries with fewer people.  China, with a population of 1.3 billion, should count for a lot more than Bulgaria, with a population of 7.5 million.
+
+We could fix this if we knew the population of each country, but the `fert` table doesn't include a column for that.
+
+```{python}
+
+```

@@ -1,0 +1,105 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+## Differences between Universities, Part II
+
+```{python}
+# Run this cell to set up the notebook, but please don't change it.
+
+import numpy as np
+from datascience import *
+
+# These lines load the tests.
+from client.api.assignment import load_assignment 
+tests = load_assignment('more_universities.ok')
+```
+
+**Question 1.** Suppose you're choosing a university to attend, and you'd like to *quantify* how *dissimilar* any two universities are.  You rate each university you're considering on several numerical traits.  You decide on a very detailed list of 1000 traits, and you measure all of them!  Some examples:
+
+* The cost to attend (per year)
+* The average Yelp review of nearby Thai restaurants
+* The USA Today ranking of the Medical school
+* The USA Today ranking of the Engineering school
+
+You decide that the dissimilarity between two universities is the *total* of the differences in their traits.  That is, the dissimilarity is:
+
+* the **sum** of
+* the absolute values of
+* the 1000 differences in their trait values.
+
+In the next cell, we've loaded arrays containing the 1000 trait values for Stanford and Berkeley.  Compute the dissimilarity (according to the above method) between Stanford and Berkeley.  Call your answer `dissimilarity`.  Use a single line of code to compute the answer.
+
+*Note:* The data we're using aren't real -- we made them up for this exercise, except for the cost-of-attendance numbers, which we estimated for a student from a median-income family living in California using [this tool](http://college-tuition.startclass.com).
+
+```{python}
+stanford = Table.read_table("stanford.csv").column("Trait value")
+berkeley = Table.read_table("berkeley.csv").column("Trait value")
+
+dissimilarity = ...
+dissimilarity
+```
+
+```{python}
+_ = tests.grade('q1')
+```
+
+**Question 2.** Identify all the subexpressions in your answer to the previous question, excluding the whole expression itself.  Write each on its own line.  Before each one, write a one-line comment describing the value of the subexpression, including what type of value it is.  We've written the first one for you.  (It should appear somewhere in your answer to the previous question!)
+
+```{python for_assignment_type=student}
+# An array of 1000 numbers, each a different measured trait of Stanford University.
+stanford
+...
+```
+
+**Question 3.** Why do we sum up the absolute values of the differences in trait values, rather than just summing up the differences?
+
+
+*Write your answer here, replacing this text.*
+
+
+##### Weighing the traits
+After computing dissimilarities between several schools, you notice a problem with your method: the scale of the traits matters a lot.
+
+Since schools cost tens of thousands of dollars to attend, the cost-to-attend trait is always a much bigger *number* than most other traits.  That makes it affect the dissimilarity a lot more than other traits.  Two schools that differ in cost-to-attend by \$900, but are otherwise identical, get a dissimilarity of 900.  But two schools that differ in graduation rate by .9 (a huge difference!), but are otherwise identical, get a dissimilarity of only .9.
+
+One way to fix this problem is to assign different "weights" to different traits.  For example, we could fix the problem above by multiplying the difference in the cost-to-attend traits by .001, so that a difference of \$900 in cost-to-attend results in a dissimilarity of $900 \times .001$, or $.9$.
+
+Here's a revised method that does that for every trait:
+
+1. For each trait, subtract the two schools' trait values.
+2. Then take the absolute value of that difference.
+3. *Now multiply that absolute value by a trait-specific number, like .001 or 2.*
+4. Now sum the 1000 resulting numbers.
+
+**Question 4.** Suppose you've already decided on a weight for each trait.  These are loaded into an array called `weights` in the cell below.  `weights.item(0)` is the weight for the first trait, `weights.item(1)` is the weight for the second trait, and so on.  Use the revised method to compute a revised dissimilarity between Berkeley and Stanford.
+
+*Hint:* Using array arithmetic, your answer should be almost as short as in question 1.
+
+```{python}
+weights = Table.read_table("weights.csv").column("Weight")
+
+revised_dissimilarity = ...
+revised_dissimilarity
+```
+
+```{python}
+_ = tests.grade('q4')
+```
+
+```{python}
+# Run this cell to submit your work *after* you have passed all of the test cells.
+# It's ok to run this cell multiple times. Only your final submission will be scored.
+
+# !TZ=America/Los_Angeles ipython nbconvert --output=".more_universities_$(date +%m%d_%H%M)_submission.html" more_universities.ipynb
+```

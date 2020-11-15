@@ -1,0 +1,175 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+from datascience import *
+import numpy as np
+
+import matplotlib.pyplot as plt
+plt.style.use('fivethirtyeight')
+# %matplotlib inline
+```
+
+## A/B Testing
+
+
+Is there a difference in baby weights for mothers who smoke and mothers who don't?
+
+```{python}
+baby = Table.read_table('http://inferentialthinking.com/notebooks/baby.csv')
+baby.show(3)
+```
+
+```{python}
+baby.group('Maternal Smoker')
+```
+
+```{python}
+weight_bins = np.arange(40, 180, 5)
+baby.where('Maternal Smoker', False).hist('Birth Weight', bins=weight_bins, unit='ounce')
+```
+
+```{python}
+baby.where('Maternal Smoker', True).hist('Birth Weight', bins=weight_bins, unit='ounce')
+```
+
+```{python}
+baby.where('Maternal Smoker', False).bin('Birth Weight', bins=weight_bins).join(
+    'bin', baby.where('Maternal Smoker', True).bin('Birth Weight', bins=weight_bins)
+).relabeled(1, 'Non-Smoker').relabeled(2, 'Smoker').hist(bin_column='bin')
+```
+
+```{python}
+smoke_weight = baby.select(5, 0)
+means = smoke_weight.group(0, np.mean)
+means.column(1).item(0) - means.column(1).item(1)
+```
+
+```{python}
+def difference_in_means(t):
+    means = t.group(0, np.mean)
+    return means.column(1).item(0) - means.column(1).item(1)
+
+difference_in_means(smoke_weight)
+```
+
+```{python}
+def permutation_test_means(table, variable, classes, repetitions, unit=None):
+    """Test whether two numerical samples 
+    come from the same underlying distribution, 
+    using the absolute difference between the means.
+    table: name of table containing the sample
+    variable: label of column containing the numerical variable 
+    classes: label of column containing names of the two samples
+    repetitions: number of random permutations
+    
+    variable -- Label for a numerical variable in table
+    classes -- Label for a two-category (A & B) variable in table
+    """
+    
+    t = table.select(classes, variable)
+    observed = abs(difference_in_means(t))
+    
+    # Assuming the null is true, randomly permute the variable 
+    # and collect all the generated test statistics
+    stats = make_array()
+    for i in np.arange(repetitions):
+        shuffled_var = t.select(variable).sample(with_replacement=False).column(0)
+        shuffled = t.select(classes).with_column('Shuffled Variable', shuffled_var)
+        new_stat = abs(difference_in_means(shuffled))
+        stats = np.append(stats, new_stat)
+    
+    # Find the empirical P-value:
+    p = np.count_nonzero(stats >= observed) / repetitions
+
+    # Draw the empirical histogram of the tvd's generated under the null, 
+    # and compare with the value observed in the original sample
+    Table().with_column('Test Statistic', stats).hist(unit=unit)
+    plt.title('Empirical Distribution Under the Null')
+    print('Observed statistic:', observed)
+    print('Empirical P-value:', p)
+```
+
+```{python}
+permutation_test_means(baby, 'Birth Weight', 'Maternal Smoker', 1000, 'ounce')
+```
+
+## Effect Size
+
+```{python}
+def bootstrap_ci_means(table, variable, classes, repetitions, unit=None):
+    """Bootstrap approximate 95% confidence interval
+    for the difference between the means of the two classes
+    in the population
+    """
+    
+    t = table.select(classes, variable)
+    
+    stats = make_array()
+    for i in np.arange(repetitions):
+        bootstrap_sample = t.sample()
+        new_stat = difference_in_means(bootstrap_sample)
+        stats = np.append(stats, new_stat)
+        
+    left = percentile(2.5, stats)
+    right = percentile(97.5, stats)
+    
+    Table().with_column('Difference Between Means', stats).hist(unit=unit)
+    plt.plot(make_array(left, right), make_array(0, 0), color='yellow', lw=8)
+    print('Approximate 95% CI for the difference between means:')
+    print(left, 'to', right)
+```
+
+```{python}
+bootstrap_ci_means(baby, 'Birth Weight', 'Maternal Smoker', 1000, 'ounce')
+```
+
+```{python}
+baby.show(3)
+```
+
+```{python}
+bootstrap_ci_means(baby, 'Maternal Age', 'Maternal Smoker', 1000, 'ounce')
+```
+
+```{python}
+baby.show(3)
+```
+
+```{python}
+bootstrap_ci_means(baby, 'Maternal Height', 'Maternal Smoker', 1000, 'ounce')
+```
+
+## RCTs
+
+```{python}
+bta = Table.read_table('http://inferentialthinking.com/notebooks/bta.csv')
+bta.show(3)
+```
+
+```{python}
+bta.group('Group', np.mean)
+```
+
+```{python}
+permutation_test_means(bta, 'Result', 'Group', 1000)
+```
+
+```{python}
+bootstrap_ci_means(bta, 'Result', 'Group', 1000)
+```
+
+```{python}
+
+```

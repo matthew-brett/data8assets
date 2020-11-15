@@ -1,0 +1,177 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+import numpy as np
+from datascience import *
+
+# Configure notebook (happens automatically on data8.berkeley.edu)
+# %matplotlib inline
+import matplotlib.pyplot as plt
+plt.style.use('fivethirtyeight')
+
+# Configure for presentation
+np.set_printoptions(threshold=50, linewidth=50)
+import matplotlib as mpl
+mpl.rc('font', size=16)
+```
+
+```{python}
+top = Table.read_table('top_movies.csv')
+top.set_format([2, 3], NumberFormatter).show(3)
+```
+
+## Uniform random sample
+
+```{python}
+top.sample(50).sort('Gross', descending=True).show()
+```
+
+```{python}
+top.sample(50, with_replacement=True).sort('Gross', descending=True).show()
+```
+
+## Dice
+
+```{python}
+die = Table().with_column('Face', [1, 2, 3, 4, 5, 6])
+die
+```
+
+```{python}
+die.hist()
+```
+
+```{python}
+dice_bins = np.arange(0.5, 7, 1)
+die.hist(bins=dice_bins)
+```
+
+```{python}
+die.sample(10, with_replacement=True)
+```
+
+```{python}
+def dice_hist(n):
+    rolls = die.sample(n, with_replacement=True)
+    rolls.hist(bins=dice_bins)
+    
+dice_hist(20)
+```
+
+```{python}
+dice_hist(10000)
+```
+
+## Law of Averages
+
+```{python}
+trips = Table.read_table('trip.csv')
+commute = trips.where(trips.column('Duration') < 1800)
+commute.show(3)
+```
+
+```{python}
+commute.hist('Duration', unit='second', bins=np.arange(0, 1801, 100))
+```
+
+```{python}
+commute.sample(10000).hist('Duration', unit='second', bins=np.arange(0, 1801, 100))
+```
+
+```{python}
+commute.sample(100).hist('Duration', unit='second', bins=np.arange(0, 1801, 100))
+```
+
+## Iteration
+
+```{python}
+for i in np.arange(5):
+    print(i)
+```
+
+```{python}
+for i in np.arange(5):
+    dice_hist(10000)
+```
+
+```{python}
+def roll_once(n):
+    return np.random.randint(1, n+1)
+```
+
+```{python}
+roll_once(6)
+```
+
+```{python}
+rolls = Table(['First roll', 'Second roll'])
+for i in np.arange(1000):
+    row = [roll_once(6), roll_once(6)]
+    rolls.append(row)
+rolls.hist(bins=dice_bins)
+```
+
+## Randomized response
+
+```{python}
+def respond(true_answer):
+    if roll_once(6) >= 5:
+        return not true_answer
+    else:
+        return true_answer
+```
+
+```{python}
+respond(False)
+```
+
+```{python}
+responses = Table(['Truth', 'Response'])
+for i in np.arange(1000):
+    responses.append([False, respond(False)])
+
+responses
+```
+
+```{python}
+responses.group('Response').barh('Response')
+```
+
+## Randomized Response
+
+```{python}
+long = commute.where(commute.column('Duration') > 600).num_rows
+long
+```
+
+```{python}
+p = long / commute.num_rows
+p
+```
+
+```{python}
+bikers = commute.sample(10000).select('Duration')
+truths = bikers.with_column('Truth', bikers.column('Duration') > 600)
+truths
+```
+
+```{python}
+responses = truths.with_column('Response', truths.apply(respond, 'Truth'))
+responses
+```
+
+```{python}
+3 * responses.where('Response', True).num_rows / 10000 - 1
+```

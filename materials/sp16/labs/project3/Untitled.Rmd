@@ -1,0 +1,95 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+import numpy as np
+from datascience import *
+
+# These lines do some fancy plotting magic.
+import matplotlib
+# %matplotlib inline
+import matplotlib.pyplot as plt
+plt.style.use('fivethirtyeight')
+import warnings
+warnings.simplefilter('ignore', FutureWarning)
+```
+
+```{python}
+two_dice = Table(['First', 'Second', 'Chance'])
+for first in np.arange(1, 7):
+    for second in np.arange(1, 7):
+        two_dice.append([first, second, 1/36])
+two_dice.set_format('Chance', PercentFormatter(1))
+```
+
+```{python}
+two_dice_sums = Table(['Sum', 'Chance']).with_rows([
+        [ 2, 1/36], [ 3, 2/36], [ 4, 3/36], [5, 4/36], [6, 5/36], [7, 6/36],
+        [12, 1/36], [11, 2/36], [10, 3/36], [9, 4/36], [8, 5/36],
+    ]).sort(0)
+two_dice_sums.set_format('Chance', PercentFormatter(1))
+```
+
+```{python}
+dice_sums = two_dice.column('First') + two_dice.column('Second')
+sum_of_5 = two_dice.where(dice_sums == 5)
+sum_of_5
+```
+
+```{python}
+sum(sum_of_5.column('Chance'))
+```
+
+```{python}
+def P(event):
+    return sum(event.column('Chance'))
+
+P(sum_of_5)
+```
+
+```{python}
+with_sums = two_dice.with_column('Sum', dice_sums)
+
+```
+
+```{python}
+with_sums.group('Sum')
+```
+
+```{python}
+grouped = with_sums.select(['Sum', 'Chance']).group('Sum', sum)
+grouped.relabeled(1, 'Chance').set_format('Chance', PercentFormatter(1))
+```
+
+```{python}
+P(with_sums.where('Sum', 8))
+```
+
+```{python}
+with_sums.where('Sum', 8)
+```
+
+```{python}
+birth = Table.read_table('birth_time.csv').select(['Time', 'Hour', 'Chance'])
+birth.set_format('Chance', PercentFormatter(1)).show()
+```
+
+```{python}
+1+1
+
+```
+
+```{python}
+
+```

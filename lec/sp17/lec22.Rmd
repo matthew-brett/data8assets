@@ -1,0 +1,232 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.2.4
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python deletable=TRUE, editable=TRUE}
+from datascience import *
+import numpy as np
+
+import matplotlib.pyplot as plots
+plots.style.use('fivethirtyeight')
+# %matplotlib inline
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Percentiles
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+v = [1, 7, 3, 9, 5]
+v
+```
+
+```{python deletable=TRUE, editable=TRUE}
+Table(['Percent', 'Percentile']).with_rows([
+   [ 1, percentile( 1, v)], 
+   [10, percentile(10, v)], 
+   [20, percentile(20, v)], 
+   [39, percentile(39, v)], 
+   [40, percentile(40, v)], 
+   [41, percentile(41, v)], 
+   [50, percentile(50, v)], 
+])
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Estimation
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+sf = Table.read_table('san_francisco_2015.csv').select(3, 11, 21)
+sf.set_format(2, NumberFormatter(0))
+sf = sf.where(2, are.above(10000))
+sf.show(3)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+sf.sort(2)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+sf.sort(2, descending=True)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+comp_bins = np.arange(0, 700000, 25000)
+sf.hist(2, bins=comp_bins, unit='dollar')
+```
+
+```{python deletable=TRUE, editable=TRUE}
+sample_from_population = sf.sample(200, with_replacement=False)
+sample_from_population.show(3)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+np.median(sample.column(2))
+```
+
+```{python deletable=TRUE, editable=TRUE}
+percentile(50, sample.column(2))
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Aside: lists and append
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+s = [2, 3]
+s.append(4)
+s
+```
+
+```{python deletable=TRUE, editable=TRUE}
+a = make_array(2, 3)
+# a.append(4)
+np.append(a, 4)
+a
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Sample variability
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+medians = []
+repetitions = np.arange(100)
+for i in repetitions:
+    sample = sf.sample(200, with_replacement=False)
+    medians.append(np.median(sample.column(2)))
+
+Table().with_columns('i', repetitions, 'median', medians).scatter(0)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+Table().with_columns('median', medians).hist(0)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+percentile(2.5, medians)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+percentile(97.5, medians)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+print("95% of sample medians were between", 
+      percentile(2.5, medians),
+      "and",
+      percentile(97.5, medians))
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Bootstrap
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+sample_from_population # From now on, this is all we have.
+```
+
+```{python deletable=TRUE, editable=TRUE}
+np.median(sample_from_population.column(2))
+```
+
+```{python deletable=TRUE, editable=TRUE}
+resample_1 = sample_from_population.sample()
+resample_1
+```
+
+```{python deletable=TRUE, editable=TRUE}
+np.median(resample_1.column(2))
+```
+
+```{python deletable=TRUE, editable=TRUE}
+resample_2 = sample_from_population.sample()
+np.median(resample_2.column(2))
+```
+
+```{python deletable=TRUE, editable=TRUE}
+resampled_medians = []
+for i in np.arange(1000):
+    resample = sample_from_population.sample()
+    median = np.median(resample.column(2))
+    resampled_medians.append(median)
+    
+Table().with_column('Resampled median', resampled_medians).hist(0)
+```
+
+<!-- #region {"deletable": true, "editable": true} -->
+## Confidence Intervals
+<!-- #endregion -->
+
+```{python deletable=TRUE, editable=TRUE}
+print("95% of resampled medians were between", 
+      percentile(2.5, resampled_medians),
+      "and",
+      percentile(97.5, resampled_medians))
+```
+
+```{python deletable=TRUE, editable=TRUE}
+interval_95 = [percentile(2.5, resampled_medians),
+               percentile(97.5, resampled_medians)]
+
+Table().with_column('Resampled median', resampled_medians).hist(0)
+plots.plot(interval_95, [0, 0], color='gold', lw=5)
+pop_median = np.median(sf.column(2))
+plots.scatter(pop_median, 0, color='red', s=400)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+sample_from_population = sf.sample(200)
+print('Sample median:', np.median(sample_from_population.column(2)))
+```
+
+```{python deletable=TRUE, editable=TRUE}
+resampled_medians = []
+for i in np.arange(1000):
+    resample = sample_from_population.sample()
+    median = np.median(resample.column(2))
+    resampled_medians.append(median)
+    
+interval_95 = [percentile(2.5, resampled_medians),
+               percentile(97.5, resampled_medians)]
+
+Table().with_column('Resampled median', resampled_medians).hist(0)
+plots.plot(interval_95, [0, 0], color='gold', lw=5)
+pop_median = np.median(sf.column(2))
+plots.scatter(pop_median, 0, color='red', s=400)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+intervals = Table(['Lower', 'Upper'])
+
+for j in np.arange(100):
+    sample_from_population = sf.sample(200)
+    resampled_medians = []
+    for i in np.arange(1000):
+        resample = sample_from_population.sample()
+        median = np.median(resample.column(2))
+        resampled_medians.append(median)
+
+    interval_95 = [percentile(2.5, resampled_medians),
+                   percentile(97.5, resampled_medians)]
+
+    intervals.append(interval_95)
+    print(j)
+```
+
+```{python deletable=TRUE, editable=TRUE}
+truth = np.median(sf.column(2))
+correct = intervals.where('Lower', are.not_above(truth)).where('Upper', are.not_below(truth))
+correct.num_rows
+```
